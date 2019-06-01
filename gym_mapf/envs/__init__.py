@@ -11,10 +11,12 @@ def parse_scen_file(scen_file, n_agents):
     starts = []
     goals = []
     with open(scen_file, 'r') as f:
-        for line in f:
-            _, _, x_start, y_start, x_goal, y_goal, _, _, _ = line.split('\t')
-            starts.append((x_start, y_start))
-            goals.append((x_goal, y_goal))
+        lines = iter(f)
+        next(lines)
+        for line in lines:
+            _, _, _, _, x_start, y_start, x_goal, y_goal, _ = line.split('\t')
+            starts.append((int(x_start), int(y_start)))
+            goals.append((int(x_goal), int(y_goal)))
 
     # TODO: implement efficiently.
     return starts[:n_agents], goals[:n_agents]

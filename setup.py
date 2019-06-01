@@ -14,6 +14,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/LevyvoNet/gym-mapf",
     packages=setuptools.find_packages(),
+    test_suite="gym_mapf.tests",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
