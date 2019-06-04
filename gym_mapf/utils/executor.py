@@ -10,11 +10,11 @@ ACTIONS = [UP, RIGHT, DOWN, LEFT]
 
 
 def execute_up(loc):
-    return loc[0] + 1, loc[1]
+    return loc[0] - 1, loc[1]
 
 
 def execute_down(loc):
-    return loc[0] - 1, loc[1]
+    return loc[0] + 1, loc[1]
 
 
 def execute_right(loc):
@@ -49,4 +49,4 @@ def execute_action(s, a):
         exec_func = ACTION_TO_FUNC[single_action]
         new_state.agent_locations[i] = exec_func(new_state.agent_locations[i])
 
-    return s
+    return new_state
