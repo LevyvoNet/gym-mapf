@@ -14,6 +14,7 @@ CHAR_TO_CELL = {
 
 
 class MapfGrid:
+    # TODO: inject the map_file data in another way, make this c'tor independent on the file system
     def __init__(self, map_file):
         self._map = []
         with open(map_file, 'r') as f:

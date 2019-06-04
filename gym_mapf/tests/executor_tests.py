@@ -16,6 +16,9 @@ class ExecutorTest(unittest.TestCase):
         new_state = execute_action(s, (RIGHT, UP))
         self.assertEqual(new_state.agent_locations, [(0, 1), (6, 7)])
 
+        new_state = execute_action(s, (DOWN, LEFT))
+        self.assertEqual(new_state.agent_locations, [(1, 0), (7, 6)])
+        
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
