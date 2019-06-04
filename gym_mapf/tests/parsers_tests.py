@@ -11,14 +11,14 @@ class ParsersTest(unittest.TestCase):
         map_file_path = os.path.abspath(os.path.join(__file__, '../../maps/empty-8-8/empty-8-8.map'))
         grid = MapfGrid(map_file_path)
 
-        self.assertTrue(grid[(0, 0)] is EmptyCell)
-        self.assertTrue(grid[(1, 1)] is EmptyCell)
-        self.assertTrue(grid[(0, 1)] is EmptyCell)
-        self.assertTrue(grid[(2, 1)] is EmptyCell)
-        self.assertTrue(grid[(7, 7)] is EmptyCell)
+        self.assertTrue(grid[0, 0] is EmptyCell)
+        self.assertTrue(grid[1, 1] is EmptyCell)
+        self.assertTrue(grid[0, 1] is EmptyCell)
+        self.assertTrue(grid[2, 1] is EmptyCell)
+        self.assertTrue(grid[7, 7] is EmptyCell)
 
         with self.assertRaises(IndexError):
-            grid[(8, 1)]
+            grid[8, 1]
 
     def test_scen_parser_emtpy_8_8(self):
         scen_file_path = os.path.abspath(os.path.join(__file__, '../../maps/empty-8-8/empty-8-8-even-1.scen'))

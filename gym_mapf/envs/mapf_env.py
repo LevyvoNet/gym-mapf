@@ -11,6 +11,8 @@ from gym_mapf.utils.grid import (MapfGrid, ObstacleCell)
 from gym_mapf.utils.state import MapfState
 from collections import Counter
 
+from gym.envs.toy_text import FrozenLakeEnv
+
 POSSIBILITIES = {
     UP: (RIGHT, LEFT),
     DOWN: (LEFT, RIGHT),
@@ -100,7 +102,7 @@ class MapfEnv(DiscreteEnv):
     def __init__(self, map_file, scen_file):
         map_file = map_file
         scen_file = scen_file
-        n_agents = 10
+        n_agents = 2
         right_fail = 0.1
         left_fail = 0.1
 
@@ -116,7 +118,11 @@ class MapfEnv(DiscreteEnv):
 
     def reset(self):
         self.lastaction = None
-        return MapfState(self.grid, self.agent_starts)
+        self.s = MapfState(self.grid, self.agent_starts)
+        return self.s
+
+    def render(self, mode='human'):
+        raise NotImplementedError()
 
 # class BerlinEnvImp2(gym.envs.Env):
 #     """

@@ -26,9 +26,15 @@ class MapfGrid:
                 new_line = [CHAR_TO_CELL[char] for char in line]
                 self._map.append(new_line)
 
-    def __getitem__(self, item):
-        row, col = item
-        return self._map[row][col]
+    def __getitem__(self, *args):
+        if type(args[0]) == int:
+            return self._map[args[0]]
+
+        ret = self._map
+        for arg in args[0]:
+            ret = ret[arg]
+
+        return ret
 
     def __iter__(self):
         return iter(self._map)
