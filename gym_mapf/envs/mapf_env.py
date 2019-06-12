@@ -32,23 +32,28 @@ class StateToActionGetter:
 
     def get_possible_actions(self, a):
         if len(a) == 1:
-            right, left = POSSIBILITIES[a]
+            right, left = POSSIBILITIES[a[0]]
             return [
-                (self.right_fail, right),
-                (self.left_fail, left),
+                (self.right_fail, (right,)),
+                (self.left_fail, (left,)),
                 (1.0 - self.right_fail - self.left_fail, a)
             ]
 
         head, *tail = a
+        tail = tuple(tail)
         right, left = POSSIBILITIES[head]
         res = []
         for prob, noised_action in self.get_possible_actions(tail):
+            import ipdb
+            ipdb.set_trace()
             res += [
-                (self.right_fail * prob, right + noised_action),  # The first action noised to right
-                (self.left_fail * prob, left + noised_action),  # The first action noised to left
-                ((1.0 - self.right_fail - self.left_fail) * prob, head + noised_action)
+                (self.right_fail * prob, (right,) + noised_action),  # The first action noised to right
+                (self.left_fail * prob, (left,) + noised_action),  # The first action noised to left
+                ((1.0 - self.right_fail - self.left_fail) * prob, (head,) + noised_action)
                 # The first action remained the same
             ]
+
+        return res
 
     def calc_transition_reward(self, original_state, action, new_state):
         loc_count = Counter(new_state.agent_locations)
@@ -68,6 +73,8 @@ class StateToActionGetter:
         return 0.0, False
 
     def __getitem__(self, a):
+        import ipdb
+        ipdb.set_trace()
         transitions = []
         for prob, noised_action in self.get_possible_actions(a):
             new_state = execute_action(self.s, noised_action)
@@ -99,26 +106,27 @@ class MapfEnv(DiscreteEnv):
         def __getitem__(self, s):
             return
 
-    def __init__(self, map_file, scen_file):
-        map_file = map_file
-        scen_file = scen_file
-        n_agents = 2
+    def __init__(self, grid, agents_starts, agents_goals):
+        if len(agents_starts) != len(agents_goals):
+            raise Exception("Illegal Arguments - agents starts and goals must have the same length")
+
         right_fail = 0.1
         left_fail = 0.1
 
-        self.grid = MapfGrid(map_file)
-        self.agent_starts, agents_goals = parse_scen_file(scen_file, n_agents)
+        self.grid = grid
+        self.agents_starts, agents_goals = agents_starts, agents_goals
+        n_agents = len(agents_starts)
 
         nS = len(self.grid) * len(self.grid[0]) * n_agents  # each agent may be in each of the cells.
         nA = n_agents ** len(ACTIONS)
-        P = StateGetter(self.grid, self.agent_starts, agents_goals, right_fail, left_fail)
+        P = StateGetter(self.grid, self.agents_starts, agents_goals, right_fail, left_fail)
         isd = [1.0] + [0.0] * (nS - 1)  # irrelevant.
 
         super().__init__(nS, nA, P, isd)
 
     def reset(self):
         self.lastaction = None
-        self.s = MapfState(self.grid, self.agent_starts)
+        self.s = MapfState(self.grid, self.agents_starts)
         return self.s
 
     def render(self, mode='human'):
