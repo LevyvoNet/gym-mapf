@@ -58,10 +58,6 @@ class StateToActionGetter:
         if len([x for x in loc_count.values() if x > 1]) != 0:  # clash between two agents.
             return -1.0, True
 
-        for loc in new_state.agent_locations:
-            if new_state.map[loc] is ObstacleCell:  # agent hit an obstacle.
-                return -1.0, True
-
         all_in_goal = all([loc == self.agent_goals[i]
                            for i, loc in enumerate(new_state.agent_locations)])
 
@@ -72,6 +68,7 @@ class StateToActionGetter:
 
     def __getitem__(self, a):
         transitions = []
+        # TODO: sum the probabilities for equal states
         for prob, noised_action in self.get_possible_actions(a):
             new_state = execute_action(self.s, noised_action)
             reward, done = self.calc_transition_reward(self.s, a, new_state)
@@ -97,6 +94,7 @@ class StateGetter:
                                    s)
 
 
+# TODO: when one of the agents reaches the goal it should stop moving.
 class MapfEnv(DiscreteEnv):
     class StateGetter:
         def __getitem__(self, s):

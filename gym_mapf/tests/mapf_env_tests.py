@@ -10,6 +10,13 @@ from gym_mapf.envs import parse_scen_file
 
 class MapfEnvTest(unittest.TestCase):
     def test_transition_function_empty_grid(self):
+        """Assert the basic steps are done right.
+
+        * Define an empty 8x8 environment with two agents starting at (0,0),(7,7) and desire to reach (0,2),(5,7).
+        * Perform one (RIGHT, UP) step and assert that the transitions are correct.
+        * Perform another (RIGHT, UP) step from the most probable next state from before ((0,1), (6,7)) and assert
+            that the transitions are correct again, including the terminal one.
+        """
         map_file_path = os.path.abspath(os.path.join(__file__, '../../maps/empty-8-8/empty-8-8.map'))
         # scen_file_path = os.path.abspath(os.path.join(__file__, '../../maps/empty-8-8/empty-8-8-even-1.scen'))
         grid = MapfGrid(map_file_path)
@@ -49,6 +56,19 @@ class MapfEnvTest(unittest.TestCase):
             (0.01, MapfState(grid, [(0, 1), (6, 7)]), 0.0, False),  # (UP, RIGHT)
             (0.01, MapfState(grid, [(0, 1), (6, 6)]), 0.0, False)  # (UP, LEFT)
         })
+
+    def test_colliding_agents_state_is_terminal_and_negative_reward(self):
+        map_file_path = os.path.abspath(os.path.join(__file__, '../../maps/empty-8-8/empty-8-8.map'))
+        # scen_file_path = os.path.abspath(os.path.join(__file__, '../../maps/empty-8-8/empty-8-8-even-1.scen'))
+        grid = MapfGrid(map_file_path)
+
+        # agents are starting a
+        agent_starts, agents_goals = [(0, 0), (0, 2)], [(7, 7), (5, 5)]
+        env = MapfEnv(grid, agent_starts, agents_goals)
+        transitions = [(round(prob, 2), next_state, reward, done)
+                       for (prob, next_state, reward, done) in env.P[env.s][(RIGHT, LEFT)]]
+
+        self.assertIn((0.64, MapfState(grid, [(0, 1), (0, 1)]), -1.0, True), set(transitions))
 
 
 if __name__ == '__main__':
