@@ -41,3 +41,10 @@ class MapfGrid:
 
     def __len__(self):
         return len(self._map)
+
+    def __eq__(self, other):
+        return self._map == other._map
+
+    def __hash__(self):
+        # TODO: fix it someday.
+        return 1

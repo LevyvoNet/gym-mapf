@@ -17,7 +17,7 @@ POSSIBILITIES = {
     UP: (RIGHT, LEFT),
     DOWN: (LEFT, RIGHT),
     LEFT: (UP, DOWN),
-    RIGHT: (DOWN, LEFT)
+    RIGHT: (DOWN, UP)
 }
 
 
@@ -44,8 +44,6 @@ class StateToActionGetter:
         right, left = POSSIBILITIES[head]
         res = []
         for prob, noised_action in self.get_possible_actions(tail):
-            import ipdb
-            ipdb.set_trace()
             res += [
                 (self.right_fail * prob, (right,) + noised_action),  # The first action noised to right
                 (self.left_fail * prob, (left,) + noised_action),  # The first action noised to left
@@ -73,8 +71,6 @@ class StateToActionGetter:
         return 0.0, False
 
     def __getitem__(self, a):
-        import ipdb
-        ipdb.set_trace()
         transitions = []
         for prob, noised_action in self.get_possible_actions(a):
             new_state = execute_action(self.s, noised_action)
