@@ -18,10 +18,10 @@ class MapfEnvTest(unittest.TestCase):
         agent_starts, agents_goals = [(0, 0), (7, 7)], [(0, 2), (5, 7)]
         env = MapfEnv(grid, agent_starts, agents_goals)
 
-        transition_function = [(round(prob, 2), next_state, reward, done)
-                               for (prob, next_state, reward, done) in env.P[env.s][(RIGHT, UP)]]
+        first_step_transitions = [(round(prob, 2), next_state, reward, done)
+                                  for (prob, next_state, reward, done) in env.P[env.s][(RIGHT, UP)]]
 
-        self.assertEqual(set(transition_function), {
+        self.assertEqual(set(first_step_transitions), {
             (0.64, MapfState(grid, [(0, 1), (6, 7)]), 0.0, False),  # (RIGHT, UP)
             (0.08, MapfState(grid, [(1, 0), (6, 7)]), 0.0, False),  # (DOWN, UP)
             (0.08, MapfState(grid, [(0, 0), (6, 7)]), 0.0, False),  # (UP, UP)
@@ -31,6 +31,23 @@ class MapfEnvTest(unittest.TestCase):
             (0.01, MapfState(grid, [(1, 0), (7, 6)]), 0.0, False),  # (DOWN, LEFT)
             (0.01, MapfState(grid, [(0, 0), (7, 7)]), 0.0, False),  # (UP, RIGHT)
             (0.01, MapfState(grid, [(0, 0), (7, 6)]), 0.0, False)  # (UP, LEFT)
+        })
+
+        wish_state = MapfState(grid, [(0, 1), (6, 7)])
+        second_step_transitions = [(round(prob, 2), next_state, reward, done)
+                                   for (prob, next_state, reward, done) in env.P[wish_state][(RIGHT, UP)]]
+
+        # [(0,0), (7,7)]
+        self.assertEqual(set(second_step_transitions), {
+            (0.64, MapfState(grid, [(0, 2), (5, 7)]), 1.0, True),  # (RIGHT, UP)
+            (0.08, MapfState(grid, [(1, 1), (5, 7)]), 0.0, False),  # (DOWN, UP)
+            (0.08, MapfState(grid, [(0, 1), (5, 7)]), 0.0, False),  # (UP, UP)
+            (0.08, MapfState(grid, [(0, 2), (6, 7)]), 0.0, False),  # (RIGHT, RIGHT)
+            (0.08, MapfState(grid, [(0, 2), (6, 6)]), 0.0, False),  # (RIGHT, LEFT)
+            (0.01, MapfState(grid, [(1, 1), (6, 7)]), 0.0, False),  # (DOWN, RIGHT)
+            (0.01, MapfState(grid, [(1, 1), (6, 6)]), 0.0, False),  # (DOWN, LEFT)
+            (0.01, MapfState(grid, [(0, 1), (6, 7)]), 0.0, False),  # (UP, RIGHT)
+            (0.01, MapfState(grid, [(0, 1), (6, 6)]), 0.0, False)  # (UP, LEFT)
         })
 
 
