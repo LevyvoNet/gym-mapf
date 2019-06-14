@@ -20,6 +20,18 @@ class ParsersTest(unittest.TestCase):
         with self.assertRaises(IndexError):
             grid[8, 1]
 
+    def test_map_parser_berlin_1_256(self):
+        map_file_path = os.path.abspath(os.path.join(__file__, '../../maps/Berlin_1_256/Berlin_1_256.map'))
+        grid = MapfGrid(map_file_path)
+
+        self.assertTrue(grid[0, 0] is EmptyCell)
+        self.assertTrue(grid[0, 104] is EmptyCell)
+        self.assertTrue(grid[0, 105] is ObstacleCell)
+        self.assertTrue(grid[0, 106] is ObstacleCell)
+        self.assertTrue(grid[0, 107] is ObstacleCell)
+        self.assertTrue(grid[0, 108] is ObstacleCell)
+        self.assertTrue(grid[0, 109] is EmptyCell)
+
     def test_scen_parser_emtpy_8_8(self):
         scen_file_path = os.path.abspath(os.path.join(__file__, '../../maps/empty-8-8/empty-8-8-even-1.scen'))
         agents_starts, agents_goals = parse_scen_file(scen_file_path, 4)
