@@ -65,8 +65,6 @@ def execute_action(s, a):
     Return:
         MapfState. representation of the new state
     """
-    # TODO: support stay action
-    # TODO: if collide with an obstacle should remain in place.
     new_state = copy.deepcopy(s)
     for i, single_action in enumerate(a):
         exec_func = ACTION_TO_FUNC[single_action]

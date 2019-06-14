@@ -14,7 +14,6 @@ CHAR_TO_CELL = {
 
 
 class MapfGrid:
-    # TODO: inject the map_file data in another way, make this c'tor independent on the file system
     def __init__(self, map_lines):
         self._map = []
         for line in map_lines:
@@ -42,5 +41,5 @@ class MapfGrid:
         return self._map == other._map
 
     def __hash__(self):
-        # TODO: fix it someday.
+        # TODO: do better someday.
         return 1
