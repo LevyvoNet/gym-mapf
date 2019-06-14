@@ -13,6 +13,8 @@ CHAR_TO_CELL = {
 }
 
 
+
+
 class MapfGrid:
     def __init__(self, map_lines):
         self._map = []
