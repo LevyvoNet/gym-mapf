@@ -15,16 +15,12 @@ CHAR_TO_CELL = {
 
 class MapfGrid:
     # TODO: inject the map_file data in another way, make this c'tor independent on the file system
-    def __init__(self, map_file):
+    def __init__(self, map_lines):
         self._map = []
-        with open(map_file, 'r') as f:
-            lines = iter(f)
-            for _ in range(4):  # skip first 4 lines
-                next(lines)
-            for line in lines:
-                line = line.strip()
-                new_line = [CHAR_TO_CELL[char] for char in line]
-                self._map.append(new_line)
+        for line in map_lines:
+            line = line.strip()
+            new_line = [CHAR_TO_CELL[char] for char in line]
+            self._map.append(new_line)
 
     def __getitem__(self, *args):
         if type(args[0]) == int:

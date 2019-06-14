@@ -5,7 +5,7 @@ from gym_mapf.utils.executor import UP, DOWN, LEFT, RIGHT
 from gym_mapf.envs.mapf_env import MapfEnv
 from gym_mapf.utils.grid import MapfGrid
 from gym_mapf.utils.state import MapfState
-from gym_mapf.envs import parse_scen_file
+from gym_mapf.envs import parse_map_file
 
 
 class MapfEnvTest(unittest.TestCase):
@@ -18,8 +18,7 @@ class MapfEnvTest(unittest.TestCase):
             that the transitions are correct again, including the terminal one.
         """
         map_file_path = os.path.abspath(os.path.join(__file__, '../../maps/empty-8-8/empty-8-8.map'))
-        # scen_file_path = os.path.abspath(os.path.join(__file__, '../../maps/empty-8-8/empty-8-8-even-1.scen'))
-        grid = MapfGrid(map_file_path)
+        grid = MapfGrid(parse_map_file(map_file_path))
 
         # agents are starting a
         agent_starts, agents_goals = [(0, 0), (7, 7)], [(0, 2), (5, 7)]
@@ -59,8 +58,7 @@ class MapfEnvTest(unittest.TestCase):
 
     def test_colliding_agents_state_is_terminal_and_negative_reward(self):
         map_file_path = os.path.abspath(os.path.join(__file__, '../../maps/empty-8-8/empty-8-8.map'))
-        # scen_file_path = os.path.abspath(os.path.join(__file__, '../../maps/empty-8-8/empty-8-8-even-1.scen'))
-        grid = MapfGrid(map_file_path)
+        grid = MapfGrid(parse_map_file(map_file_path))
 
         # agents are starting a
         agent_starts, agents_goals = [(0, 0), (0, 2)], [(7, 7), (5, 5)]

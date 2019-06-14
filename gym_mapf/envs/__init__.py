@@ -20,3 +20,20 @@ def parse_scen_file(scen_file, n_agents):
 
     # TODO: implement efficiently.
     return starts[:n_agents], goals[:n_agents]
+
+
+# def parse_map_file(map_file):
+#     with open(map_file, 'r') as f:
+#         lines = iter(f)
+#         for _ in range(4):  # skip first 4 lines
+#             next(lines)
+#
+#         while lines:
+#             yield lines
+
+
+def parse_map_file(map_file):
+    with open(map_file, 'r') as f:
+        lines = f.readlines()
+
+    return lines[4:]
