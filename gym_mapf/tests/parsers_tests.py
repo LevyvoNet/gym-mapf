@@ -5,7 +5,6 @@ from gym_mapf.envs import parse_scen_file
 from gym_mapf.utils.grid import MapfGrid, EmptyCell, ObstacleCell
 
 
-# TODO: test maps with obstacles.
 class ParsersTest(unittest.TestCase):
     def test_map_parser_empty_8_8(self):
         map_file_path = os.path.abspath(os.path.join(__file__, '../../maps/empty-8-8/empty-8-8.map'))

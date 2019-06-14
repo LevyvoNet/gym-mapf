@@ -5,19 +5,18 @@ from gym_mapf.utils.executor import (UP,
                                      DOWN,
                                      RIGHT,
                                      LEFT,
+                                     STAY,
                                      ACTIONS,
                                      execute_action)
-from gym_mapf.utils.grid import (MapfGrid, ObstacleCell)
 from gym_mapf.utils.state import MapfState
 from collections import Counter
-
-from gym.envs.toy_text import FrozenLakeEnv
 
 POSSIBILITIES = {
     UP: (RIGHT, LEFT),
     DOWN: (LEFT, RIGHT),
     LEFT: (UP, DOWN),
-    RIGHT: (DOWN, UP)
+    RIGHT: (DOWN, UP),
+    STAY: (STAY, STAY)
 }
 
 

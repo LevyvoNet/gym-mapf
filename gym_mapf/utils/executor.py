@@ -5,8 +5,9 @@ UP = 'UP'
 RIGHT = 'RIGHT'
 DOWN = 'DOWN'
 LEFT = 'LEFT'
+STAY = 'STAY'
 
-ACTIONS = [UP, RIGHT, DOWN, LEFT]
+ACTIONS = [UP, RIGHT, DOWN, LEFT, STAY]
 
 
 def execute_up(loc, map_height, map_width):
@@ -25,11 +26,16 @@ def execute_left(loc, map_height, map_width):
     return loc[0], max(0, loc[1] - 1)
 
 
+def execute_stay(loc, *args):
+    return loc
+
+
 ACTION_TO_FUNC = {
     UP: execute_up,
     DOWN: execute_down,
     RIGHT: execute_right,
-    LEFT: execute_left
+    LEFT: execute_left,
+    STAY: execute_stay
 }
 
 
