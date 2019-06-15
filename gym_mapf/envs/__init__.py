@@ -13,13 +13,14 @@ def parse_scen_file(scen_file, n_agents):
     with open(scen_file, 'r') as f:
         lines = iter(f)
         next(lines)
-        for line in lines:
+        for i, line in enumerate(lines):
             _, _, _, _, x_start, y_start, x_goal, y_goal, _ = line.split('\t')
             starts.append((int(x_start), int(y_start)))
             goals.append((int(x_goal), int(y_goal)))
+            if i == n_agents - 1:
+                break
 
-    # TODO: implement efficiently.
-    return starts[:n_agents], goals[:n_agents]
+    return starts, goals
 
 
 # def parse_map_file(map_file):
