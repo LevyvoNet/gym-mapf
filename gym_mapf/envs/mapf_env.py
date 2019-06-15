@@ -1,5 +1,3 @@
-from gym_mapf.envs import parse_scen_file
-
 from gym.envs.toy_text.discrete import DiscreteEnv
 from gym_mapf.utils.executor import (UP,
                                      DOWN,
@@ -10,6 +8,13 @@ from gym_mapf.utils.executor import (UP,
                                      execute_action)
 from gym_mapf.utils.state import MapfState
 from collections import Counter
+from gym_mapf.utils.grid import EmptyCell, ObstacleCell
+from colorama import Fore, init
+
+CELL_TO_CHAR = {
+    EmptyCell: '.',
+    ObstacleCell: ''
+}
 
 POSSIBILITIES = {
     UP: (RIGHT, LEFT),
@@ -107,7 +112,7 @@ class MapfEnv(DiscreteEnv):
         left_fail = 0.1
 
         self.grid = grid
-        self.agents_starts, agents_goals = agents_starts, agents_goals
+        self.agents_starts, self.agents_goals = agents_starts, agents_goals
         n_agents = len(agents_starts)
 
         nS = len(self.grid) * len(self.grid[0]) * n_agents  # each agent may be in each of the cells.
@@ -123,7 +128,21 @@ class MapfEnv(DiscreteEnv):
         return self.s
 
     def render(self, mode='human'):
-        raise NotImplementedError()
+        init(autoreset=True)
+
+        for i in range(len(self.grid)):
+            for j in range(len(self.grid[0])):
+                if (i, j) in self.s.agent_locations:
+                    char = str(self.s.agent_locations.index((i, j)))
+                else:
+                    char = CELL_TO_CHAR[self.grid[i, j]]
+
+                if (i, j) in self.agents_goals:
+                    print(Fore.GREEN + char, end='')
+                else:
+                    print(char, end='')
+
+            print('')  # newline
 
 # class BerlinEnvImp2(gym.envs.Env):
 #     """
