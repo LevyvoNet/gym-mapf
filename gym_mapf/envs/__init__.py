@@ -1,3 +1,18 @@
+import os
+from gym_mapf.envs.mapf_env import MapfEnv
+from gym_mapf.utils.grid import MapfGrid
+
+EMPTY_8_8_MAP_FILE = os.path.abspath(os.path.join(__file__, '../../maps/empty-8-8/empty-8-8.map'))
+EMPTY_8_8_SCEN_FILE = os.path.abspath(os.path.join(__file__, '../../maps/empty-8-8/empty-8-8-even-1.scen'))
+BERLIN_1_256_MAP_FILE = os.path.abspath(os.path.join(__file__, '../../maps/Berlin_1_256/Berlin_1_256.map'))
+BERLIN_1_256_SCEN_FILE = os.path.abspath(os.path.join(__file__, '../../maps/Berlin_1_256/Berlin_1_256-even-1.scen'))
+MAP_NAME_TO_FILES = {
+    'empty-8-8': (EMPTY_8_8_MAP_FILE, EMPTY_8_8_SCEN_FILE),
+    'berlin-1-256': (BERLIN_1_256_MAP_FILE, BERLIN_1_256_SCEN_FILE)
+
+}
+
+
 def parse_scen_file(scen_file, n_agents):
     """Return the agent start locations and the goal locations.
 
@@ -23,18 +38,18 @@ def parse_scen_file(scen_file, n_agents):
     return starts, goals
 
 
-# def parse_map_file(map_file):
-#     with open(map_file, 'r') as f:
-#         lines = iter(f)
-#         for _ in range(4):  # skip first 4 lines
-#             next(lines)
-#
-#         while lines:
-#             yield lines
-
-
 def parse_map_file(map_file):
     with open(map_file, 'r') as f:
         lines = f.readlines()
 
     return lines[4:]
+
+
+def create_mapf_env(map_name, n_agents):
+    map_file, scen_file = MAP_NAME_TO_FILES[map_name]
+    grid = MapfGrid(parse_map_file(map_file))
+    agents_starts, agents_goals = parse_scen_file(scen_file, n_agents)
+
+    env = MapfEnv(grid, agents_starts, agents_goals)
+
+    return env
