@@ -4,7 +4,7 @@ import os
 from gym_mapf.utils.grid import MapfGrid
 from gym_mapf.utils.state import MapfState
 from gym_mapf.utils.executor import UP, DOWN, LEFT, RIGHT, STAY, execute_action
-from gym_mapf.envs import parse_map_file
+from gym_mapf.envs.utils import parse_map_file
 
 
 # TODO: Make this test not depend on the file system.

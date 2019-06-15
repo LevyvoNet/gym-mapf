@@ -12,6 +12,7 @@ from gym_mapf.utils.state import MapfState
 from collections import Counter
 from gym_mapf.utils.grid import EmptyCell, ObstacleCell
 from colorama import Fore
+from gym_mapf.envs import REWARD_OF_GOAL, REWARD_OF_CLASH, REWARD_OF_LIVING
 
 CELL_TO_CHAR = {
     EmptyCell: '.',
@@ -62,16 +63,16 @@ class StateToActionGetter:
     def calc_transition_reward(self, original_state, action, new_state):
         loc_count = Counter(new_state.agent_locations)
         if len([x for x in loc_count.values() if x > 1]) != 0:  # clash between two agents.
-            return -1000.0, True
+            return REWARD_OF_CLASH, True
 
         goals = [loc == self.agent_goals[i]
                  for i, loc in enumerate(new_state.agent_locations)]
         all_in_goal = all(goals)
 
         if all_in_goal:
-            return 100.0 * len(goals), True
+            return REWARD_OF_GOAL, True
 
-        return -5.0, False
+        return REWARD_OF_LIVING, False
 
     def __getitem__(self, a):
         transitions = []
@@ -146,8 +147,8 @@ class MapfEnv(DiscreteEnv):
         self.action_space = spaces.Tuple([SingleActionSpace()] * n_agents)
         self.observation_space = spaces.Tuple(
             [spaces.Tuple(
-                spaces.Discrete(len(self.grid)),
-                spaces.Discrete(len(self.grid[0])))] * n_agents)
+                [spaces.Discrete(len(self.grid)),
+                 spaces.Discrete(len(self.grid[0]))])] * n_agents)
 
         self.seed()
         self.reset()
