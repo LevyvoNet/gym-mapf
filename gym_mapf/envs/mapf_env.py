@@ -144,7 +144,10 @@ class MapfEnv(DiscreteEnv):
         self.lastaction = None  # for rendering
 
         self.action_space = spaces.Tuple([SingleActionSpace()] * n_agents)
-        self.observation_space = spaces.Discrete(self.nS)
+        self.observation_space = spaces.Tuple(
+            [spaces.Tuple(
+                spaces.Discrete(len(self.grid)),
+                spaces.Discrete(len(self.grid[0])))] * n_agents)
 
         self.seed()
         self.reset()
