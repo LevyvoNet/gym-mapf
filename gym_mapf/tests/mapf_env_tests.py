@@ -1,12 +1,10 @@
 import unittest
 import os
 
-from gym_mapf.utils.executor import UP, DOWN, LEFT, RIGHT, STAY
 from gym_mapf.envs.mapf_env import MapfEnv
-from gym_mapf.utils.grid import MapfGrid
-from gym_mapf.utils.state import MapfState
-from gym_mapf.envs import REWARD_OF_CLASH, REWARD_OF_LIVING, REWARD_OF_GOAL
+from gym_mapf.mapf.grid import MapfGrid
 from gym_mapf.envs.utils import parse_map_file
+from gym_mapf.envs import *
 
 
 class MapfEnvTest(unittest.TestCase):
@@ -22,39 +20,41 @@ class MapfEnvTest(unittest.TestCase):
         grid = MapfGrid(parse_map_file(map_file_path))
 
         # agents are starting a
-        agent_starts, agents_goals = [(0, 0), (7, 7)], [(0, 2), (5, 7)]
+        agent_starts, agents_goals = ((0, 0), (7, 7)), ((0, 2), (5, 7))
         env = MapfEnv(grid, agent_starts, agents_goals)
+        import ipdb;
+        ipdb.set_trace()
 
         first_step_transitions = [(round(prob, 2), next_state, reward, done)
                                   for (prob, next_state, reward, done) in env.P[env.s][(RIGHT, UP)]]
 
         self.assertEqual(set(first_step_transitions), {
-            (0.64, MapfState(grid, [(0, 1), (6, 7)]), REWARD_OF_LIVING, False),  # (RIGHT, UP)
-            (0.08, MapfState(grid, [(1, 0), (6, 7)]), REWARD_OF_LIVING, False),  # (DOWN, UP)
-            (0.08, MapfState(grid, [(0, 0), (6, 7)]), REWARD_OF_LIVING, False),  # (UP, UP)
-            (0.08, MapfState(grid, [(0, 1), (7, 7)]), REWARD_OF_LIVING, False),  # (RIGHT, RIGHT)
-            (0.08, MapfState(grid, [(0, 1), (7, 6)]), REWARD_OF_LIVING, False),  # (RIGHT, LEFT)
-            (0.01, MapfState(grid, [(1, 0), (7, 7)]), REWARD_OF_LIVING, False),  # (DOWN, RIGHT)
-            (0.01, MapfState(grid, [(1, 0), (7, 6)]), REWARD_OF_LIVING, False),  # (DOWN, LEFT)
-            (0.01, MapfState(grid, [(0, 0), (7, 7)]), REWARD_OF_LIVING, False),  # (UP, RIGHT)
-            (0.01, MapfState(grid, [(0, 0), (7, 6)]), REWARD_OF_LIVING, False)  # (UP, LEFT)
+            (0.64, ((0, 1), (6, 7)), REWARD_OF_LIVING, False),  # (RIGHT, UP)
+            (0.08, ((1, 0), (6, 7)), REWARD_OF_LIVING, False),  # (DOWN, UP)
+            (0.08, ((0, 0), (6, 7)), REWARD_OF_LIVING, False),  # (UP, UP)
+            (0.08, ((0, 1), (7, 7)), REWARD_OF_LIVING, False),  # (RIGHT, RIGHT)
+            (0.08, ((0, 1), (7, 6)), REWARD_OF_LIVING, False),  # (RIGHT, LEFT)
+            (0.01, ((1, 0), (7, 7)), REWARD_OF_LIVING, False),  # (DOWN, RIGHT)
+            (0.01, ((1, 0), (7, 6)), REWARD_OF_LIVING, False),  # (DOWN, LEFT)
+            (0.01, ((0, 0), (7, 7)), REWARD_OF_LIVING, False),  # (UP, RIGHT)
+            (0.01, ((0, 0), (7, 6)), REWARD_OF_LIVING, False)  # (UP, LEFT)
         })
 
-        wish_state = MapfState(grid, [(0, 1), (6, 7)])
+        wish_state = ((0, 1), (6, 7))
         second_step_transitions = [(round(prob, 2), next_state, reward, done)
                                    for (prob, next_state, reward, done) in env.P[wish_state][(RIGHT, UP)]]
 
         # [(0,0), (7,7)]
         self.assertEqual(set(second_step_transitions), {
-            (0.64, MapfState(grid, [(0, 2), (5, 7)]), REWARD_OF_GOAL, True),  # (RIGHT, UP)
-            (0.08, MapfState(grid, [(1, 1), (5, 7)]), REWARD_OF_LIVING, False),  # (DOWN, UP)
-            (0.08, MapfState(grid, [(0, 1), (5, 7)]), REWARD_OF_LIVING, False),  # (UP, UP)
-            (0.08, MapfState(grid, [(0, 2), (6, 7)]), REWARD_OF_LIVING, False),  # (RIGHT, RIGHT)
-            (0.08, MapfState(grid, [(0, 2), (6, 6)]), REWARD_OF_LIVING, False),  # (RIGHT, LEFT)
-            (0.01, MapfState(grid, [(1, 1), (6, 7)]), REWARD_OF_LIVING, False),  # (DOWN, RIGHT)
-            (0.01, MapfState(grid, [(1, 1), (6, 6)]), REWARD_OF_LIVING, False),  # (DOWN, LEFT)
-            (0.01, MapfState(grid, [(0, 1), (6, 7)]), REWARD_OF_LIVING, False),  # (UP, RIGHT)
-            (0.01, MapfState(grid, [(0, 1), (6, 6)]), REWARD_OF_LIVING, False)  # (UP, LEFT)
+            (0.64, ((0, 2), (5, 7)), REWARD_OF_GOAL, True),  # (RIGHT, UP)
+            (0.08, ((1, 1), (5, 7)), REWARD_OF_LIVING, False),  # (DOWN, UP)
+            (0.08, ((0, 1), (5, 7)), REWARD_OF_LIVING, False),  # (UP, UP)
+            (0.08, ((0, 2), (6, 7)), REWARD_OF_LIVING, False),  # (RIGHT, RIGHT)
+            (0.08, ((0, 2), (6, 6)), REWARD_OF_LIVING, False),  # (RIGHT, LEFT)
+            (0.01, ((1, 1), (6, 7)), REWARD_OF_LIVING, False),  # (DOWN, RIGHT)
+            (0.01, ((1, 1), (6, 6)), REWARD_OF_LIVING, False),  # (DOWN, LEFT)
+            (0.01, ((0, 1), (6, 7)), REWARD_OF_LIVING, False),  # (UP, RIGHT)
+            (0.01, ((0, 1), (6, 6)), REWARD_OF_LIVING, False)  # (UP, LEFT)
         })
 
     def test_colliding_agents_state_is_terminal_and_negative_reward(self):
@@ -63,12 +63,12 @@ class MapfEnvTest(unittest.TestCase):
         grid = MapfGrid(parse_map_file(map_file_path))
 
         # agents are starting a
-        agent_starts, agents_goals = [(0, 0), (0, 2)], [(7, 7), (5, 5)]
+        agent_starts, agents_goals = ((0, 0), (0, 2)), ((7, 7), (5, 5))
         env = MapfEnv(grid, agent_starts, agents_goals)
         transitions = [(round(prob, 2), next_state, reward, done)
                        for (prob, next_state, reward, done) in env.P[env.s][(RIGHT, LEFT)]]
 
-        self.assertIn((0.64, MapfState(grid, [(0, 1), (0, 1)]), REWARD_OF_CLASH, True), set(transitions))
+        self.assertIn((0.64, ((0, 1), (0, 1)), REWARD_OF_CLASH, True), set(transitions))
 
 
 if __name__ == '__main__':

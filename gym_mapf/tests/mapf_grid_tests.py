@@ -1,7 +1,7 @@
 import unittest
 import os
 from gym_mapf.envs.utils import parse_map_file
-from gym_mapf.utils.grid import MapfGrid, EmptyCell, ObstacleCell
+from gym_mapf.mapf.grid import MapfGrid, EmptyCell, ObstacleCell
 
 
 class MapfGridTest(unittest.TestCase):

@@ -1,36 +1,64 @@
 import gym
 from gym import spaces
 from gym.envs.toy_text.discrete import DiscreteEnv
-from gym_mapf.utils.executor import (UP,
-                                     DOWN,
-                                     RIGHT,
-                                     LEFT,
-                                     STAY,
-                                     ACTIONS,
-                                     execute_action)
-from gym_mapf.utils.state import MapfState
 from collections import Counter
-from gym_mapf.utils.grid import EmptyCell, ObstacleCell
+from gym_mapf.mapf.grid import EmptyCell, ObstacleCell
 from colorama import Fore
-from gym_mapf.envs import REWARD_OF_GOAL, REWARD_OF_CLASH, REWARD_OF_LIVING
+from gym_mapf.envs import *
 
 CELL_TO_CHAR = {
     EmptyCell: '.',
     ObstacleCell: ''
 }
 
-POSSIBILITIES = {
-    UP: (RIGHT, LEFT),
-    DOWN: (LEFT, RIGHT),
-    LEFT: (UP, DOWN),
-    RIGHT: (DOWN, UP),
-    STAY: (STAY, STAY)
+
+def stay_if_hit_obstacle(exec_func):
+    def new_exec_func(loc, map):
+        new_loc = exec_func(loc, map)
+        if map[new_loc] is ObstacleCell:
+            return loc
+
+        return new_loc
+
+    return new_exec_func
+
+
+@stay_if_hit_obstacle
+def execute_up(loc, map):
+    return max(0, loc[0] - 1), loc[1]
+
+
+@stay_if_hit_obstacle
+def execute_down(loc, map):
+    return min(len(map) - 1, loc[0] + 1), loc[1]
+
+
+@stay_if_hit_obstacle
+def execute_right(loc, map):
+    return loc[0], min(len(map[0]) - 1, loc[1] + 1)
+
+
+@stay_if_hit_obstacle
+def execute_left(loc, map):
+    return loc[0], max(0, loc[1] - 1)
+
+
+def execute_stay(loc, _):
+    return loc
+
+
+ACTION_TO_FUNC = {
+    UP: execute_up,
+    DOWN: execute_down,
+    RIGHT: execute_right,
+    LEFT: execute_left,
+    STAY: execute_stay
 }
 
 
 class StateToActionGetter:
     def __init__(self, grid, agent_starts, agent_goals, right_fail, left_fail, s):
-        self.map = grid
+        self.grid = grid
         self.agent_starts = agent_starts
         self.agent_goals = agent_goals
         self.s = s
@@ -61,12 +89,12 @@ class StateToActionGetter:
         return res
 
     def calc_transition_reward(self, original_state, action, new_state):
-        loc_count = Counter(new_state.agent_locations)
+        loc_count = Counter(new_state)
         if len([x for x in loc_count.values() if x > 1]) != 0:  # clash between two agents.
             return REWARD_OF_CLASH, True
 
         goals = [loc == self.agent_goals[i]
-                 for i, loc in enumerate(new_state.agent_locations)]
+                 for i, loc in enumerate(new_state)]
         all_in_goal = all(goals)
 
         if all_in_goal:
@@ -78,7 +106,12 @@ class StateToActionGetter:
         transitions = []
         # TODO: sum the probabilities for equal states?
         for prob, noised_action in self.get_possible_actions(a):
-            new_state = execute_action(self.s, noised_action)
+            new_state = []
+            for i, single_action in enumerate(noised_action):
+                exec_func = ACTION_TO_FUNC[single_action]
+                new_state.append(exec_func(self.s[i], self.grid))
+
+            new_state = tuple(new_state)
             reward, done = self.calc_transition_reward(self.s, a, new_state)
             transitions.append((prob, new_state, reward, done))
 
@@ -127,6 +160,7 @@ class MapfEnv(DiscreteEnv):
         def __getitem__(self, s):
             return
 
+    # TODO: return to call super c'tor
     def __init__(self, grid, agents_starts, agents_goals):
         if len(agents_starts) != len(agents_goals):
             raise Exception("Illegal Arguments - agents starts and goals must have the same length")
@@ -155,7 +189,7 @@ class MapfEnv(DiscreteEnv):
 
     def reset(self):
         self.lastaction = None
-        self.s = MapfState(self.grid, self.agents_starts)
+        self.s = self.agents_starts
         return self.s
 
     def render(self, mode='human'):
@@ -163,8 +197,8 @@ class MapfEnv(DiscreteEnv):
 
         for i in range(len(self.grid)):
             for j in range(len(self.grid[0])):
-                if (i, j) in self.s.agent_locations:
-                    char = str(self.s.agent_locations.index((i, j)))
+                if (i, j) in self.s:
+                    char = str(self.s.index((i, j)))
                 else:
                     char = CELL_TO_CHAR[self.grid[i, j]]
 

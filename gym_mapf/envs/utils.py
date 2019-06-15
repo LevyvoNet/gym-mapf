@@ -1,5 +1,5 @@
 from gym_mapf.envs import MAP_NAME_TO_FILES
-from gym_mapf.utils.grid import MapfGrid
+from gym_mapf.mapf.grid import MapfGrid
 
 
 def parse_scen_file(scen_file, n_agents):
@@ -24,7 +24,7 @@ def parse_scen_file(scen_file, n_agents):
             if i == n_agents - 1:
                 break
 
-    return starts, goals
+    return tuple(starts), tuple(goals)
 
 
 def parse_map_file(map_file):
