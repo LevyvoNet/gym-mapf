@@ -56,6 +56,16 @@ ACTION_TO_FUNC = {
 }
 
 
+def execute_action(grid, s, noised_action):
+    new_state = []
+    for i, single_action in enumerate(noised_action):
+        exec_func = ACTION_TO_FUNC[single_action]
+        new_state.append(exec_func(s[i], grid))
+
+    new_state = tuple(new_state)
+    return new_state
+
+
 class StateToActionGetter:
     def __init__(self, grid, agent_starts, agent_goals, right_fail, left_fail, s):
         self.grid = grid
@@ -106,12 +116,7 @@ class StateToActionGetter:
         transitions = []
         # TODO: sum the probabilities for equal states?
         for prob, noised_action in self.get_possible_actions(a):
-            new_state = []
-            for i, single_action in enumerate(noised_action):
-                exec_func = ACTION_TO_FUNC[single_action]
-                new_state.append(exec_func(self.s[i], self.grid))
-
-            new_state = tuple(new_state)
+            new_state = execute_action(self.grid, self.s, noised_action)
             reward, done = self.calc_transition_reward(self.s, a, new_state)
             transitions.append((prob, new_state, reward, done))
 

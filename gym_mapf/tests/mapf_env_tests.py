@@ -22,8 +22,6 @@ class MapfEnvTest(unittest.TestCase):
         # agents are starting a
         agent_starts, agents_goals = ((0, 0), (7, 7)), ((0, 2), (5, 7))
         env = MapfEnv(grid, agent_starts, agents_goals)
-        import ipdb;
-        ipdb.set_trace()
 
         first_step_transitions = [(round(prob, 2), next_state, reward, done)
                                   for (prob, next_state, reward, done) in env.P[env.s][(RIGHT, UP)]]
