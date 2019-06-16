@@ -1,1 +1,1 @@
-include maps/*
+recursive-include maps *
