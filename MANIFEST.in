@@ -1,1 +1,1 @@
-recursive-include maps *
+recursive-include gym_mapf/maps *
