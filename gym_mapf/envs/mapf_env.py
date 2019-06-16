@@ -67,12 +67,12 @@ def execute_action(grid, s, noised_action):
 
 
 class StateToActionGetter:
-    def __init__(self, grid, agent_starts, agent_goals,
+    def __init__(self, grid, agents_starts, agents_goals,
                  right_fail, left_fail, reward_of_clash, reward_of_goal, reward_of_living,
                  s):
         self.grid = grid
-        self.agent_starts = agent_starts
-        self.agent_goals = agent_goals
+        self.agents_starts = agents_starts
+        self.agents_goals = agents_goals
         self.s = s
         self.right_fail = right_fail
         self.left_fail = left_fail
@@ -108,7 +108,7 @@ class StateToActionGetter:
         if len([x for x in loc_count.values() if x > 1]) != 0:  # clash between two agents.
             return self.reward_of_clash, True
 
-        goals = [loc == self.agent_goals[i]
+        goals = [loc == self.agents_goals[i]
                  for i, loc in enumerate(new_state)]
         all_in_goal = all(goals)
 
@@ -119,11 +119,20 @@ class StateToActionGetter:
 
     def __getitem__(self, a):
         transitions = []
-        # TODO: sum the probabilities for equal states?
+        for i in range(len(self.agents_starts)):
+            if self.s[i] == self.agents_goals[i]:
+                a = a[:i] + (STAY,) + a[(i + 1):]
         for prob, noised_action in self.get_possible_actions(a):
             new_state = execute_action(self.grid, self.s, noised_action)
             reward, done = self.calc_transition_reward(self.s, a, new_state)
-            transitions.append((prob, new_state, reward, done))
+            similar_transitions = [(p, s, r, d) for (p, s, r, d) in transitions
+                                   if s == new_state and r == reward and d == done]
+            if len(similar_transitions) > 0:
+                idx = transitions.index(similar_transitions[0])
+                old_prob, _, _, _ = transitions[idx]
+                transitions = transitions[:idx] + [(old_prob + prob, new_state, reward, done)] + transitions[(idx + 1):]
+            else:
+                transitions.append((prob, new_state, reward, done))
 
         return transitions
 
@@ -182,26 +191,37 @@ class MapfEnv(DiscreteEnv):
 
         self.grid = grid
         self.agents_starts, self.agents_goals = agents_starts, agents_goals
-        n_agents = len(agents_starts)
+        self.n_agents = len(agents_starts)
 
-        self.nS = len(self.grid) * len(self.grid[0]) * n_agents  # each agent may be in each of the cells.
-        self.nA = n_agents ** len(ACTIONS)
+        self.nS = len(self.grid) * len(self.grid[0]) * self.n_agents  # each agent may be in each of the cells.
+        self.nA = self.n_agents ** len(ACTIONS)
         self.P = StateGetter(self.grid, self.agents_starts, agents_goals, right_fail, left_fail,
                              reward_of_clash, reward_of_goal, reward_of_living)
         self.isd = [1.0] + [0.0] * (self.nS - 1)  # irrelevant.
         self.lastaction = None  # for rendering
 
-        self.action_space = spaces.Tuple([SingleActionSpace()] * n_agents)
+        self.action_space = spaces.Tuple([SingleActionSpace()] * self.n_agents)
         self.observation_space = spaces.Tuple(
             [spaces.Tuple(
                 [spaces.Discrete(len(self.grid)),
-                 spaces.Discrete(len(self.grid[0]))])] * n_agents)
+                 spaces.Discrete(len(self.grid[0]))])] * self.n_agents)
+        self.makespan = 0
+        self.soc = 0
 
         self.seed()
         self.reset()
 
+    def step(self, a):
+        n_agents_in_goals = len([i for i in range(self.n_agents) if self.s[i] == self.agents_goals[i]])
+
+        self.soc += self.n_agents - n_agents_in_goals
+        self.makespan += 1
+        return super().step(a)
+
     def reset(self):
         self.lastaction = None
+        self.makespan = 0
+        self.soc = 0
         self.s = self.agents_starts
         return self.s
 

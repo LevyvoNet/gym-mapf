@@ -76,6 +76,25 @@ class MapfEnvTest(unittest.TestCase):
 
         self.assertIn((0.64, ((0, 1), (0, 1)), REWARD_OF_CLASH, True), set(transitions))
 
+    def test_agent_doesnt_move_if_reach_to_goal(self):
+        grid = MapfGrid([
+            '....',
+            '....',
+            '....',
+            '....'])
+
+        agent_starts, agents_goals = ((0, 0), (3, 3)), ((0, 0), (1, 3))  # one agent is already at it's goal
+        env = MapfEnv(grid, agent_starts, agents_goals,
+                      RIGHT_FAIL, LEFT_FAIL, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+        transitions = [(round(prob, 2), next_state, reward, done)
+                       for (prob, next_state, reward, done) in env.P[env.s][(RIGHT, UP)]]
+
+        self.assertEqual(set(transitions), {
+            (0.8, ((0, 0), (2, 3)), REWARD_OF_LIVING, False),  # (STAY, UP)
+            (0.1, ((0, 0), (3, 3)), REWARD_OF_LIVING, False),  # (STAY, RIGHT)
+            (0.1, ((0, 0), (3, 2)), REWARD_OF_LIVING, False),  # (STAY, LEFT)
+        })
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
