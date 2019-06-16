@@ -67,13 +67,18 @@ def execute_action(grid, s, noised_action):
 
 
 class StateToActionGetter:
-    def __init__(self, grid, agent_starts, agent_goals, right_fail, left_fail, s):
+    def __init__(self, grid, agent_starts, agent_goals,
+                 right_fail, left_fail, reward_of_clash, reward_of_goal, reward_of_living,
+                 s):
         self.grid = grid
         self.agent_starts = agent_starts
         self.agent_goals = agent_goals
         self.s = s
         self.right_fail = right_fail
         self.left_fail = left_fail
+        self.reward_of_clash = reward_of_clash
+        self.reward_of_goal = reward_of_goal
+        self.reward_of_living = reward_of_living
 
     def get_possible_actions(self, a):
         if len(a) == 1:
@@ -101,16 +106,16 @@ class StateToActionGetter:
     def calc_transition_reward(self, original_state, action, new_state):
         loc_count = Counter(new_state)
         if len([x for x in loc_count.values() if x > 1]) != 0:  # clash between two agents.
-            return REWARD_OF_CLASH, True
+            return self.reward_of_clash, True
 
         goals = [loc == self.agent_goals[i]
                  for i, loc in enumerate(new_state)]
         all_in_goal = all(goals)
 
         if all_in_goal:
-            return REWARD_OF_GOAL, True
+            return self.reward_of_goal, True
 
-        return REWARD_OF_LIVING, False
+        return self.reward_of_living, False
 
     def __getitem__(self, a):
         transitions = []
@@ -124,12 +129,16 @@ class StateToActionGetter:
 
 
 class StateGetter:
-    def __init__(self, grid, agents_starts, agent_goals, right_fail, left_fail):
+    def __init__(self, grid, agents_starts, agent_goals, right_fail, left_fail, reward_of_clash, reward_of_goal,
+                 reward_of_living, ):
         self.grid = grid
         self.agents_starts = agents_starts
         self.agents_goals = agent_goals
         self.right_fail = right_fail
         self.left_fail = left_fail
+        self.reward_of_clash = reward_of_clash
+        self.reward_of_goal = reward_of_goal
+        self.reward_of_living = reward_of_living
 
     def __getitem__(self, s):
         return StateToActionGetter(self.grid,
@@ -137,6 +146,9 @@ class StateGetter:
                                    self.agents_goals,
                                    self.right_fail,
                                    self.left_fail,
+                                   self.reward_of_clash,
+                                   self.reward_of_goal,
+                                   self.reward_of_living,
                                    s)
 
 
@@ -161,17 +173,12 @@ class SingleActionSpace(spaces.Discrete):
 
 # TODO: when one of the agents reaches the goal should it stop moving?
 class MapfEnv(DiscreteEnv):
-    class StateGetter:
-        def __getitem__(self, s):
-            return
 
     # TODO: return to call super c'tor
-    def __init__(self, grid, agents_starts, agents_goals):
+    def __init__(self, grid, agents_starts, agents_goals,
+                 right_fail, left_fail, reward_of_clash, reward_of_goal, reward_of_living):
         if len(agents_starts) != len(agents_goals):
             raise Exception("Illegal Arguments - agents starts and goals must have the same length")
-
-        right_fail = 0.1
-        left_fail = 0.1
 
         self.grid = grid
         self.agents_starts, self.agents_goals = agents_starts, agents_goals
@@ -179,7 +186,8 @@ class MapfEnv(DiscreteEnv):
 
         self.nS = len(self.grid) * len(self.grid[0]) * n_agents  # each agent may be in each of the cells.
         self.nA = n_agents ** len(ACTIONS)
-        self.P = StateGetter(self.grid, self.agents_starts, agents_goals, right_fail, left_fail)
+        self.P = StateGetter(self.grid, self.agents_starts, agents_goals, right_fail, left_fail,
+                             reward_of_clash, reward_of_goal, reward_of_living)
         self.isd = [1.0] + [0.0] * (self.nS - 1)  # irrelevant.
         self.lastaction = None  # for rendering
 

@@ -35,11 +35,12 @@ def parse_map_file(map_file):
     return lines[4:]
 
 
-def create_mapf_env(map_name, n_agents):
+def create_mapf_env(map_name, n_agents, right_fail, left_fail, reward_of_clash, reward_of_goal, reward_of_living):
     map_file, scen_file = MAP_NAME_TO_FILES[map_name]
     grid = MapfGrid(parse_map_file(map_file))
     agents_starts, agents_goals = parse_scen_file(scen_file, n_agents)
 
-    env = MapfEnv(grid, agents_starts, agents_goals)
+    env = MapfEnv(grid, agents_starts, agents_goals,
+                  right_fail, left_fail, reward_of_clash, reward_of_goal, reward_of_living)
 
     return env

@@ -1,10 +1,16 @@
 import unittest
-import os
+import os.path
 
 from gym_mapf.envs.mapf_env import MapfEnv
 from gym_mapf.mapf.grid import MapfGrid
 from gym_mapf.envs.utils import parse_map_file
 from gym_mapf.envs import *
+
+RIGHT_FAIL = 0.1
+LEFT_FAIL = 0.1
+REWARD_OF_CLASH = -1000.0
+REWARD_OF_LIVING = 0.0
+REWARD_OF_GOAL = 100.0
 
 
 class MapfEnvTest(unittest.TestCase):
@@ -21,7 +27,8 @@ class MapfEnvTest(unittest.TestCase):
 
         # agents are starting a
         agent_starts, agents_goals = ((0, 0), (7, 7)), ((0, 2), (5, 7))
-        env = MapfEnv(grid, agent_starts, agents_goals)
+        env = MapfEnv(grid, agent_starts, agents_goals,
+                      RIGHT_FAIL, LEFT_FAIL, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
 
         first_step_transitions = [(round(prob, 2), next_state, reward, done)
                                   for (prob, next_state, reward, done) in env.P[env.s][(RIGHT, UP)]]
@@ -62,7 +69,8 @@ class MapfEnvTest(unittest.TestCase):
 
         # agents are starting a
         agent_starts, agents_goals = ((0, 0), (0, 2)), ((7, 7), (5, 5))
-        env = MapfEnv(grid, agent_starts, agents_goals)
+        env = MapfEnv(grid, agent_starts, agents_goals,
+                      RIGHT_FAIL, LEFT_FAIL, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
         transitions = [(round(prob, 2), next_state, reward, done)
                        for (prob, next_state, reward, done) in env.P[env.s][(RIGHT, LEFT)]]
 
