@@ -86,6 +86,7 @@ class MapfEnvTest(unittest.TestCase):
         agent_starts, agents_goals = ((0, 0), (3, 3)), ((0, 0), (1, 3))  # one agent is already at it's goal
         env = MapfEnv(grid, agent_starts, agents_goals,
                       RIGHT_FAIL, LEFT_FAIL, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+
         transitions = [(round(prob, 2), next_state, reward, done)
                        for (prob, next_state, reward, done) in env.P[env.s][(RIGHT, UP)]]
 
@@ -94,6 +95,25 @@ class MapfEnvTest(unittest.TestCase):
             (0.1, ((0, 0), (3, 3)), REWARD_OF_LIVING, False),  # (STAY, RIGHT)
             (0.1, ((0, 0), (3, 2)), REWARD_OF_LIVING, False),  # (STAY, LEFT)
         })
+
+    def test_soc_makespan(self):
+        grid = MapfGrid([
+            '....',
+            '....',
+            '....',
+            '....'])
+
+        agent_starts, agents_goals = ((0, 0), (3, 3)), ((0, 1), (1, 3))
+        determinstic_env = MapfEnv(grid, agent_starts, agents_goals,
+                                   0.0, 0.0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+
+        determinstic_env.step((RIGHT, UP))
+        s, r, done, _ = determinstic_env.step((RIGHT, UP))
+
+        self.assertEqual(s, ((0, 1), (1, 3)))
+        self.assertEqual(r, REWARD_OF_GOAL)
+        self.assertEqual(determinstic_env.soc, 3)
+        self.assertEqual(determinstic_env.makespan, 2)
 
 
 if __name__ == '__main__':
