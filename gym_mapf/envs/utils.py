@@ -1,5 +1,6 @@
 from gym_mapf.envs import MAP_NAME_TO_FILES
 from gym_mapf.mapf.grid import MapfGrid
+from gym_mapf.envs.mapf_env import MapfEnv
 
 
 def parse_scen_file(scen_file, n_agents):
