@@ -6,7 +6,7 @@ with open(os.path.join(os.path.dirname(__file__), "README.md")) as readme:
 
 setuptools.setup(
     name="gym-mapf",
-    version="0.0.7",
+    version="0.0.8",
     author="LevyvoNet",
     author_email="eladlevy2@gmail.com",
     description="Multi-Agent Path Finding gym environment",
