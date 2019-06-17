@@ -22,7 +22,7 @@ class MapfEnvTest(unittest.TestCase):
         * Perform another (RIGHT, UP) step from the most probable next state from before ((0,1), (6,7)) and assert
             that the transitions are correct again, including the terminal one.
         """
-        map_file_path = os.path.abspath(os.path.join(__file__, '../../../maps/empty-8-8/empty-8-8.map'))
+        map_file_path = os.path.abspath(os.path.join(__file__, '../../maps/empty-8-8/empty-8-8.map'))
         grid = MapfGrid(parse_map_file(map_file_path))
 
         # agents are starting a
@@ -63,7 +63,7 @@ class MapfEnvTest(unittest.TestCase):
         })
 
     def test_colliding_agents_state_is_terminal_and_negative_reward(self):
-        map_file_path = os.path.abspath(os.path.join(__file__, '../../../maps/empty-8-8/empty-8-8.map'))
+        map_file_path = os.path.abspath(os.path.join(__file__, '../../maps/empty-8-8/empty-8-8.map'))
 
         grid = MapfGrid(parse_map_file(map_file_path))
 

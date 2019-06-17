@@ -1,4 +1,4 @@
-from gym_mapf.envs import MAP_NAME_TO_FILES
+from gym_mapf.envs import map_name_to_files
 from gym_mapf.mapf.grid import MapfGrid
 from gym_mapf.envs.mapf_env import MapfEnv
 
@@ -8,7 +8,7 @@ def parse_scen_file(scen_file, n_agents):
 
     Args:
         scen_file (str): path to the scenario file.
-        n_agents (int): number of agents to read from the scenario (might contain a lot of agents - the more the harder).
+        n_agents (int): number of agents to read from the scenario (might contain a lot of agents - the more the harder)
 
     Returns:
         tuple. two lists - one of start locations and one of goal locations (each locations is a tuple of x,y).
@@ -36,7 +36,7 @@ def parse_map_file(map_file):
 
 
 def create_mapf_env(map_name, n_agents, right_fail, left_fail, reward_of_clash, reward_of_goal, reward_of_living):
-    map_file, scen_file = MAP_NAME_TO_FILES[map_name]
+    map_file, scen_file = map_name_to_files(map_name)
     grid = MapfGrid(parse_map_file(map_file))
     agents_starts, agents_goals = parse_scen_file(scen_file, n_agents)
 

@@ -6,7 +6,7 @@ from gym_mapf.mapf.grid import MapfGrid, EmptyCell, ObstacleCell
 
 class MapfGridTest(unittest.TestCase):
     def test_empty_8_8(self):
-        map_file_path = os.path.abspath(os.path.join(__file__, '../../../maps/empty-8-8/empty-8-8.map'))
+        map_file_path = os.path.abspath(os.path.join(__file__, '../../maps/empty-8-8/empty-8-8.map'))
         grid = MapfGrid(parse_map_file(map_file_path))
 
         self.assertTrue(grid[0, 0] is EmptyCell)
@@ -19,7 +19,7 @@ class MapfGridTest(unittest.TestCase):
             grid[8, 1]
 
     def test_berlin_1_256(self):
-        map_file_path = os.path.abspath(os.path.join(__file__, '../../../maps/Berlin_1_256/Berlin_1_256.map'))
+        map_file_path = os.path.abspath(os.path.join(__file__, '../../maps/Berlin_1_256/Berlin_1_256.map'))
         grid = MapfGrid(parse_map_file(map_file_path))
 
         self.assertTrue(grid[0, 0] is EmptyCell)
