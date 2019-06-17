@@ -103,16 +103,16 @@ class MapfEnvTest(unittest.TestCase):
             '....',
             '....'])
 
-        agent_starts, agents_goals = ((0, 0), (3, 3)), ((0, 1), (1, 3))
+        agent_starts, agents_goals = ((0, 0), (3, 3), (1, 1)), ((0, 1), (1, 3), (1, 2))
         determinstic_env = MapfEnv(grid, agent_starts, agents_goals,
                                    0.0, 0.0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
 
-        determinstic_env.step((RIGHT, UP))
-        s, r, done, _ = determinstic_env.step((RIGHT, UP))
+        determinstic_env.step((RIGHT, UP, RIGHT))
+        s, r, done, _ = determinstic_env.step((RIGHT, UP, RIGHT))
 
-        self.assertEqual(s, ((0, 1), (1, 3)))
+        self.assertEqual(s, ((0, 1), (1, 3), (1, 2)))
         self.assertEqual(r, REWARD_OF_GOAL)
-        self.assertEqual(determinstic_env.soc, 3)
+        self.assertEqual(determinstic_env.soc, 4)
         self.assertEqual(determinstic_env.makespan, 2)
 
 
