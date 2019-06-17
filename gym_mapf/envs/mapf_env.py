@@ -1,4 +1,5 @@
 import gym
+import numpy as np
 from gym import spaces
 from gym.envs.toy_text.discrete import DiscreteEnv
 from collections import Counter
@@ -10,6 +11,10 @@ CELL_TO_CHAR = {
     EmptyCell: '.',
     ObstacleCell: ''
 }
+
+np_random = np.random.RandomState()
+
+np_random.seed(0)
 
 
 def stay_if_hit_obstacle(exec_func):
@@ -174,7 +179,7 @@ class SingleActionSpace(spaces.Discrete):
         super().__init__(5)
 
     def sample(self):
-        return self.NUM_TO_ACTION[gym.spaces.np_random.randint(self.n)]
+        return self.NUM_TO_ACTION[np_random.randint(self.n)]
 
     def __repr__(self):
         return "Discrete(%s, %s, %s, %s, %s)" % (UP, RIGHT, DOWN, LEFT, STAY)
