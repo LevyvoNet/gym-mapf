@@ -185,7 +185,6 @@ class SingleActionSpace(spaces.Discrete):
         return "Discrete(%s, %s, %s, %s, %s)" % (UP, RIGHT, DOWN, LEFT, STAY)
 
 
-# TODO: when one of the agents reaches the goal should it stop moving?
 class MapfEnv(DiscreteEnv):
 
     # TODO: return to call super c'tor

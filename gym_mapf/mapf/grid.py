@@ -13,8 +13,6 @@ CHAR_TO_CELL = {
 }
 
 
-
-
 class MapfGrid:
     def __init__(self, map_lines):
         self._map = []
@@ -41,7 +39,3 @@ class MapfGrid:
 
     def __eq__(self, other):
         return self._map == other._map
-
-    def __hash__(self):
-        # TODO: do better someday.
-        return 1
