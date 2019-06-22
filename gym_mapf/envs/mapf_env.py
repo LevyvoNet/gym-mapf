@@ -9,7 +9,7 @@ from gym_mapf.envs import *
 
 CELL_TO_CHAR = {
     EmptyCell: '.',
-    ObstacleCell: ''
+    ObstacleCell: '@'
 }
 
 np_random = np.random.RandomState()
