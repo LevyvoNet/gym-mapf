@@ -238,15 +238,17 @@ class MapfEnv(DiscreteEnv):
         # init(autoreset=True)
 
         for i in range(len(self.grid)):
-            for j in range(len(self.grid[0])):
-                if (i, j) in self.s:
-                    char = str(self.s.index((i, j)))
-                else:
-                    char = CELL_TO_CHAR[self.grid[i, j]]
-
-                if (i, j) in self.agents_goals:
-                    print(Fore.GREEN + char + Fore.RESET, end='')
-                else:
-                    print(char, end='')
-
             print('')  # newline
+            for j in range(len(self.grid[0])):
+                if (i, j) in self.s and (i, j) in self.agents_goals:
+                    # print an agent which reached it's goal
+                    print(Fore.GREEN + str(self.s.index((i, j))) + Fore.RESET, end='')
+                    continue
+                if (i, j) in self.s:
+                    print(Fore.YELLOW + str(self.s.index((i, j))) + Fore.RESET, end='')
+                    continue
+                if (i, j) in self.agents_goals:
+                    print(Fore.BLUE + str(self.agents_goals.index((i, j))) + Fore.RESET, end='')
+                    continue
+
+                print(CELL_TO_CHAR[self.grid[i, j]], end='')
