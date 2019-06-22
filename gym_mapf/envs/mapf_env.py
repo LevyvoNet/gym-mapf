@@ -196,6 +196,11 @@ class MapfEnv(DiscreteEnv):
         self.grid = grid
         self.agents_starts, self.agents_goals = agents_starts, agents_goals
         self.n_agents = len(agents_starts)
+        self.right_fail = right_fail
+        self.left_fail = left_fail
+        self.reward_of_clash = reward_of_clash
+        self.reward_of_goal = reward_of_goal
+        self.reward_of_living = reward_of_living
 
         self.nS = len(self.grid) * len(self.grid[0]) * self.n_agents  # each agent may be in each of the cells.
         self.nA = self.n_agents ** len(ACTIONS)

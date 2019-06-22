@@ -5,6 +5,7 @@ from gym_mapf.envs.mapf_env import MapfEnv
 from gym_mapf.mapf.grid import MapfGrid
 from gym_mapf.envs.utils import parse_map_file
 from gym_mapf.envs import *
+from copy import copy
 
 RIGHT_FAIL = 0.1
 LEFT_FAIL = 0.1
@@ -114,6 +115,52 @@ class MapfEnvTest(unittest.TestCase):
         self.assertEqual(r, REWARD_OF_GOAL)
         self.assertEqual(determinstic_env.soc, 4)
         self.assertEqual(determinstic_env.makespan, 2)
+
+    def test_soc_makespan_single_agent(self):
+        grid = MapfGrid([
+            '....',
+            '....',
+            '....',
+            '....',
+            '....'])
+        determinstic_env = MapfEnv(grid, ((0, 0),), ((4, 0),),
+                                   0.0, 0.0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+
+        determinstic_env.step((DOWN,))
+        determinstic_env.step((DOWN,))
+        determinstic_env.step((DOWN,))
+        s, r, done, _ = determinstic_env.step((DOWN,))
+
+        self.assertEqual(s, ((4, 0),))
+        self.assertEqual(r, REWARD_OF_GOAL)
+        self.assertEqual(determinstic_env.soc, 4)
+        self.assertEqual(determinstic_env.makespan, 4)
+
+    def test_copy_mapf_env(self):
+        grid = MapfGrid([
+            '....',
+            '....',
+            '....',
+            '....',
+            '....'])
+        env = MapfEnv(grid, ((0, 0),), ((4, 0),),
+                      0.0, 0.0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+
+        self.assertEqual(env.soc, 0)
+        self.assertEqual(env.makespan, 0)
+
+        env.step((RIGHT,))
+
+        self.assertEqual(env.soc, 1)
+        self.assertEqual(env.makespan, 1)
+
+        env_copy = copy(env)
+        env_copy.step((RIGHT,))
+
+        self.assertEqual(env.soc, 1)
+        self.assertEqual(env.makespan, 1)
+        self.assertEqual(env_copy.soc, 2)
+        self.assertEqual(env_copy.makespan, 2)
 
 
 if __name__ == '__main__':
