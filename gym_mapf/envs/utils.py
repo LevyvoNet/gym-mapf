@@ -45,3 +45,5 @@ def create_mapf_env(map_name, scen_id, n_agents, right_fail, left_fail, reward_o
                   right_fail, left_fail, reward_of_clash, reward_of_goal, reward_of_living)
 
     return env
+
+

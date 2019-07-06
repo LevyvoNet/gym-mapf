@@ -1,11 +1,12 @@
-import gym
+from collections import Counter
+
 import numpy as np
+from colorama import Fore
 from gym import spaces
 from gym.envs.toy_text.discrete import DiscreteEnv
-from collections import Counter
-from gym_mapf.mapf.grid import EmptyCell, ObstacleCell
-from colorama import Fore
+
 from gym_mapf.envs import *
+from gym_mapf.mapf.grid import EmptyCell, ObstacleCell
 
 CELL_TO_CHAR = {
     EmptyCell: '.',
@@ -123,6 +124,9 @@ class StateToActionGetter:
         return self.reward_of_living, False
 
     def __getitem__(self, a):
+        if type(a) == int:
+            a = integer_to_vector(a, len(ACTIONS), len(self.agents_goals), lambda n: ACTIONS[n])
+
         transitions = []
         for i in range(len(self.agents_starts)):
             if self.s[i] == self.agents_goals[i]:
@@ -155,6 +159,12 @@ class StateGetter:
         self.reward_of_living = reward_of_living
 
     def __getitem__(self, s):
+        if type(s) == int:
+            s = integer_to_vector(s,
+                                  len(self.grid) * len(self.grid[0]),
+                                  len(self.agents_starts),
+                                  lambda n: (int(n / len(self.grid[0])), n % len(self.grid)))
+
         return StateToActionGetter(self.grid,
                                    self.agents_starts,
                                    self.agents_goals,
@@ -242,13 +252,13 @@ class MapfEnv(DiscreteEnv):
             for j in range(len(self.grid[0])):
                 if (i, j) in self.s and (i, j) in self.agents_goals:
                     # print an agent which reached it's goal
-                    print(Fore.GREEN + str(self.s.index((i, j))) + Fore.RESET, end='')
+                    print(Fore.GREEN + str(self.s.index((i, j))) + Fore.RESET, end=' ')
                     continue
                 if (i, j) in self.s:
-                    print(Fore.YELLOW + str(self.s.index((i, j))) + Fore.RESET, end='')
+                    print(Fore.YELLOW + str(self.s.index((i, j))) + Fore.RESET, end=' ')
                     continue
                 if (i, j) in self.agents_goals:
-                    print(Fore.BLUE + str(self.agents_goals.index((i, j))) + Fore.RESET, end='')
+                    print(Fore.BLUE + str(self.agents_goals.index((i, j))) + Fore.RESET, end=' ')
                     continue
 
-                print(CELL_TO_CHAR[self.grid[i, j]], end='')
+                print(CELL_TO_CHAR[self.grid[i, j]], end=' ')

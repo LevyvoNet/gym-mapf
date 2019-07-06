@@ -23,3 +23,22 @@ POSSIBILITIES = {
     STAY: (STAY, STAY)
 }
 ACTIONS = [UP, RIGHT, DOWN, LEFT, STAY]
+
+
+def integer_to_vector(x, n_options_per_element, n_elemtns, option_to_element):
+    """Return a vector representing an action/state from a given integer.
+
+    Args:
+        x (int): the integer to convert.
+        n_options_per_element(int): number of options for each element in the vector.
+        n_elemtns (int): the number of elements in the vector to return.
+        option_to_element(int=>any): function which converts an integer represents a single option in one of the
+            vector elements and return anything that vector contains. For example, a function which returns 'UP' for 0,
+            1 for 'RIGHT',etc. Or a function which returns (2,2) given 10 for a 4x4 grid ((2,2) is the 10-th cell of that grid).
+    """
+    ret = (option_to_element(x % n_options_per_element),)
+    for i in range(1, n_elemtns):
+        option_index = (int(x / (n_options_per_element ** i))) % n_options_per_element
+        ret = ret + (option_to_element(option_index),)
+
+    return ret
