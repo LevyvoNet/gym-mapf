@@ -163,7 +163,7 @@ class StateGetter:
             s = integer_to_vector(s,
                                   len(self.grid) * len(self.grid[0]),
                                   len(self.agents_starts),
-                                  lambda n: (int(n / len(self.grid[0])), n % len(self.grid)))
+                                  lambda n: (int(n / len(self.grid[0])), n % len(self.grid[0])))
 
         return StateToActionGetter(self.grid,
                                    self.agents_starts,
@@ -212,8 +212,8 @@ class MapfEnv(DiscreteEnv):
         self.reward_of_goal = reward_of_goal
         self.reward_of_living = reward_of_living
 
-        self.nS = len(self.grid) * len(self.grid[0]) * self.n_agents  # each agent may be in each of the cells.
-        self.nA = self.n_agents ** len(ACTIONS)
+        self.nS = (len(self.grid) * len(self.grid[0])) ** self.n_agents  # each agent may be in each of the cells.
+        self.nA = len(ACTIONS) ** self.n_agents
         self.P = StateGetter(self.grid, self.agents_starts, agents_goals, right_fail, left_fail,
                              reward_of_clash, reward_of_goal, reward_of_living)
         self.isd = [1.0] + [0.0] * (self.nS - 1)  # irrelevant.

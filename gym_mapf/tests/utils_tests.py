@@ -37,12 +37,16 @@ class UtilsTest(unittest.TestCase):
         self.assertEqual(integer_to_vector(28, 5, 3, lambda n: ACTIONS[n]), (LEFT, UP, RIGHT))
 
         # state in a 4x3 grid for two agents.
-        self.assertEqual(integer_to_vector(10, 4 * 3, 2, lambda n: (int(n / 3), n % 4)),
-                         ((3, 2), (0, 0)))
-        self.assertEqual(integer_to_vector(13, 4 * 3, 2, lambda n: (int(n / 3), n % 4)),
+        self.assertEqual(integer_to_vector(10, 4 * 3, 2, lambda n: (int(n / 3), n % 3)),
+                         ((3, 1), (0, 0)))
+        self.assertEqual(integer_to_vector(13, 4 * 3, 2, lambda n: (int(n / 3), n % 3)),
                          ((0, 1), (0, 1)))
-        self.assertEqual(integer_to_vector(14, 4 * 3, 2, lambda n: (int(n / 3), n % 4)),
+        self.assertEqual(integer_to_vector(14, 4 * 3, 2, lambda n: (int(n / 3), n % 3)),
                          ((0, 2), (0, 1)))
+        self.assertEqual(integer_to_vector(23, 4 * 3, 2, lambda n: (int(n / 3), n % 3)),
+                         ((3, 2), (0, 1)))
+        self.assertEqual(integer_to_vector(143, 4 * 3, 2, lambda n: (int(n / 3), n % 3)),
+                         ((3, 2), (3, 2)))
 
 
 if __name__ == '__main__':

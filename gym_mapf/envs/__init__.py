@@ -36,9 +36,10 @@ def integer_to_vector(x, n_options_per_element, n_elemtns, option_to_element):
             vector elements and return anything that vector contains. For example, a function which returns 'UP' for 0,
             1 for 'RIGHT',etc. Or a function which returns (2,2) given 10 for a 4x4 grid ((2,2) is the 10-th cell of that grid).
     """
-    ret = (option_to_element(x % n_options_per_element),)
-    for i in range(1, n_elemtns):
-        option_index = (int(x / (n_options_per_element ** i))) % n_options_per_element
+    ret = tuple()
+    for i in range(0, n_elemtns):
+        option_index = x % n_options_per_element
         ret = ret + (option_to_element(option_index),)
+        x //= n_options_per_element
 
     return ret
