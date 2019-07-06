@@ -162,22 +162,6 @@ class MapfEnvTest(unittest.TestCase):
         self.assertEqual(env_copy.soc, 2)
         self.assertEqual(env_copy.makespan, 2)
 
-    def test_integer_states_and_actions(self):
-        grid = MapfGrid([
-            '...',
-            '...',
-            '...',
-            '...'])
-
-        agent_starts, agents_goals = ((0, 0), (3, 3)), ((0, 0), (1, 3))  # don't care
-        env = MapfEnv(grid, agent_starts, agents_goals,
-                      RIGHT_FAIL, LEFT_FAIL, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
-
-        self.assertEqual(env.P[((3, 1), (0, 0))][(UP, UP)], env.P[10][0])
-        self.assertEqual(env.P[((0, 1), (0, 1))][(UP, RIGHT)], env.P[13][5])
-        # test the edge of actions and states
-        self.assertEqual(env.P[((3, 2), (3, 2))][(STAY, STAY)], env.P[env.nS - 1][env.nA - 1])
-
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

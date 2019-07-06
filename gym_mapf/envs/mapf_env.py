@@ -125,7 +125,12 @@ class StateToActionGetter:
 
     def __getitem__(self, a):
         if type(a) == int:
+            # Hidden assumption - if one sent a as an int he also sent the state as an int
+            # and want to receive it back as an int.
             a = integer_to_vector(a, len(ACTIONS), len(self.agents_goals), lambda n: ACTIONS[n])
+            should_return_int = True
+        else:
+            should_return_int = False
 
         transitions = []
         for i in range(len(self.agents_starts)):
@@ -143,9 +148,15 @@ class StateToActionGetter:
             else:
                 transitions.append((prob, new_state, reward, done))
 
-
-
-        return transitions
+        if should_return_int:
+            return [(prob,
+                     vector_to_integer(new_state, len(self.grid) * len(self.grid[0]),
+                                       lambda v: len(self.grid[0]) * v[0] + v[1]),
+                     reward,
+                     done)
+                    for (prob, new_state, reward, done) in transitions]
+        else:
+            return transitions
 
 
 class StateGetter:
