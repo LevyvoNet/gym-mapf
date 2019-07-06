@@ -1,7 +1,7 @@
 import unittest
 
 from gym_mapf.envs.utils import create_mapf_env
-from gym_mapf.envs import integer_to_vector
+from gym_mapf.envs import integer_to_vector, vector_to_integer
 from gym_mapf.envs.mapf_env import ACTIONS, UP, RIGHT, DOWN, LEFT, STAY
 
 
@@ -47,6 +47,20 @@ class UtilsTest(unittest.TestCase):
                          ((3, 2), (0, 1)))
         self.assertEqual(integer_to_vector(143, 4 * 3, 2, lambda n: (int(n / 3), n % 3)),
                          ((3, 2), (3, 2)))
+
+    def test_vector_to_integer(self):
+        # state in a 4x4 grid for a single agent.
+        self.assertEqual(vector_to_integer((2, 2), 4, lambda n: n), 10)
+
+        # action for 3 agents
+        self.assertEqual(vector_to_integer((LEFT, UP, RIGHT), 5, lambda a: ACTIONS.index(a)), 28)
+
+        # state in a 4x3 grid for two agents.
+        self.assertEqual(vector_to_integer(((3, 1), (0, 0)), 4 * 3, lambda v: 3 * v[0] + v[1]), 10)
+        self.assertEqual(vector_to_integer(((0, 1), (0, 1)), 4 * 3, lambda v: 3 * v[0] + v[1]), 13)
+        self.assertEqual(vector_to_integer(((0, 2), (0, 1)), 4 * 3, lambda v: 3 * v[0] + v[1]), 14)
+        self.assertEqual(vector_to_integer(((3, 2), (0, 1)), 4 * 3, lambda v: 3 * v[0] + v[1]), 23)
+        self.assertEqual(vector_to_integer(((3, 2), (3, 2)), 4 * 3, lambda v: 3 * v[0] + v[1]), 143)
 
 
 if __name__ == '__main__':

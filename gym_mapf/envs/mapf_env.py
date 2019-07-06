@@ -143,6 +143,8 @@ class StateToActionGetter:
             else:
                 transitions.append((prob, new_state, reward, done))
 
+
+
         return transitions
 
 
