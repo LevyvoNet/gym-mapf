@@ -109,6 +109,20 @@ class StateToActionGetter:
 
         return res
 
+    def is_terminal(self, s):
+        loc_count = Counter(s)
+        if len([x for x in loc_count.values() if x > 1]) != 0:  # clash between two agents.
+            return True
+
+        goals = [loc == self.agents_goals[i]
+                 for i, loc in enumerate(s)]
+        all_in_goal = all(goals)
+
+        if all_in_goal:
+            return True
+
+        return False
+
     def calc_transition_reward(self, original_state, action, new_state):
         loc_count = Counter(new_state)
         if len([x for x in loc_count.values() if x > 1]) != 0:  # clash between two agents.
@@ -124,6 +138,9 @@ class StateToActionGetter:
         return self.reward_of_living, False
 
     def __getitem__(self, a):
+        if self.is_terminal(self.s):
+            return [(1.0, self.s, 0, True)]
+
         if type(a) == int:
             # Hidden assumption - if one sent a as an int he also sent the state as an int
             # and want to receive it back as an int.

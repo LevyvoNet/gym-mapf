@@ -162,6 +162,29 @@ class MapfEnvTest(unittest.TestCase):
         self.assertEqual(env_copy.soc, 2)
         self.assertEqual(env_copy.makespan, 2)
 
+    def test_action_from_terminal_state_has_no_effect(self):
+        grid = MapfGrid(['..',
+                         '..'])
+        env = MapfEnv(grid, ((0, 0),), ((1, 1),),
+                      0.0, 0.0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+
+        state, reward, done, _ = env.step((RIGHT,))
+        self.assertEqual(reward, 0)
+        self.assertEqual(done, False)
+        state, reward, done, _ = env.step((DOWN,))
+        self.assertEqual(reward, REWARD_OF_GOAL)
+        self.assertEqual(done, True)
+        # now, after the game is finished - do another step and make sure it has not effect.
+        state_after_done, reward_after_done, done_after_done, _ = env.step((UP,))
+        self.assertEqual(state_after_done, state)
+        self.assertEqual(done_after_done, True)
+        self.assertEqual(reward_after_done, 0)
+        # another time like I'm trying to reach the goal
+        state_after_done, reward_after_done, done_after_done, _ = env.step((DOWN,))
+        self.assertEqual(state_after_done, state)
+        self.assertEqual(done_after_done, True)
+        self.assertEqual(reward_after_done, 0)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
