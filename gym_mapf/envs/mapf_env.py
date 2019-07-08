@@ -138,9 +138,6 @@ class StateToActionGetter:
         return self.reward_of_living, False
 
     def __getitem__(self, a):
-        if self.is_terminal(self.s):
-            return [(1.0, self.s, 0, True)]
-
         if type(a) == int:
             # Hidden assumption - if one sent a as an int he also sent the state as an int
             # and want to receive it back as an int.
@@ -148,6 +145,14 @@ class StateToActionGetter:
             should_return_int = True
         else:
             should_return_int = False
+
+        if self.is_terminal(self.s):
+            if should_return_int:
+                return [(1.0, vector_to_integer(self.s, len(self.grid) * len(self.grid[0]),
+                                                lambda v: len(self.grid[0]) * v[0] + v[1]), 0, True)]
+
+            else:
+                return [(1.0, self.s, 0, True)]
 
         transitions = []
         for i in range(len(self.agents_starts)):
