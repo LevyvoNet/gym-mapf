@@ -1,6 +1,6 @@
 from gym_mapf.envs import map_name_to_files
 from gym_mapf.mapf.grid import MapfGrid
-from gym_mapf.envs.mapf_env import MapfEnv
+from gym_mapf.envs.mapf_env import MapfEnv, vector_state_to_integer
 
 
 def parse_scen_file(scen_file, n_agents):
@@ -40,10 +40,11 @@ def create_mapf_env(map_name, scen_id, n_agents, right_fail, left_fail, reward_o
     map_file, scen_file = map_name_to_files(map_name, scen_id)
     grid = MapfGrid(parse_map_file(map_file))
     agents_starts, agents_goals = parse_scen_file(scen_file, n_agents)
+    n_agents = len(agents_goals)
+    agents_starts_int = vector_state_to_integer(grid, agents_starts)
+    agents_goals_int = vector_state_to_integer(grid, agents_goals)
 
-    env = MapfEnv(grid, agents_starts, agents_goals,
+    env = MapfEnv(grid, n_agents, agents_starts_int, agents_goals_int,
                   right_fail, left_fail, reward_of_clash, reward_of_goal, reward_of_living)
 
     return env
-
-
