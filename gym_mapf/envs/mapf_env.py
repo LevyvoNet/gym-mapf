@@ -4,6 +4,7 @@ import numpy as np
 from colorama import Fore
 from gym import spaces
 from gym.envs.toy_text.discrete import DiscreteEnv
+from numpy.distutils.system_info import accelerate_info
 
 from gym_mapf.envs import *
 from gym_mapf.mapf.grid import EmptyCell, ObstacleCell
@@ -145,6 +146,15 @@ class StateToActionGetter:
         return False
 
     def calc_transition_reward(self, original_state, action, new_state):
+        if type(original_state) == int:
+            original_state = integer_state_to_vector(original_state, self.grid, self.n_agents)
+
+        if type(new_state) == int:
+            new_state = integer_state_to_vector(new_state, self.grid, self.n_agents)
+
+        if type(action) == int:
+            action = integer_action_to_vector(action, self.n_agents)
+
         loc_count = Counter(new_state)
         if len([x for x in loc_count.values() if x > 1]) != 0:  # clash between two agents.
             return self.reward_of_clash, True
@@ -216,25 +226,6 @@ class StateGetter:
                                    s)
 
 
-class SingleActionSpace(spaces.Discrete):
-    NUM_TO_ACTION = {
-        0: UP,
-        1: RIGHT,
-        2: DOWN,
-        3: LEFT,
-        4: STAY
-    }
-
-    def __init__(self):
-        super().__init__(5)
-
-    def sample(self):
-        return self.NUM_TO_ACTION[np_random.randint(self.n)]
-
-    def __repr__(self):
-        return "Discrete(%s, %s, %s, %s, %s)" % (UP, RIGHT, DOWN, LEFT, STAY)
-
-
 class MapfEnv(DiscreteEnv):
     # TODO: return to call super c'tor
     def __init__(self, grid, n_agents, agents_starts, agents_goals,
@@ -253,7 +244,7 @@ class MapfEnv(DiscreteEnv):
         self.nA = len(ACTIONS) ** self.n_agents
         self.P = StateGetter(self.grid, self.n_agents, self.agents_starts, agents_goals, right_fail, left_fail,
                              reward_of_clash, reward_of_goal, reward_of_living)
-        self.isd = [1.0] + [0.0] * (self.nS - 1)  # irrelevant.
+        # self.isd = [1.0] + [0.0] * (self.nS - 1)  # irrelevant.
         self.lastaction = None  # for rendering
 
         self.action_space = spaces.Discrete(self.nA)
