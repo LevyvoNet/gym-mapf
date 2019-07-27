@@ -71,6 +71,8 @@ def find_conflict(env, joint_policy, n_agents):
             if next_state not in visited_states:
                 states_to_exapnd.append(next_state)
 
+    return None
+
     # here visited states has all the possible states from the evaluated policy.
 
 
