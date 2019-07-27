@@ -273,19 +273,21 @@ class MapfEnv(DiscreteEnv):
 
     def render(self, mode='human'):
         # init(autoreset=True)
+        v_state = integer_state_to_vector(self.s, self.grid, self.n_agents)
+        v_agent_goals = integer_state_to_vector(self.agents_goals, self.grid, self.n_agents)
 
         for i in range(len(self.grid)):
             print('')  # newline
             for j in range(len(self.grid[0])):
-                if (i, j) in self.s and (i, j) in self.agents_goals:
+                if (i, j) in v_state and (i, j) in v_agent_goals:
                     # print an agent which reached it's goal
-                    print(Fore.GREEN + str(self.s.index((i, j))) + Fore.RESET, end=' ')
+                    print(Fore.GREEN + str(v_state.index((i, j))) + Fore.RESET, end=' ')
                     continue
-                if (i, j) in self.s:
-                    print(Fore.YELLOW + str(self.s.index((i, j))) + Fore.RESET, end=' ')
+                if (i, j) in v_state:
+                    print(Fore.YELLOW + str(v_state.index((i, j))) + Fore.RESET, end=' ')
                     continue
-                if (i, j) in self.agents_goals:
-                    print(Fore.BLUE + str(self.agents_goals.index((i, j))) + Fore.RESET, end=' ')
+                if (i, j) in v_agent_goals:
+                    print(Fore.BLUE + str(v_agent_goals.index((i, j))) + Fore.RESET, end=' ')
                     continue
 
                 print(CELL_TO_CHAR[self.grid[i, j]], end=' ')

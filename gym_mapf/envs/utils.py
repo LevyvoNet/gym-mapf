@@ -1,3 +1,5 @@
+import itertools
+
 from gym_mapf.envs import map_name_to_files
 from gym_mapf.mapf.grid import MapfGrid
 from gym_mapf.envs.mapf_env import MapfEnv, vector_state_to_integer
@@ -48,3 +50,14 @@ def create_mapf_env(map_name, scen_id, n_agents, right_fail, left_fail, reward_o
                   right_fail, left_fail, reward_of_clash, reward_of_goal, reward_of_living)
 
     return env
+
+
+def get_local_view(env: MapfEnv, agent_indexes: list):
+    local_agents_starts = tuple(itertools.compress(env.agents_starts,
+                                                   [1 if x in agent_indexes else 0 for x in env.agents_starts]))
+
+    local_agents_goals = tuple(itertools.compress(env.agents_goals,
+                                                  [1 if x in agent_indexes else 0 for x in env.agents_goals]))
+
+    return MapfEnv(env.grid, 1, local_agents_starts, local_agents_goals,
+                   env.right_fail, env.left_fail, env.reward_of_clash, env.reward_of_goal, env.reward_of_living)
