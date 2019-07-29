@@ -18,22 +18,24 @@ def add_constraint(*args):
 def value_iteration(env):
     """Get optimal policy derived from value iteration and its expected reward"""
     vi_agent = ValueIterationAgent()
-    vi_agent.train(env)
+    vi_agent.train(env, max_time=10)
 
-    return vi_agent.optimal_v[env.s], vi_agent.policy
+    def policy_int_output(s):
+        return int(vi_agent.policy[s])
+
+    return vi_agent.optimal_v[env.s], policy_int_output
 
 
-def constraints_to_mask(constraints, i, env):
+def constraints_to_mask(constraints, env):
     """Return a mask represents the given constrains for agent i."""
     ret = {}
-    for ctr, i, s_i, a, j, s_j in enumerate(constraints[i]):
-        # state env.nS is a "fatal" state.
+    for ctr, i, s_i, a, j, s_j in enumerate(constraints):
         # states env.nS + ctr+ n represents the n-th constraint in the constrains list.
-        ret[env.nS + ctr + 1] = {}
-        ret[env.nS + ctr + 1][a] = [(1, env.nS, -100, True)]
+        ret[env.nS + ctr] = {}
+        ret[env.nS + ctr][a] = [(1, env.nS, -100, True)]
         for action in range(env.nA):
             if not action == a:
-                ret[env.nS + ctr + 1][action] = env.P[s_i][action]
+                ret[env.nS + ctr][action] = env.P[s_i][action]
 
     return ret
 
@@ -46,7 +48,7 @@ def cross_policies(policies, possible_states_counts):
 
     def joint_policy(s):
         local_states = integer_to_vector(s, possible_states_counts, n_agents, lambda x: x)  # fix cross policies
-        vector_joint_action = sum([integer_action_to_vector(policies[i][local_states[i]], 1)
+        vector_joint_action = sum([integer_action_to_vector(policies[i](local_states[i]), 1)
                                    for i in range(n_agents)], ())
         joint_action = vector_action_to_integer(vector_joint_action)
         return joint_action
@@ -58,35 +60,46 @@ def best_joint_policy_under_constraint(env, constraints, n_agents):
     """Get a joint policy and its exptected sum of rewards."""
     policies = []
     total_reward = 0
+    local_envs = []
     for i in range(n_agents):
-        local_env = get_local_view(env, [i])
+        local_envs.append(get_local_view(env, [i]))
         # the n-th constraint for agent i takes place in the (env.nS+n+1)-th state of local env of agent i.
-        agent_mask = constraints_to_mask(constraints[i], i, local_env)
-        local_env.set_mask(agent_mask)
+        agent_mask = constraints_to_mask(constraints[i], local_envs[i])
+        local_envs[i].set_mask(agent_mask)
 
-        r, p = value_iteration(local_env)
+        r, p = value_iteration(local_envs[i])
         total_reward += r
         policies.append(p)  # solve as if agent i is alone
 
-    joint_policy = cross_policies(policies, env.grid, n_agents)
+    joint_policy = cross_policies(policies, [local_envs[i].nS + len(constraints[i]) for i in range(n_agents)])
     # now set the special states on the joint policy
-    synced_joint_policy = sync_joint_policy(joint_policy, env, n_agents)
+    synced_joint_policy = sync_joint_policy(joint_policy, env, constraints)
     # TODO: fix total_reward, it's inaccurate.
     return total_reward, synced_joint_policy
 
 
-def sync_joint_policy(joint_policy, env, n_agents):
+def get_matching_constraints(vector_joint_state, constraints):
+    ret = []
+    for i, s_i, _, j, s_j in constraints:
+        if vector_joint_state[i] == s_i and vector_joint_state[j] == s_j:
+            ret.append((i, s_i, a, j, s_j))
+
+    return ret
+
+
+def sync_joint_policy(joint_policy, env, constraints):
     def joint_policy_synced(s):
-        vector_joint_state = integer_state_to_vector(s, env.grid, n_agents)
-        constraint = get_matching_constraint(vector_joint_state)
-        if constraint:
-            # this state is matching to a constraint.
-            # sync the action of the conflicting agents
-            # by letting the compromising agent to know he is in a special state.
-            i, s_i, a, j, s_j = constraint
-            synced_vector_joint_state = vector_joint_state
-            synced_vector_joint_state[i] = env.nS + constraints[i].index(constraint) + 1
-            s = vector_state_to_integer(env.grid, synced_vector_joint_state)
+        for i in range(env.n_agents):
+            vector_joint_state = integer_state_to_vector(s, env.grid, env.n_agents)
+            # search for a constraint which includes i, s_i
+            for ctr, i, s_i, _, j, s_j in enumerate(constraints[i]):
+                # this state is matching to a constraint.
+                # sync the action of the conflicting agents
+                # by letting the compromising agent to know he is in a special state.
+                if vector_joint_state[i] == s_i and vector_joint_state[j] == s_j:
+                    synced_vector_joint_state = vector_joint_state
+                    synced_vector_joint_state[i] = env.nS + ctr
+                    s = vector_state_to_integer(env.grid, synced_vector_joint_state)
 
         return joint_policy(s)
 

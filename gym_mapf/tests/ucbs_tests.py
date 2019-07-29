@@ -47,7 +47,7 @@ class UcbsTests(unittest.TestCase):
         }
 
         n_local_states_per_agent = len(grid[0]) * len(grid)
-        joint_policy = cross_policies([policy1, policy2], [n_local_states_per_agent, n_local_states_per_agent])
+        joint_policy = cross_policies([policy1.get, policy2.get], [n_local_states_per_agent, n_local_states_per_agent])
 
         self.assertEqual(find_conflict(env, joint_policy, 2),
                          (0,
@@ -92,12 +92,26 @@ class UcbsTests(unittest.TestCase):
         }
 
         n_local_states_per_agent = len(grid[0]) * len(grid)
-        joint_policy = cross_policies([policy1, policy2], [n_local_states_per_agent, n_local_states_per_agent])
+        joint_policy = cross_policies([policy1.get, policy1.get], [n_local_states_per_agent, n_local_states_per_agent])
 
         self.assertEqual(find_conflict(env, joint_policy, 2),
                          None)
 
-    # def test_find_best_policies_with_constraint(self):
+    def test_find_best_policies_with_no_constraints(self):
+        grid = MapfGrid(['...',
+                         '@.@',
+                         '...'])
+
+        agents_starts = vector_state_to_integer(grid, ((0, 0), (0, 2)))
+        agents_goals = vector_state_to_integer(grid, ((2, 0), (2, 2)))
+
+        env = MapfEnv(grid, 2, agents_starts, agents_goals, 0, 0, -1, 1, -0.01)
+
+        sum_exptected_reward, joint_policy = best_joint_policy_under_constraint(env, [[], []], 2)
+
+        self.assertEqual(joint_policy(agents_starts), vector_action_to_integer((RIGHT, LEFT)))
+
+    # def test_find_best_policies_with_one_constraint(self):
     #     grid = MapfGrid(['...',
     #                      '...',
     #                      '...'])
@@ -107,6 +121,13 @@ class UcbsTests(unittest.TestCase):
     #
     #     env = MapfEnv(grid, 2, agents_starts, agents_goals, 0, 0, -1, 1, -0.01)
     #
-    #     policies = best_joint_policy_under_constraint(env, [], 2)
+    #     sum_exptected_reward, joint_policy = best_joint_policy_under_constraint(
+    #         env,
+    #         [[(0,
+    #            vector_state_to_integer(env.grid, ((0, 0),)),
+    #            ACTIONS.index(RIGHT),
+    #            1,
+    #            vector_state_to_integer(env.grid, ((0, 2),)))],
+    #          []], 2)
     #
-    #     self.assertEqual(policies, None)
+    #     self.assertEqual(True, False)
