@@ -202,7 +202,7 @@ class StateToActionGetter:
 class StateGetter:
     def __init__(self, grid, n_agents, agents_starts, agent_goals, right_fail, left_fail, reward_of_clash,
                  reward_of_goal,
-                 reward_of_living, ):
+                 reward_of_living, mask):
         self.grid = grid
         self.n_agents = n_agents
         self.agents_starts = agents_starts
@@ -212,8 +212,12 @@ class StateGetter:
         self.reward_of_clash = reward_of_clash
         self.reward_of_goal = reward_of_goal
         self.reward_of_living = reward_of_living
+        self.mask = mask
 
     def __getitem__(self, s):
+        if s in self.mask:
+            return self.mask[s]
+
         return StateToActionGetter(self.grid,
                                    self.n_agents,
                                    self.agents_starts,
@@ -229,7 +233,8 @@ class StateGetter:
 class MapfEnv(DiscreteEnv):
     # TODO: return to call super c'tor
     def __init__(self, grid, n_agents, agents_starts, agents_goals,
-                 right_fail, left_fail, reward_of_clash, reward_of_goal, reward_of_living):
+                 right_fail, left_fail, reward_of_clash, reward_of_goal, reward_of_living,
+                 mask=()):
 
         self.grid = grid
         self.agents_starts, self.agents_goals = agents_starts, agents_goals
@@ -242,10 +247,16 @@ class MapfEnv(DiscreteEnv):
 
         self.nS = (len(self.grid) * len(self.grid[0])) ** self.n_agents  # each agent may be in each of the cells.
         self.nA = len(ACTIONS) ** self.n_agents
-        self.P = StateGetter(self.grid, self.n_agents, self.agents_starts, agents_goals, right_fail, left_fail,
-                             reward_of_clash, reward_of_goal, reward_of_living)
+
         # self.isd = [1.0] + [0.0] * (self.nS - 1)  # irrelevant.
         self.lastaction = None  # for rendering
+
+        # take care of masks and special states
+        self.mask = mask
+        self.nS += len([s for s in self.mask if s > (self.nS - 1)])  # add special states to the state count
+
+        self.P = StateGetter(self.grid, self.n_agents, self.agents_starts, agents_goals, right_fail, left_fail,
+                             reward_of_clash, reward_of_goal, reward_of_living, self.mask)
 
         self.action_space = spaces.Discrete(self.nA)
         self.observation_space = spaces.Discrete(self.nS)
@@ -291,3 +302,9 @@ class MapfEnv(DiscreteEnv):
                     continue
 
                 print(CELL_TO_CHAR[self.grid[i, j]], end=' ')
+
+    def set_mask(self, mask):
+        self.mask = mask
+        self.nS += len([s for s in self.mask if s > (self.nS - 1)])  # add special states to the state count
+        self.observation_space = spaces.Discrete(self.nS)
+        self.reset()
