@@ -2,6 +2,7 @@ import numpy as np
 import heapq
 from collections import Counter
 
+from gym_mapf.envs import (integer_to_vector, vector_to_integer)
 from gym_mapf.envs.utils import get_local_view
 from gym_mapf.envs.mapf_env import (vector_state_to_integer,
                                     vector_action_to_integer,
@@ -37,13 +38,15 @@ def constraints_to_mask(constraints, i, env):
     return ret
 
 
-def cross_policies(policies, grid, n_agents):
+def cross_policies(policies, possible_states_counts):
+    if len(policies) != len(possible_states_counts):
+        raise AssertionError("some went wrong!")
+
+    n_agents = len(policies)
+
     def joint_policy(s):
-        vector_joint_state = integer_state_to_vector(s, grid, n_agents)
-        vector_local_states = [vector_joint_state[i] for i in range(len(vector_joint_state))]
-        integer_local_states = [vector_state_to_integer(grid, (vector_local_state,))
-                                for vector_local_state in vector_local_states]
-        vector_joint_action = sum([integer_action_to_vector(policies[i][integer_local_states[i]], 1)
+        local_states = integer_to_vector(s, possible_states_counts, n_agents, lambda x: x)  # fix cross policies
+        vector_joint_action = sum([integer_action_to_vector(policies[i][local_states[i]], 1)
                                    for i in range(n_agents)], ())
         joint_action = vector_action_to_integer(vector_joint_action)
         return joint_action

@@ -3,7 +3,9 @@ import unittest
 from gym_mapf.envs.mapf_env import (integer_state_to_vector,
                                     integer_action_to_vector,
                                     vector_state_to_integer,
-                                    vector_action_to_integer)
+                                    vector_action_to_integer,
+                                    integer_to_vector_multiple_numbers,
+                                    vector_to_integer_multiple_numbers)
 from gym_mapf.envs.utils import create_mapf_env
 from gym_mapf.envs import integer_to_vector, vector_to_integer
 from gym_mapf.envs.mapf_env import ACTIONS, UP, RIGHT, DOWN, LEFT, STAY
@@ -65,6 +67,12 @@ class UtilsTest(unittest.TestCase):
         self.assertEqual(vector_to_integer(((0, 2), (0, 1)), 4 * 3, lambda v: 3 * v[0] + v[1]), 14)
         self.assertEqual(vector_to_integer(((3, 2), (0, 1)), 4 * 3, lambda v: 3 * v[0] + v[1]), 23)
         self.assertEqual(vector_to_integer(((3, 2), (3, 2)), 4 * 3, lambda v: 3 * v[0] + v[1]), 143)
+
+    def test_vector_to_integer_multiple_option_counts(self):
+        self.assertEqual(4, vector_to_integer_multiple_numbers((0, 2), [2, 3], lambda x: x))
+
+    def test_integer_to_vector_multiple_option_counts(self):
+        self.assertEqual((0, 2), integer_to_vector_multiple_numbers(4, [2, 3], 2, lambda x: x))
 
 
 if __name__ == '__main__':
