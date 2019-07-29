@@ -46,7 +46,7 @@ class UcbsTests(unittest.TestCase):
             8: ACTIONS.index(STAY),
         }
 
-        self.assertEqual(find_conflict(env, cross_policies([policy1, policy2], env), 2),
+        self.assertEqual(find_conflict(env, cross_policies([policy1, policy2], env.grid, env.n_agents), 2),
                          (0,
                           vector_state_to_integer(env.grid, ((0, 0),)),
                           1,
@@ -88,7 +88,7 @@ class UcbsTests(unittest.TestCase):
             8: ACTIONS.index(DOWN),
         }
 
-        self.assertEqual(find_conflict(env, cross_policies([policy1, policy2], env), 2),
+        self.assertEqual(find_conflict(env, cross_policies([policy1, policy2], env.grid, env.n_agents), 2),
                          None)
 
     # def test_find_best_policies_with_constraint(self):

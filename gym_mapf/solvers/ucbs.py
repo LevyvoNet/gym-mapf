@@ -37,14 +37,14 @@ def constraints_to_mask(constraints, i, env):
     return ret
 
 
-def cross_policies(policies, env):
+def cross_policies(policies, grid, n_agents):
     def joint_policy(s):
-        vector_joint_state = integer_state_to_vector(s, env.grid, env.n_agents)
+        vector_joint_state = integer_state_to_vector(s, grid, n_agents)
         vector_local_states = [vector_joint_state[i] for i in range(len(vector_joint_state))]
-        integer_local_states = [vector_state_to_integer(env.grid, (vector_local_state,))
+        integer_local_states = [vector_state_to_integer(grid, (vector_local_state,))
                                 for vector_local_state in vector_local_states]
         vector_joint_action = sum([integer_action_to_vector(policies[i][integer_local_states[i]], 1)
-                                   for i in range(env.n_agents)], ())
+                                   for i in range(n_agents)], ())
         joint_action = vector_action_to_integer(vector_joint_action)
         return joint_action
 
@@ -65,7 +65,7 @@ def best_joint_policy_under_constraint(env, constraints, n_agents):
         total_reward += r
         policies.append(p)  # solve as if agent i is alone
 
-    joint_policy = cross_policies(policies)
+    joint_policy = cross_policies(policies, env.grid, n_agents)
     # now set the special states on the joint policy
     synced_joint_policy = sync_joint_policy(joint_policy, env, n_agents)
     # TODO: fix total_reward, it's inaccurate.
