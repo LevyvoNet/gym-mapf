@@ -307,4 +307,5 @@ class MapfEnv(DiscreteEnv):
         self.mask = mask
         self.nS += len([s for s in self.mask if s > (self.nS - 1)])  # add special states to the state count
         self.observation_space = spaces.Discrete(self.nS)
+        self.P.mask = mask
         self.reset()
