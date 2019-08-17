@@ -1,6 +1,7 @@
 import unittest
 
-from gym_mapf.solvers.ucbs import detect_conflict, best_joint_policy_under_constraint, cross_policies
+from gym_mapf.solvers.ucbs import best_joint_policy_under_constraint
+from gym_mapf.solvers.utils import cross_policies, detect_conflict
 from gym_mapf.envs.utils import MapfGrid
 from gym_mapf.envs.mapf_env import (MapfEnv,
                                     vector_action_to_integer,
@@ -49,7 +50,7 @@ class UcbsTests(unittest.TestCase):
         n_local_states_per_agent = len(grid[0]) * len(grid)
         joint_policy = cross_policies([policy1.get, policy2.get], [n_local_states_per_agent, n_local_states_per_agent])
 
-        self.assertEqual(detect_conflict(env, joint_policy, 2),
+        self.assertEqual(detect_conflict(env, joint_policy),
                          (0,
                           vector_state_to_integer(env.grid, ((0, 0),)),
                           1,
@@ -95,7 +96,7 @@ class UcbsTests(unittest.TestCase):
         n_local_states_per_agent = len(grid[0]) * len(grid)
         joint_policy = cross_policies([policy1.get, policy1.get], [n_local_states_per_agent, n_local_states_per_agent])
 
-        self.assertEqual(detect_conflict(env, joint_policy, 2),
+        self.assertEqual(detect_conflict(env, joint_policy),
                          None)
 
     def test_find_best_policies_with_no_constraints(self):
@@ -108,7 +109,7 @@ class UcbsTests(unittest.TestCase):
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0, 0, -1, 1, -0.01)
 
-        sum_exptected_reward, joint_policy = best_joint_policy_under_constraint(env, [[], []], 2)
+        sum_exptected_reward, joint_policy = best_joint_policy_under_constraint(env, [[], []])
 
         self.assertEqual(joint_policy(agents_starts), vector_action_to_integer((RIGHT, LEFT)))
 
@@ -129,9 +130,8 @@ class UcbsTests(unittest.TestCase):
                       vector_state_to_integer(env.grid, ((0, 2),)),
                       vector_state_to_integer(env.grid, ((0, 1),)),
                       )
-        sum_exptected_reward, joint_policy = best_joint_policy_under_constraint(env,
-                                                                                [[constraint],
-                                                                                 []], 2)
+        sum_exptected_reward, joint_policy = best_joint_policy_under_constraint(env, [[constraint],
+                                                                                      []])
 
         best_action = joint_policy(agents_starts)
 

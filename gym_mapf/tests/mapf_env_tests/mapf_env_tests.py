@@ -1,5 +1,6 @@
 import unittest
 import os.path
+from copy import copy
 
 from gym_mapf.envs.mapf_env import (MapfEnv,
                                     integer_state_to_vector,
@@ -9,7 +10,7 @@ from gym_mapf.envs.mapf_env import (MapfEnv,
 from gym_mapf.mapf.grid import MapfGrid
 from gym_mapf.envs.utils import parse_map_file
 from gym_mapf.envs import *
-from copy import copy
+from gym_mapf.tests.mapf_env_tests import MAPS_DIR
 
 RIGHT_FAIL = 0.1
 LEFT_FAIL = 0.1
@@ -27,7 +28,7 @@ class MapfEnvTest(unittest.TestCase):
         * Perform another (RIGHT, UP) step from the most probable next state from before ((0,1), (6,7)) and assert
             that the transitions are correct again, including the terminal one.
         """
-        map_file_path = os.path.abspath(os.path.join(__file__, '../../maps/empty-8-8/empty-8-8.map'))
+        map_file_path = os.path.abspath(os.path.join(__file__, MAPS_DIR, 'empty-8-8/empty-8-8.map'))
         grid = MapfGrid(parse_map_file(map_file_path))
 
         # agents are starting a
@@ -72,7 +73,7 @@ class MapfEnvTest(unittest.TestCase):
         })
 
     def test_colliding_agents_state_is_terminal_and_negative_reward(self):
-        map_file_path = os.path.abspath(os.path.join(__file__, '../../maps/empty-8-8/empty-8-8.map'))
+        map_file_path = os.path.abspath(os.path.join(__file__, MAPS_DIR, 'empty-8-8/empty-8-8.map'))
 
         grid = MapfGrid(parse_map_file(map_file_path))
 
