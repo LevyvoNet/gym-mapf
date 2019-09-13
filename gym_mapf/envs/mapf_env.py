@@ -188,9 +188,9 @@ class StateToActionGetter:
             return [(1.0, self.s, 0, True)]
 
         transitions = []
-        for i in range(self.env.n_agents):
-            if s[i] == integer_state_to_vector(self.env.agents_goals, self.env.grid, self.env.n_agents)[i]:
-                a = a[:i] + (STAY,) + a[(i + 1):]
+        # for i in range(self.env.n_agents):
+        #     if s[i] == integer_state_to_vector(self.env.agents_goals, self.env.grid, self.env.n_agents)[i]:
+        #         a = a[:i] + (STAY,) + a[(i + 1):]
         for prob, noised_action in self.get_possible_actions(a):
             new_state = execute_action(self.env.grid, s, noised_action)
             reward, done = self.calc_transition_reward(s, a, new_state)
@@ -259,10 +259,12 @@ class MapfEnv(DiscreteEnv):
 
     def step(self, a):
         s = integer_state_to_vector(self.s, self.grid, self.n_agents)
+        vector_a = integer_action_to_vector(a, self.n_agents)
         agents_goals = integer_state_to_vector(self.agents_goals, self.grid, self.n_agents)
-        n_agents_in_goals = len([i for i in range(self.n_agents) if s[i] == agents_goals[i]])
+        n_agents_stayed_in_goals = len([i for i in range(self.n_agents)
+                                        if s[i] == agents_goals[i] and vector_a[i] == STAY])
 
-        self.soc += self.n_agents - n_agents_in_goals
+        self.soc += self.n_agents - n_agents_stayed_in_goals
         self.makespan += 1
 
         # Perform the step
