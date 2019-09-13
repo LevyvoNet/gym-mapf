@@ -103,27 +103,17 @@ def integer_state_to_vector(s, grid, n_agents):
 
 
 class StateToActionGetter:
-    def __init__(self, grid, n_agents, agents_starts, agents_goals,
-                 right_fail, left_fail, reward_of_clash, reward_of_goal, reward_of_living,
-                 s):
-        self.grid = grid
-        self.n_agents = n_agents
-        self.agents_starts = agents_starts
-        self.agents_goals = agents_goals
+    def __init__(self, env, s):
+        self.env = env
         self.s = s
-        self.right_fail = right_fail
-        self.left_fail = left_fail
-        self.reward_of_clash = reward_of_clash
-        self.reward_of_goal = reward_of_goal
-        self.reward_of_living = reward_of_living
 
     def get_possible_actions(self, a):
         if len(a) == 1:
             right, left = POSSIBILITIES[a[0]]
             return [
-                (self.right_fail, (right,)),
-                (self.left_fail, (left,)),
-                (1.0 - self.right_fail - self.left_fail, a)
+                (self.env.right_fail, (right,)),
+                (self.env.left_fail, (left,)),
+                (1.0 - self.env.right_fail - self.env.left_fail, a)
             ]
 
         head, *tail = a
@@ -132,9 +122,9 @@ class StateToActionGetter:
         res = []
         for prob, noised_action in self.get_possible_actions(tail):
             res += [
-                (self.right_fail * prob, (right,) + noised_action),  # The first action noised to right
-                (self.left_fail * prob, (left,) + noised_action),  # The first action noised to left
-                ((1.0 - self.right_fail - self.left_fail) * prob, (head,) + noised_action)
+                (self.env.right_fail * prob, (right,) + noised_action),  # The first action noised to right
+                (self.env.left_fail * prob, (left,) + noised_action),  # The first action noised to left
+                ((1.0 - self.env.right_fail - self.env.left_fail) * prob, (head,) + noised_action)
                 # The first action remained the same
             ]
 
@@ -145,7 +135,7 @@ class StateToActionGetter:
         if len([x for x in loc_count.values() if x > 1]) != 0:  # clash between two agents.
             return True
 
-        goals = [loc == integer_state_to_vector(self.agents_goals, self.grid, self.n_agents)[i]
+        goals = [loc == integer_state_to_vector(self.env.agents_goals, self.env.grid, self.env.n_agents)[i]
                  for i, loc in enumerate(s)]
         all_in_goal = all(goals)
 
@@ -161,8 +151,8 @@ class StateToActionGetter:
             return True
 
         # agents switched spots
-        for i in range(self.n_agents):
-            for j in range(self.n_agents):
+        for i in range(self.env.n_agents):
+            for j in range(self.env.n_agents):
                 if old_state[i] == new_state[j] and old_state[j] == new_state[i] and i != j:
                     return True
 
@@ -170,39 +160,39 @@ class StateToActionGetter:
 
     def calc_transition_reward(self, original_state, action, new_state):
         if type(original_state) == int:
-            original_state = integer_state_to_vector(original_state, self.grid, self.n_agents)
+            original_state = integer_state_to_vector(original_state, self.env.grid, self.env.n_agents)
 
         if type(new_state) == int:
-            new_state = integer_state_to_vector(new_state, self.grid, self.n_agents)
+            new_state = integer_state_to_vector(new_state, self.env.grid, self.env.n_agents)
 
         if type(action) == int:
-            action = integer_action_to_vector(action, self.n_agents)
+            action = integer_action_to_vector(action, self.env.n_agents)
 
         if self.collision_happened(original_state, new_state):
-            return self.reward_of_clash, True
+            return self.env.reward_of_clash, True
 
-        goals = [loc == integer_state_to_vector(self.agents_goals, self.grid, self.n_agents)[i]
+        goals = [loc == integer_state_to_vector(self.env.agents_goals, self.env.grid, self.env.n_agents)[i]
                  for i, loc in enumerate(new_state)]
         all_in_goal = all(goals)
 
         if all_in_goal:
-            return self.reward_of_goal, True
+            return self.env.reward_of_goal, True
 
-        return self.reward_of_living, False
+        return self.env.reward_of_living, False
 
     def __getitem__(self, a):
-        s = integer_state_to_vector(self.s, self.grid, self.n_agents)
-        a = integer_action_to_vector(a, self.n_agents)
+        s = integer_state_to_vector(self.s, self.env.grid, self.env.n_agents)
+        a = integer_action_to_vector(a, self.env.n_agents)
 
         if self.is_terminal(s):
             return [(1.0, self.s, 0, True)]
 
         transitions = []
-        for i in range(self.n_agents):
-            if s[i] == integer_state_to_vector(self.agents_goals, self.grid, self.n_agents)[i]:
+        for i in range(self.env.n_agents):
+            if s[i] == integer_state_to_vector(self.env.agents_goals, self.env.grid, self.env.n_agents)[i]:
                 a = a[:i] + (STAY,) + a[(i + 1):]
         for prob, noised_action in self.get_possible_actions(a):
-            new_state = execute_action(self.grid, s, noised_action)
+            new_state = execute_action(self.env.grid, s, noised_action)
             reward, done = self.calc_transition_reward(s, a, new_state)
             similar_transitions = [(p, s, r, d) for (p, s, r, d) in transitions
                                    if s == new_state and r == reward and d == done]
@@ -214,42 +204,22 @@ class StateToActionGetter:
                 transitions.append((prob, new_state, reward, done))
 
         return [(prob,
-                 vector_to_integer(new_state, len(self.grid) * len(self.grid[0]),
-                                   lambda v: len(self.grid[0]) * v[0] + v[1]),
+                 vector_to_integer(new_state, len(self.env.grid) * len(self.env.grid[0]),
+                                   lambda v: len(self.env.grid[0]) * v[0] + v[1]),
                  reward,
                  done)
                 for (prob, new_state, reward, done) in transitions]
 
 
 class StateGetter:
-    def __init__(self, grid, n_agents, agents_starts, agent_goals, right_fail, left_fail, reward_of_clash,
-                 reward_of_goal,
-                 reward_of_living, mask):
-        self.grid = grid
-        self.n_agents = n_agents
-        self.agents_starts = agents_starts
-        self.agents_goals = agent_goals
-        self.right_fail = right_fail
-        self.left_fail = left_fail
-        self.reward_of_clash = reward_of_clash
-        self.reward_of_goal = reward_of_goal
-        self.reward_of_living = reward_of_living
-        self.mask = mask
+    def __init__(self, env):
+        self.env = env
 
     def __getitem__(self, s):
-        if s in self.mask:
-            return self.mask[s]
+        if s in self.env.mask:
+            return self.env.mask[s]
 
-        return StateToActionGetter(self.grid,
-                                   self.n_agents,
-                                   self.agents_starts,
-                                   self.agents_goals,
-                                   self.right_fail,
-                                   self.left_fail,
-                                   self.reward_of_clash,
-                                   self.reward_of_goal,
-                                   self.reward_of_living,
-                                   s)
+        return StateToActionGetter(self.env, s)
 
 
 class MapfEnv(DiscreteEnv):
@@ -277,8 +247,7 @@ class MapfEnv(DiscreteEnv):
         self.mask = mask
         self.nS += len([s for s in self.mask if s > (self.nS - 1)])  # add special states to the state count
 
-        self.P = StateGetter(self.grid, self.n_agents, self.agents_starts, agents_goals, right_fail, left_fail,
-                             reward_of_clash, reward_of_goal, reward_of_living, self.mask)
+        self.P = StateGetter(self)
 
         self.action_space = spaces.Discrete(self.nA)
         self.observation_space = spaces.Discrete(self.nS)
@@ -300,7 +269,7 @@ class MapfEnv(DiscreteEnv):
         new_state, reward, done, info = super().step(a)
 
         # Update terminated
-        self.terminated = done
+        self.is_terminated = done
 
         return new_state, reward, done, info
 
@@ -309,7 +278,7 @@ class MapfEnv(DiscreteEnv):
         self.makespan = 0
         self.soc = 0
         self.s = self.agents_starts
-        self.terminated = False
+        self.is_terminated = False
         return self.s
 
     def render(self, mode='human'):
@@ -371,5 +340,5 @@ class MapfEnv(DiscreteEnv):
         self.mask = mask
         self.nS += len([s for s in self.mask if s > (self.nS - 1)])  # add special states to the state count
         self.observation_space = spaces.Discrete(self.nS)
-        self.P.mask = mask
+        # self.P.mask = mask
         self.reset()
