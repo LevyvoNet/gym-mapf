@@ -207,6 +207,21 @@ class MapfEnvTest(unittest.TestCase):
         self.assertEqual(done_after_done, True)
         self.assertEqual(reward_after_done, 0)
 
+    def test_switch_spots_is_a_collision(self):
+        grid = MapfGrid(['..'])
+
+        agents_starts = vector_state_to_integer(grid, ((0, 0), (0, 1),))
+        agents_goals = vector_state_to_integer(grid, ((0, 1), (0, 0)))
+
+        determinstic_env = MapfEnv(grid, 2, agents_starts, agents_goals,
+                                   0.0, 0.0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+
+        s, r, done, _ = determinstic_env.step(vector_action_to_integer((RIGHT, LEFT)))
+
+        # Assert the game terminated in a collision
+        self.assertEqual(done, True)
+        self.assertEqual(r, REWARD_OF_CLASH)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

@@ -77,7 +77,7 @@ def detect_conflict(env: MapfEnv, joint_policy: Callable[[int], int]):
 def value_iteration(env):
     """Get optimal policy derived from value iteration and its expected reward"""
     vi_agent = ValueIterationAgent()
-    vi_agent.train(env, max_time=10)
+    vi_agent.train(env, max_time=60*5)
 
     def policy_int_output(s):
         return int(vi_agent.policy[s])

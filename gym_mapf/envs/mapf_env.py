@@ -1,4 +1,5 @@
 from collections import Counter
+from typing import Callable
 
 import numpy as np
 from colorama import Fore
@@ -12,6 +13,14 @@ from gym_mapf.mapf.grid import EmptyCell, ObstacleCell
 CELL_TO_CHAR = {
     EmptyCell: '.',
     ObstacleCell: '@'
+}
+
+ACTION_TO_CHAR = {
+    UP: '^',
+    RIGHT: '>',
+    DOWN: 'V',
+    LEFT: '<',
+    STAY: 'S'
 }
 
 np_random = np.random.RandomState()
@@ -145,6 +154,20 @@ class StateToActionGetter:
 
         return False
 
+    def collision_happened(self, old_state, new_state):
+        # two agents at the same spot
+        loc_count = Counter(new_state)
+        if len([x for x in loc_count.values() if x > 1]) != 0:
+            return True
+
+        # agents switched spots
+        for i in range(self.n_agents):
+            for j in range(self.n_agents):
+                if old_state[i] == new_state[j] and old_state[j] == new_state[i] and i != j:
+                    return True
+
+        return False
+
     def calc_transition_reward(self, original_state, action, new_state):
         if type(original_state) == int:
             original_state = integer_state_to_vector(original_state, self.grid, self.n_agents)
@@ -155,8 +178,7 @@ class StateToActionGetter:
         if type(action) == int:
             action = integer_action_to_vector(action, self.n_agents)
 
-        loc_count = Counter(new_state)
-        if len([x for x in loc_count.values() if x > 1]) != 0:  # clash between two agents.
+        if self.collision_happened(original_state, new_state):
             return self.reward_of_clash, True
 
         goals = [loc == integer_state_to_vector(self.agents_goals, self.grid, self.n_agents)[i]
@@ -273,13 +295,21 @@ class MapfEnv(DiscreteEnv):
 
         self.soc += self.n_agents - n_agents_in_goals
         self.makespan += 1
-        return super().step(a)
+
+        # Perform the step
+        new_state, reward, done, info = super().step(a)
+
+        # Update terminated
+        self.terminated = done
+
+        return new_state, reward, done, info
 
     def reset(self):
         self.lastaction = None
         self.makespan = 0
         self.soc = 0
         self.s = self.agents_starts
+        self.terminated = False
         return self.s
 
     def render(self, mode='human'):
@@ -290,7 +320,8 @@ class MapfEnv(DiscreteEnv):
         for i in range(len(self.grid)):
             print('')  # newline
             for j in range(len(self.grid[0])):
-                if (i, j) in v_state and (i, j) in v_agent_goals:
+                if (i, j) in v_state and (i, j) in v_agent_goals \
+                        and v_agent_goals.index((i, j)) == v_state.index((i, j)):
                     # print an agent which reached it's goal
                     print(Fore.GREEN + str(v_state.index((i, j))) + Fore.RESET, end=' ')
                     continue
@@ -302,6 +333,39 @@ class MapfEnv(DiscreteEnv):
                     continue
 
                 print(CELL_TO_CHAR[self.grid[i, j]], end=' ')
+
+    def render_with_policy(self, agent: int, policy: Callable[[int], int]):
+        print('')
+
+        v_state = integer_state_to_vector(self.s, self.grid, self.n_agents)
+        v_agents_goals = integer_state_to_vector(self.agents_goals, self.grid, self.n_agents)
+
+        v_agent_loc = v_state[agent]
+        v_agent_goal = v_agents_goals[agent]
+
+        for i in range(len(self.grid)):
+            print('')  # newline
+            for j in range(len(self.grid[0])):
+                if (i, j) == v_agent_goal and v_agent_goal == v_agent_loc:
+                    # print an agent which reached it's goal
+                    print(Fore.GREEN + str(v_state.index((i, j))) + Fore.RESET, end=' ')
+                    continue
+                if (i, j) == v_agent_loc:
+                    print(Fore.YELLOW + str(v_state.index((i, j))) + Fore.RESET, end=' ')
+                    continue
+                if (i, j) == v_agent_goal:
+                    print(Fore.BLUE + str(v_agents_goals.index((i, j))) + Fore.RESET, end=' ')
+                    continue
+
+                vector_current_state = v_state[:agent] + ((i, j),) + v_state[agent + 1:]
+                integer_current_state = vector_state_to_integer(self.grid, vector_current_state)
+                integer_joint_action = policy(integer_current_state)
+                vector_joint_action = integer_action_to_vector(integer_joint_action, self.n_agents)
+                agent_action = vector_joint_action[agent]
+
+                print(ACTION_TO_CHAR[agent_action], end=' ')
+
+        print('')
 
     def set_mask(self, mask):
         self.mask = mask

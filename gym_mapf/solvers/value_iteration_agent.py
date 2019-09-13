@@ -59,21 +59,21 @@ def value_iteration(env, max_time, gamma=1.0):
     v = np.zeros(env.nS)  # initialize value-function
     max_iterations = 100000
     eps = 1e-4
-    with stopit.SignalTimeout(max_time, swallow_exc=False) as timeout_ctx:
-        for i in range(max_iterations):
-            prev_v = np.copy(v)
-            for s in range(env.nS):
-                q_sa = [sum([p * (r + prev_v[s_]) for p, s_, r, _ in env.P[s][a]]) for a in range(env.nA)]
-                v[s] = max(q_sa)
+    # with stopit.SignalTimeout(max_time, swallow_exc=False) as timeout_ctx:
+    for i in range(max_iterations):
+        prev_v = np.copy(v)
+        for s in range(env.nS):
+            q_sa = [sum([p * (r + prev_v[s_]) for p, s_, r, _ in env.P[s][a]]) for a in range(env.nA)]
+            v[s] = max(q_sa)
 
 
-            if (np.sum(np.fabs(prev_v - v)) <= eps):
-                print('Value-iteration converged at iteration# %d.' % (i + 1))
-                break
+        if (np.sum(np.fabs(prev_v - v)) <= eps):
+            print('Value-iteration converged at iteration# %d.' % (i + 1))
+            break
 
     # OK, let's check what happened
-    if timeout_ctx.state == timeout_ctx.EXECUTED:
-        return v, True
+    # if timeout_ctx.state == timeout_ctx.EXECUTED:
+    return v, True
 
     return v, False
 

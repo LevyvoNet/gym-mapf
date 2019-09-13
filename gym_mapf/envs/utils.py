@@ -67,5 +67,5 @@ def get_local_view(env: MapfEnv, agent_indexes: list):
     integer_local_agents_starts = vector_state_to_integer(env.grid, vector_local_agents_starts)
     integer_local_agents_goals = vector_state_to_integer(env.grid, vector_local_agents_goals)
 
-    return MapfEnv(env.grid, 1, integer_local_agents_starts, integer_local_agents_goals,
+    return MapfEnv(env.grid, len(agent_indexes), integer_local_agents_starts, integer_local_agents_goals,
                    env.right_fail, env.left_fail, env.reward_of_clash, env.reward_of_goal, env.reward_of_living)
