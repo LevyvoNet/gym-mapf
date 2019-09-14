@@ -54,8 +54,23 @@ def extract_policy(v, env, gamma=1.0):
     return policy
 
 
+def might_conflict(clash_reward, transitions):
+    for new_state, reward, done, prob in transitions:
+        if reward == clash_reward and done:
+            # This is a conflict transition
+            return True
+
+    return False
+
+
+def safe_actions(env, s):
+    return [a for a in range(env.nA)
+            if not might_conflict(env.reward_of_clash, env.P[s][a])]
+
+
 def value_iteration(env, max_time, gamma=1.0):
     """ Value-iteration algorithm"""
+    # v=  np.full((env.nS), -1)
     v = np.zeros(env.nS)  # initialize value-function
     max_iterations = 100000
     eps = 1e-4
@@ -63,9 +78,11 @@ def value_iteration(env, max_time, gamma=1.0):
     for i in range(max_iterations):
         prev_v = np.copy(v)
         for s in range(env.nS):
-            q_sa = [sum([p * (r + prev_v[s_]) for p, s_, r, _ in env.P[s][a]]) for a in range(env.nA)]
+            q_sa = [sum([p * (r + prev_v[s_]) for p, s_, r, _ in env.P[s][a]]) for a in safe_actions(env, s)]
             v[s] = max(q_sa)
 
+        # if i % 10 == 0:
+        #     print(v)
 
         if (np.sum(np.fabs(prev_v - v)) <= eps):
             print('Value-iteration converged at iteration# %d.' % (i + 1))
