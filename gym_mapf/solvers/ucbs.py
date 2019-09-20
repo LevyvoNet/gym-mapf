@@ -4,7 +4,8 @@ from math import inf
 from gym_mapf.envs import (integer_to_vector, vector_to_integer)
 from gym_mapf.envs.utils import get_local_view
 from gym_mapf.envs.mapf_env import (MapfEnv)
-from gym_mapf.solvers.utils import cross_policies, detect_conflict, value_iteration
+from gym_mapf.solvers.utils import cross_policies, detect_conflict
+from gym_mapf.solvers.value_iteration_agent import plan_with_value_iteration
 
 
 def constraints_to_mask(constraints: list, local_env: MapfEnv):
@@ -41,12 +42,12 @@ def best_joint_policy_under_constraint(env, constraints):
         agent_mask = constraints_to_mask(constraints[i], local_envs[i])
         local_envs[i].set_mask(agent_mask)
 
-        r, p = value_iteration(local_envs[i])
+        r, p = plan_with_value_iteration(local_envs[i])
         total_reward += r
         policies.append(p)  # solve as if agent i is alone
 
     possible_states_counts = [local_envs[i].nS for i in range(env.n_agents)]
-    joint_policy = cross_policies(policies, possible_states_counts)
+    joint_policy = cross_policies(policies, local_envs)
     # now set the special states on the joint policy
     synced_joint_policy = sync_joint_policy(joint_policy, env, constraints, possible_states_counts)
     # TODO: fix total_reward, it's inaccurate. Calculate it via policy evaluation.

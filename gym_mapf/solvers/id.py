@@ -2,8 +2,8 @@
 
 from gym_mapf.envs.mapf_env import MapfEnv
 from gym_mapf.solvers.utils import (cross_policies,
-                                    detect_conflict,
-                                    value_iteration)
+                                    detect_conflict)
+from gym_mapf.solvers.value_iteration_agent import plan_with_value_iteration
 from gym_mapf.envs.utils import get_local_view
 
 
@@ -12,12 +12,10 @@ def best_joint_policy(env, agent_groups):
 
     policies = []
     for local_env in local_envs:
-        r, p = value_iteration(local_env)
+        r, p = plan_with_value_iteration(local_env)
         policies.append(p)
 
-    possible_state_counts = [local_env.nS for local_env in local_envs]
-
-    joint_policy = cross_policies(policies, possible_state_counts)
+    joint_policy = cross_policies(policies, local_envs)
 
     return joint_policy
 
@@ -42,7 +40,6 @@ def ID(env: MapfEnv):
     """
     agents_groups = [[i] for i in range(env.n_agents)]
     curr_joint_policy = best_joint_policy(env, agents_groups)
-    env.render_with_policy(0, curr_joint_policy)
     conflict = detect_conflict(env, curr_joint_policy)
     while conflict:
         i, _, j, _, _ = conflict

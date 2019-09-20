@@ -2,6 +2,8 @@ import numpy as np
 import gym
 import stopit
 
+from gym_mapf.solvers.utils import safe_actions
+
 
 def run_episode(env, policy, gamma=1.0, render=False):
     """ Evaluates policy by using it to run an episode and finding its
@@ -43,29 +45,17 @@ def extract_policy(v, env, gamma=1.0):
     """ Extract the policy given a value-function """
     policy = np.zeros(env.nS)
     for s in range(env.nS):
-        q_sa = np.zeros(env.nA)
-        for a in range(env.nA):
+        possible_actions_from_state = safe_actions(env, s)
+        q_sa = np.zeros(len(possible_actions_from_state))
+        for a_idx in range(len(possible_actions_from_state)):
+            a = possible_actions_from_state[a_idx]
             for next_sr in env.P[s][a]:
                 # next_sr is a tuple of (probabili
                 # ty, next state, reward, done)
                 p, s_, r, _ = next_sr
-                q_sa[a] += (p * (r + gamma * v[s_]))
-        policy[s] = np.argmax(q_sa)
+                q_sa[a_idx] += (p * (r + gamma * v[s_]))
+        policy[s] = possible_actions_from_state[np.argmax(q_sa)]
     return policy
-
-
-def might_conflict(clash_reward, transitions):
-    for new_state, reward, done, prob in transitions:
-        if reward == clash_reward and done:
-            # This is a conflict transition
-            return True
-
-    return False
-
-
-def safe_actions(env, s):
-    return [a for a in range(env.nA)
-            if not might_conflict(env.reward_of_clash, env.P[s][a])]
 
 
 def value_iteration(env, max_time, gamma=1.0):
@@ -73,7 +63,7 @@ def value_iteration(env, max_time, gamma=1.0):
     # v=  np.full((env.nS), -1)
     v = np.zeros(env.nS)  # initialize value-function
     max_iterations = 100000
-    eps = 1e-4
+    eps = 1e-2
     # with stopit.SignalTimeout(max_time, swallow_exc=False) as timeout_ctx:
     for i in range(max_iterations):
         prev_v = np.copy(v)
@@ -122,3 +112,14 @@ if __name__ == '__main__':
     policy_score = evaluate_policy(env, policy, gamma, n=1000)
     print('Policy average score = ', policy_score)
     print(policy)
+
+
+def plan_with_value_iteration(env):
+    """Get optimal policy derived from value iteration and its expected reward"""
+    vi_agent = ValueIterationAgent()
+    vi_agent.train(env, max_time=60 * 5)
+
+    def policy_int_output(s):
+        return int(vi_agent.policy[s])
+
+    return vi_agent.optimal_v[env.s], policy_int_output

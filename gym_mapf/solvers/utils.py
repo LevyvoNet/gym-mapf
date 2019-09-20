@@ -4,26 +4,24 @@ from typing import Callable
 from gym_mapf.envs import integer_to_vector
 from gym_mapf.envs.mapf_env import integer_action_to_vector, vector_action_to_integer, MapfEnv, integer_state_to_vector, \
     vector_state_to_integer
-from gym_mapf.solvers.value_iteration_agent import ValueIterationAgent
 
 
-def cross_policies(policies: list, possible_states_counts: list):
+def cross_policies(policies: list, envs: list):
     """Joint policy in a 'cross' matter.
 
     Args:
         policies: list of functions, function i is the policy for agent i.
-        possible_states_counts: list of integers, each one is the number
-            of states in the local view of agent i (including fake states for constraints).
+        envs: list of matching envs for each of the policies
     """
-    if len(policies) != len(possible_states_counts):
+    if len(policies) != len(envs):
         raise AssertionError("some went wrong!")
 
-    n_agents = len(policies)
+    n_envs = len(envs)
 
     def joint_policy(s):
-        local_states = integer_to_vector(s, possible_states_counts, n_agents, lambda x: x)
-        vector_joint_action = sum([integer_action_to_vector(policies[i](local_states[i]), 1)
-                                   for i in range(n_agents)], ())
+        local_states = integer_to_vector(s, [env.nS for env in envs], n_envs, lambda x: x)
+        vector_joint_action = sum([integer_action_to_vector(policies[i](local_states[i]), envs[i].n_agents)
+                                   for i in range(n_envs)], ())
         joint_action = vector_action_to_integer(vector_joint_action)
         return joint_action
 
@@ -74,12 +72,15 @@ def detect_conflict(env: MapfEnv, joint_policy: Callable[[int], int]):
     return None
 
 
-def value_iteration(env):
-    """Get optimal policy derived from value iteration and its expected reward"""
-    vi_agent = ValueIterationAgent()
-    vi_agent.train(env, max_time=60*5)
+def might_conflict(clash_reward, transitions):
+    for prob, new_state, reward, done in transitions:
+        if reward == clash_reward and done:
+            # This is a conflict transition
+            return True
 
-    def policy_int_output(s):
-        return int(vi_agent.policy[s])
+    return False
 
-    return vi_agent.optimal_v[env.s], policy_int_output
+
+def safe_actions(env, s):
+    return [a for a in range(env.nA)
+            if not might_conflict(env.reward_of_clash, env.P[s][a])]

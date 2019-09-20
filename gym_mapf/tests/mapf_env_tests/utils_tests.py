@@ -74,6 +74,10 @@ class UtilsTest(unittest.TestCase):
     def test_integer_to_vector_multiple_option_counts(self):
         self.assertEqual((0, 2), integer_to_vector_multiple_numbers(4, [2, 3], 2, lambda x: x))
 
+    def test_vector_action_to_integer(self):
+        self.assertEqual((DOWN, UP),
+                         integer_action_to_vector(vector_action_to_integer((DOWN, UP)), 2))
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

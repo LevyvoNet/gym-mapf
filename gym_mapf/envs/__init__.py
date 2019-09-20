@@ -30,7 +30,7 @@ def integer_to_vector(x, n_options_per_element, n_elements, index_to_element):
 
     Args:
         x (int): the integer to convert.
-        n_options_per_element(int): number of options for each element in the vector.
+        n_options_per_element(list): number of options for each element in the vector.
         n_elements (int): the number of elements in the vector to return.
         index_to_element(int=>any): function which converts an integer represents a single option in one of the
             vector elements and return anything that vector contains. For example, a function which returns 'UP' for 0,
