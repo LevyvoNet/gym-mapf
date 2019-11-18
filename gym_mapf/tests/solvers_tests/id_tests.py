@@ -10,25 +10,116 @@ from gym_mapf.envs.mapf_env import (MapfEnv,
                                     UP, DOWN, RIGHT, LEFT, STAY,
                                     ACTIONS)
 
-from gym_mapf.solvers.id import ID
+from gym_mapf.solvers.id import ID, best_joint_policy
 
 
 class IdTests(unittest.TestCase):
-    def test_corridor_switch_ID(self):
+    # @unittest.skip("Remove skip later")
+    def test_corridor_switch_indepedent_vs_merged(self):
         grid = MapfGrid(['...',
                          '@.@'])
         agents_starts = vector_state_to_integer(grid, ((0, 0), (0, 2)))
         agents_goals = vector_state_to_integer(grid, ((0, 2), (0, 0)))
 
-        env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -1, 10, -0.1)
+        env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -1, 1, -0.01)
+
+        independent_joiont_policy = best_joint_policy(env, [[0], [1]])
+        merged_joint_policy = best_joint_policy(env, [[0, 1]])
+
+        interesting_state = vector_state_to_integer(env.grid, ((1, 1), (0, 1)))
+
+        expected_possible_actions = [vector_action_to_integer((STAY, UP)),
+                                     vector_action_to_integer((DOWN, UP))]
+
+        # Assert independent_joint_policy just choose the most efficient action
+        self.assertEqual(independent_joiont_policy(interesting_state), vector_action_to_integer((UP, LEFT)))
+
+        # Assert merged_joint_policy avoids collision
+        self.assertIn(merged_joint_policy(interesting_state), expected_possible_actions)
+
+    # @unittest.skip("Remove skip later")
+    def test_two_columns_independent_vs_merged(self):
+        grid = MapfGrid(['..',
+                         '..',
+                         '..'])
+        agents_starts = vector_state_to_integer(grid, ((0, 0), (0, 1)))
+        agents_goals = vector_state_to_integer(grid, ((2, 0), (2, 1)))
+
+        env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.01, -1, 1, -0.1)
+
+        independent_joiont_policy = best_joint_policy(env, [[0], [1]])
+        merged_joint_policy = best_joint_policy(env, [[0, 1]])
+
+        interesting_state = vector_state_to_integer(env.grid, ((0, 0), (0, 1)))
+
+        expected_possible_actions = [vector_action_to_integer((LEFT, RIGHT))]
+
+        # Assert independent_joint_policy just choose the most efficient action
+        self.assertEqual(independent_joiont_policy(interesting_state), vector_action_to_integer((DOWN, DOWN)))
+
+        # Assert merged_joint_policy avoids collision
+        self.assertIn(merged_joint_policy(interesting_state), expected_possible_actions)
+
+    # @unittest.skip("Remove skip later")
+    def test_corridor_switch_ID_merge_agents(self):
+        grid = MapfGrid(['...',
+                         '@.@'])
+        agents_starts = vector_state_to_integer(grid, ((0, 0), (0, 2)))
+        agents_goals = vector_state_to_integer(grid, ((0, 2), (0, 0)))
+
+        env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -1, 1, -0.01)
 
         policy = ID(env)
 
         interesting_state = vector_state_to_integer(env.grid, ((1, 1), (0, 1)))
+
         expected_possible_actions = [vector_action_to_integer((STAY, UP)),
                                      vector_action_to_integer((DOWN, UP))]
 
         self.assertIn(policy(interesting_state), expected_possible_actions)
+
+    def test_narrow_empty_grid(self):
+        grid = MapfGrid(['....'])
+
+        agents_starts = vector_state_to_integer(grid, ((0, 1), (0, 2)))
+        agents_goals = vector_state_to_integer(grid, ((0, 0), (0, 3)))
+
+        env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -1, 1, -0.01)
+
+        joint_policy = ID(env)
+
+        self.assertEqual(joint_policy(env.s), vector_action_to_integer((LEFT, RIGHT)))
+
+    # @unittest.skip("Remove skip later")
+    def test_empty_grid(self):
+        grid = MapfGrid(['....',
+                         '....'
+                         '....'])
+        agents_starts = vector_state_to_integer(grid, ((1, 1), (1, 2)))
+        agents_goals = vector_state_to_integer(grid, ((0, 2), (0, 0)))
+
+        env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -1, 1, -0.01)
+
+    @unittest.skip("Currently in infinite loop due to unreachable states")
+    def test_independent_agents_ID_solve_separately(self):
+        grid = MapfGrid(['.@.',
+                         '.@.',
+                         '.@.'])
+        agents_starts = vector_state_to_integer(grid, ((0, 0), (0, 2)))
+        agents_goals = vector_state_to_integer(grid, ((2, 0), (2, 2)))
+
+        env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.01, -1, 1, -0.1)
+
+        independent_joiont_policy = best_joint_policy(env, [[0], [1]])
+        merged_joint_policy = best_joint_policy(env, [[0, 1]])
+
+        interesting_state = vector_state_to_integer(env.grid, ((0, 0), (0, 2)))
+
+        # Assert independent_joint_policy just choose the most efficient action
+        self.assertEqual(independent_joiont_policy(interesting_state), vector_action_to_integer((DOWN, DOWN)))
+
+        # Assert merged_joint_policy picks the same action
+        self.assertEqual(merged_joint_policy(interesting_state), vector_action_to_integer((DOWN, DOWN)))
 
 
 if __name__ == '__main__':

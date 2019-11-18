@@ -71,8 +71,8 @@ def value_iteration(env, max_time, gamma=1.0):
             q_sa = [sum([p * (r + prev_v[s_]) for p, s_, r, _ in env.P[s][a]]) for a in safe_actions(env, s)]
             v[s] = max(q_sa)
 
-        # if i % 10 == 0:
-        #     print(v)
+        if i % 10 == 0:
+            print(v)
 
         if (np.sum(np.fabs(prev_v - v)) <= eps):
             print('Value-iteration converged at iteration# %d.' % (i + 1))
