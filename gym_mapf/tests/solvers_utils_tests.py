@@ -1,6 +1,7 @@
 import unittest
 
-from gym_mapf.solvers.utils import cross_policies, detect_conflict
+from gym_mapf.solvers.utils import cross_policies, detect_conflict, best_joint_policy
+from gym_mapf.solvers.value_iteration_agent import plan_with_value_iteration
 from gym_mapf.envs.utils import MapfGrid, get_local_view
 from gym_mapf.envs.mapf_env import (MapfEnv,
                                     vector_action_to_integer,
@@ -10,7 +11,9 @@ from gym_mapf.envs.mapf_env import (MapfEnv,
                                     UP, DOWN, RIGHT, LEFT, STAY,
                                     ACTIONS)
 
+
 class SolversUtilsTests(unittest.TestCase):
+
     def test_detect_conflict_finds_classical_conflict(self):
         grid = MapfGrid(['...',
                          '@.@',
@@ -93,3 +96,22 @@ class SolversUtilsTests(unittest.TestCase):
         joint_policy = cross_policies([policy1.get, policy2.get], [get_local_view(env, [0]), get_local_view(env, [1])])
 
         self.assertEqual(detect_conflict(env, joint_policy), None)
+
+    def test_roni_scenario_with_id(self):
+        grid = MapfGrid(['.@.',
+                         '.@.',
+                         '...'])
+        agents_starts = vector_state_to_integer(grid, ((0, 0), (0, 2)))
+        agents_goals = vector_state_to_integer(grid, ((2, 0), (2, 2)))
+
+        env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.01, -1, 1, -0.1)
+
+        independent_joiont_policy = best_joint_policy(env, [[0], [1]], plan_with_value_iteration)
+
+        interesting_state = vector_state_to_integer(env.grid, ((0, 0), (0, 2)))
+
+        # Assert independent_joint_policy just choose the most efficient action
+        self.assertEqual(independent_joiont_policy(interesting_state), vector_action_to_integer((DOWN, DOWN)))
+
+        # Assert no conflict
+        self.assertEqual(detect_conflict(env, independent_joiont_policy), None)

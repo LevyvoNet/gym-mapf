@@ -1,23 +1,8 @@
-"""Indepencde Detection Algorithm"""
+"""Independence Detection Algorithm"""
 
 from gym_mapf.envs.mapf_env import MapfEnv
-from gym_mapf.solvers.utils import (cross_policies,
-                                    detect_conflict)
+from gym_mapf.solvers.utils import (detect_conflict, best_joint_policy)
 from gym_mapf.solvers.value_iteration_agent import plan_with_value_iteration
-from gym_mapf.envs.utils import get_local_view
-
-
-def best_joint_policy(env, agent_groups):
-    local_envs = [get_local_view(env, group) for group in agent_groups]
-
-    policies = []
-    for local_env in local_envs:
-        r, p = plan_with_value_iteration(local_env)
-        policies.append(p)
-
-    joint_policy = cross_policies(policies, local_envs)
-
-    return joint_policy
 
 
 def group_of_agent(agents_groups, agent_idx):
@@ -39,7 +24,7 @@ def ID(env: MapfEnv):
     Return an optimal policy which guarantees no collision is possible.
     """
     agents_groups = [[i] for i in range(env.n_agents)]
-    curr_joint_policy = best_joint_policy(env, agents_groups)
+    curr_joint_policy = best_joint_policy(env, agents_groups, plan_with_value_iteration)
     conflict = detect_conflict(env, curr_joint_policy)
     while conflict:
         i, _, j, _, _ = conflict
@@ -49,7 +34,7 @@ def ID(env: MapfEnv):
                                            group_of_agent(agents_groups, j))
 
         # solve again with the new agent groups
-        curr_joint_policy = best_joint_policy(env, agents_groups)
+        curr_joint_policy = best_joint_policy(env, agents_groups, plan_with_value_iteration)
 
         # find a new conflict
         conflict = detect_conflict(env, curr_joint_policy)

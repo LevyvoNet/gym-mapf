@@ -4,6 +4,7 @@ from typing import Callable
 from gym_mapf.envs import integer_to_vector
 from gym_mapf.envs.mapf_env import integer_action_to_vector, vector_action_to_integer, MapfEnv, integer_state_to_vector, \
     vector_state_to_integer
+from gym_mapf.envs.utils import get_local_view
 
 
 def cross_policies(policies: list, envs: list):
@@ -28,6 +29,15 @@ def cross_policies(policies: list, envs: list):
     return joint_policy
 
 
+def print_path_to_state(path: dict, state: int, env: MapfEnv):
+    curr_state = state
+    print("final state: {}".format(integer_state_to_vector(state, env.grid, env.n_agents)))
+    while path[curr_state] is not None:
+        curr_state, action = path[curr_state]
+        print("state: {}, action: {}".format(integer_state_to_vector(curr_state, env.grid, env.n_agents),
+                                             integer_action_to_vector(action, env.n_agents)))
+
+
 def detect_conflict(env: MapfEnv, joint_policy: Callable[[int], int]):
     """Find a conflict between agents.
 
@@ -41,6 +51,7 @@ def detect_conflict(env: MapfEnv, joint_policy: Callable[[int], int]):
     """
     visited_states = set()
     states_to_exapnd = [env.s]
+    path = {env.s: None}
 
     while len(states_to_exapnd) > 0:
         curr_expanded_state = states_to_exapnd.pop()
@@ -68,6 +79,7 @@ def detect_conflict(env: MapfEnv, joint_policy: Callable[[int], int]):
 
             if next_state not in visited_states:
                 states_to_exapnd.append(next_state)
+                path[next_state] = (curr_expanded_state, joint_action)
 
     return None
 
@@ -84,3 +96,16 @@ def might_conflict(clash_reward, transitions):
 def safe_actions(env, s):
     return [a for a in range(env.nA)
             if not might_conflict(env.reward_of_clash, env.P[s][a])]
+
+
+def best_joint_policy(env, agent_groups, low_level_planner):
+    local_envs = [get_local_view(env, group) for group in agent_groups]
+
+    policies = []
+    for local_env in local_envs:
+        r, p = low_level_planner(local_env)
+        policies.append(p)
+
+    joint_policy = cross_policies(policies, local_envs)
+
+    return joint_policy

@@ -1,6 +1,7 @@
 import unittest
 
 from gym_mapf.solvers.ucbs import best_joint_policy_under_constraint
+from gym_mapf.solvers.value_iteration_agent import plan_with_value_iteration
 from gym_mapf.envs.utils import MapfGrid, get_local_view
 from gym_mapf.envs.mapf_env import (MapfEnv,
                                     vector_action_to_integer,
@@ -22,7 +23,9 @@ class UcbsTests(unittest.TestCase):
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0, 0, -1, 1, -0.01)
 
-        sum_exptected_reward, joint_policy = best_joint_policy_under_constraint(env, [[], []])
+        sum_exptected_reward, joint_policy = best_joint_policy_under_constraint(env,
+                                                                                [[], []],
+                                                                                plan_with_value_iteration)
 
         self.assertEqual(joint_policy(agents_starts), vector_action_to_integer((RIGHT, LEFT)))
 
@@ -43,8 +46,9 @@ class UcbsTests(unittest.TestCase):
                       vector_state_to_integer(env.grid, ((0, 2),)),
                       vector_state_to_integer(env.grid, ((0, 1),)),
                       )
-        sum_exptected_reward, joint_policy = best_joint_policy_under_constraint(env, [[constraint],
-                                                                                      []])
+        sum_exptected_reward, joint_policy = best_joint_policy_under_constraint(env,
+                                                                                [[constraint], []],
+                                                                                plan_with_value_iteration)
 
         best_action = joint_policy(agents_starts)
 

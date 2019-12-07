@@ -1,5 +1,4 @@
 import numpy as np
-import gym
 import stopit
 
 from gym_mapf.solvers.utils import safe_actions
@@ -71,11 +70,13 @@ def value_iteration(env, max_time, gamma=1.0):
             q_sa = [sum([p * (r + prev_v[s_]) for p, s_, r, _ in env.P[s][a]]) for a in safe_actions(env, s)]
             v[s] = max(q_sa)
 
-        if i % 10 == 0:
-            print(v)
+        # debug print
+        # if i % 10 == 0:
+        #     print(v)
 
         if (np.sum(np.fabs(prev_v - v)) <= eps):
-            print('Value-iteration converged at iteration# %d.' % (i + 1))
+            # debug print
+            # print('Value-iteration converged at iteration# %d.' % (i + 1))
             break
 
     # OK, let's check what happened
@@ -101,17 +102,6 @@ class ValueIterationAgent:
 
     def __repr__(self):
         return 'ValueIterationAgent()'
-
-
-if __name__ == '__main__':
-    env_name = 'empty-8-8'
-    gamma = 1.0
-    env = gym.make(env_name)
-    optimal_v = value_iteration(env, 0, gamma)
-    policy = extract_policy(optimal_v, gamma)
-    policy_score = evaluate_policy(env, policy, gamma, n=1000)
-    print('Policy average score = ', policy_score)
-    print(policy)
 
 
 def plan_with_value_iteration(env):

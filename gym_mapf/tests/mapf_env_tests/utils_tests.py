@@ -40,7 +40,7 @@ class UtilsTest(unittest.TestCase):
         self.assertEqual(integer_to_vector(10, 4, 2, lambda n: n), (2, 2))
 
         # action for 3 agents
-        self.assertEqual(integer_to_vector(28, 5, 3, lambda n: ACTIONS[n]), (LEFT, UP, RIGHT))
+        self.assertEqual(integer_to_vector(28, len(ACTIONS), 3, lambda n: ACTIONS[n]), (DOWN, STAY, UP))
 
         # state in a 4x3 grid for two agents.
         self.assertEqual(integer_to_vector(10, 4 * 3, 2, lambda n: (int(n / 3), n % 3)),
@@ -59,7 +59,7 @@ class UtilsTest(unittest.TestCase):
         self.assertEqual(vector_to_integer((2, 2), 4, lambda n: n), 10)
 
         # action for 3 agents
-        self.assertEqual(vector_to_integer((LEFT, UP, RIGHT), 5, lambda a: ACTIONS.index(a)), 28)
+        self.assertEqual(vector_to_integer((DOWN, STAY, UP), len(ACTIONS), lambda a: ACTIONS.index(a)), 28)
 
         # state in a 4x3 grid for two agents.
         self.assertEqual(vector_to_integer(((3, 1), (0, 0)), 4 * 3, lambda v: 3 * v[0] + v[1]), 10)

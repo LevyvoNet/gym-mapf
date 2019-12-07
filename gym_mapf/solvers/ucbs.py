@@ -31,7 +31,7 @@ def constraints_to_mask(constraints: list, local_env: MapfEnv):
     return ret
 
 
-def best_joint_policy_under_constraint(env, constraints):
+def best_joint_policy_under_constraint(env, constraints, low_level_planner):
     """Get a joint policy and its exptected sum of rewards."""
     policies = []
     total_reward = 0
@@ -42,7 +42,7 @@ def best_joint_policy_under_constraint(env, constraints):
         agent_mask = constraints_to_mask(constraints[i], local_envs[i])
         local_envs[i].set_mask(agent_mask)
 
-        r, p = plan_with_value_iteration(local_envs[i])
+        r, p = low_level_planner(local_envs[i])
         total_reward += r
         policies.append(p)  # solve as if agent i is alone
 
@@ -95,7 +95,8 @@ def sync_joint_policy(joint_policy, env, constraints, possible_states_counts):
 def UCBS(env):
     # TODO: problematic action can be problematic state to reach instead. find_conflict should solve this.
     curr_constraints = []
-    curr_joint_reward, curr_joint_policy = best_joint_policy_under_constraint(env, curr_constraints)
+    curr_joint_reward, curr_joint_policy = best_joint_policy_under_constraint(env, curr_constraints,
+                                                                              plan_with_value_iteration)
     search_tree = [(curr_joint_reward, curr_constraints, curr_joint_policy)]
     heapq.heapify(search_tree)
 
@@ -111,13 +112,15 @@ def UCBS(env):
                        best_joint_policy_under_constraint(env, curr_constraints[:i] +
                                                           (curr_constraints[i] +
                                                            (i, s_i, j, s_j, s_forbidden))
-                                                          + curr_constraints[i + 1:]))
+                                                          + curr_constraints[i + 1:],
+                                                          plan_with_value_iteration))
 
         # now agent j is the one who compromises
         heapq.heappush(search_tree,
                        best_joint_policy_under_constraint(env, curr_constraints[:j] +
                                                           (curr_constraints[j] +
                                                            (j, s_j, i, s_i, s_forbidden))
-                                                          + curr_constraints[j + 1:]))
+                                                          + curr_constraints[j + 1:],
+                                                          plan_with_value_iteration))
 
         curr_joint_reward, curr_constraints, curr_joint_policy = search_tree.pop()

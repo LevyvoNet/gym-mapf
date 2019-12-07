@@ -22,7 +22,7 @@ POSSIBILITIES = {
     RIGHT: (DOWN, UP),
     STAY: (STAY, STAY)
 }
-ACTIONS = [UP, RIGHT, DOWN, LEFT, STAY]
+ACTIONS = [STAY, UP, RIGHT, DOWN, LEFT]
 
 
 def integer_to_vector(x, n_options_per_element, n_elements, index_to_element):
