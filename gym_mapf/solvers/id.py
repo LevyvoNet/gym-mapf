@@ -33,6 +33,11 @@ def ID(env: MapfEnv):
                                            group_of_agent(agents_groups, i),
                                            group_of_agent(agents_groups, j))
 
+        print("ID merged groups {} and {}, agents groups are {}".format(
+            group_of_agent(agents_groups, i),
+            group_of_agent(agents_groups, j),
+            agents_groups))
+
         # solve again with the new agent groups
         curr_joint_policy = best_joint_policy(env, agents_groups, plan_with_value_iteration)
 

@@ -90,7 +90,6 @@ class MapfEnvTest(unittest.TestCase):
         self.assertIn((0.64, vector_state_to_integer(grid, ((0, 1), (0, 1))), REWARD_OF_CLASH, True),
                       set(transitions))
 
-
     def test_soc_makespan(self):
         grid = MapfGrid([
             '....',
@@ -198,6 +197,28 @@ class MapfEnvTest(unittest.TestCase):
         # Assert the game terminated in a collision
         self.assertEqual(done, True)
         self.assertEqual(r, REWARD_OF_CLASH)
+
+    # def test_states_refers_only_to_empty_cells(self):
+    #     grid = MapfGrid(['.@.',
+    #                      '.@.',
+    #                      '...'])
+    #
+    #     # Don't care about these here
+    #     agents_starts = vector_state_to_integer(grid, ((0, 0),))
+    #     agents_goals = vector_state_to_integer(grid, ((0, 1),))
+    #
+    #     env = MapfEnv(grid, 1, agents_starts, agents_goals,
+    #                   0.0, 0.0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+    #
+    #     state_to_location = {
+    #         0: ((0, 0),),
+    #         1: ((1, 0),),
+    #         2: ((2, 0),),
+    #         3: ((2, 1),),
+    #         4: ((0, 2),),
+    #         5: ((1, 2),),
+    #         6: ((2, 2),),
+    #     }
 
 
 if __name__ == '__main__':

@@ -237,6 +237,10 @@ class MapfEnv(DiscreteEnv):
         self.reward_of_goal = reward_of_goal
         self.reward_of_living = reward_of_living
 
+        # Initialize the match between state numbers and locations on grid
+        valid_locations = [loc for loc in self.grid if loc is EmptyCell]
+        loc_to_int = {loc: i for i, loc in enumerate(valid_locations)}
+
         self.nS = (len(self.grid) * len(self.grid[0])) ** self.n_agents  # each agent may be in each of the cells.
         self.nA = len(ACTIONS) ** self.n_agents
 

@@ -71,12 +71,12 @@ def value_iteration(env, max_time, gamma=1.0):
             v[s] = max(q_sa)
 
         # debug print
-        # if i % 10 == 0:
+        # if i % 100 == 0:
         #     print(v)
 
         if (np.sum(np.fabs(prev_v - v)) <= eps):
             # debug print
-            # print('Value-iteration converged at iteration# %d.' % (i + 1))
+            print('Value-iteration converged at iteration# %d.' % (i + 1))
             break
 
     # OK, let's check what happened
