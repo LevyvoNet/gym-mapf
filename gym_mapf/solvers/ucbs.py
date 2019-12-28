@@ -1,7 +1,7 @@
 import heapq
 from math import inf
 
-from gym_mapf.envs import (integer_to_vector, vector_to_integer)
+from gym_mapf.envs import (vector_to_integer)
 from gym_mapf.envs.utils import get_local_view
 from gym_mapf.envs.mapf_env import (MapfEnv)
 from gym_mapf.solvers.utils import cross_policies, detect_conflict
@@ -14,7 +14,6 @@ def constraints_to_mask(constraints: list, local_env: MapfEnv):
     The mask is a different transition model which will operate on the states in the mask.
     The states in the mask can be, buy does not have to, exist in env.
     """
-    """Return a mask represents the given constrains for agent i."""
     ret = {}
     for ctr, (i, s_i, j, s_j, s_forbidden) in enumerate(constraints):
         # states env.nS + ctr+ n represents the n-th constraint in the constrains list.
@@ -63,25 +62,28 @@ def get_matching_constraints(vector_joint_state, constraints):
     return ret
 
 
-def sync_joint_policy(joint_policy, env, constraints, possible_states_counts):
+def sync_joint_policy(joint_policy, env:MapfEnv, constraints, possible_states_counts):
     """Transform a joint policy from the space including constrains-states to the original one."""
 
     def joint_policy_synced(s):
-        n_possible_locations = len(env.grid) * len(env.grid[0])
         # notice: here there is an assumption that s is a 'normal' state.
         # therefore the possible_states_counts parameter depends only on grid (and not on constraints as well)
-        local_states = integer_to_vector(s, [n_possible_locations] * env.n_agents, env.n_agents, lambda x: x)
+        aux_local_env = get_local_view(env, [0])
+        n_regular_states = aux_local_env.nS
+        locations = env.state_to_locations(s)
+        local_states = tuple([aux_local_env.locations_to_state((locations[i],)) for i in range(env.n_agents)])
         for agent_idx in range(env.n_agents):
             # search for a constraint which includes i, s_i
             for ctr, (i, s_i, j, s_j, s_forbidden) in enumerate(constraints[agent_idx]):
                 # this state is matching to a constraint.
                 # sync the action of the conflicting agents
                 # by letting the compromising agent to know he is in a special state.
+                # TODO: shouldn't we check that both of the agents might get to s_forbidden?
                 if local_states[i] == s_i and local_states[j] == s_j:
                     synced_vector_joint_state = local_states
 
                     synced_vector_joint_state = synced_vector_joint_state[:i] + (
-                        n_possible_locations + ctr,) + synced_vector_joint_state[i + 1:]
+                        n_regular_states + ctr,) + synced_vector_joint_state[i + 1:]
 
                     # TODO: support more than one constraint under the same state
                     s = vector_to_integer(synced_vector_joint_state, possible_states_counts, lambda x: x)

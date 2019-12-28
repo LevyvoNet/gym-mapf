@@ -5,7 +5,6 @@ import numpy as np
 from colorama import Fore
 from gym import spaces
 from gym.envs.toy_text.discrete import DiscreteEnv
-from numpy.distutils.system_info import accelerate_info
 
 from gym_mapf.envs import *
 from gym_mapf.mapf.grid import EmptyCell, ObstacleCell
@@ -82,9 +81,9 @@ def execute_action(grid, s, noised_action):
     return new_state
 
 
-def vector_state_to_integer(grid, s):
-    return vector_to_integer(s, len(grid) * len(grid[0]),
-                             lambda v: len(grid[0]) * v[0] + v[1])
+# def vector_state_to_integer(grid, s):
+#     return vector_to_integer(s, len(grid) * len(grid[0]),
+#                              lambda v: len(grid[0]) * v[0] + v[1])
 
 
 def vector_action_to_integer(a):
@@ -95,11 +94,11 @@ def integer_action_to_vector(a, n_agents):
     return integer_to_vector(a, len(ACTIONS), n_agents, lambda n: ACTIONS[n])
 
 
-def integer_state_to_vector(s, grid, n_agents):
-    return integer_to_vector(s,
-                             len(grid) * len(grid[0]),
-                             n_agents,
-                             lambda n: (int(n / len(grid[0])), n % len(grid[0])))
+# def integer_state_to_vector(s, grid, n_agents):
+#     return integer_to_vector(s,
+#                              len(grid) * len(grid[0]),
+#                              n_agents,
+#                              lambda n: (int(n / len(grid[0])), n % len(grid[0])))
 
 
 class StateToActionGetter:
@@ -135,7 +134,7 @@ class StateToActionGetter:
         if len([x for x in loc_count.values() if x > 1]) != 0:  # clash between two agents.
             return True
 
-        goals = [loc == integer_state_to_vector(self.env.agents_goals, self.env.grid, self.env.n_agents)[i]
+        goals = [loc == self.env.agents_goals[i]
                  for i, loc in enumerate(s)]
         all_in_goal = all(goals)
 
@@ -160,10 +159,10 @@ class StateToActionGetter:
 
     def calc_transition_reward(self, original_state, action, new_state):
         if type(original_state) == int:
-            original_state = integer_state_to_vector(original_state, self.env.grid, self.env.n_agents)
+            original_state = self.env.state_to_locations(original_state)
 
         if type(new_state) == int:
-            new_state = integer_state_to_vector(new_state, self.env.grid, self.env.n_agents)
+            new_state = self.env.state_to_locations(new_state)
 
         if type(action) == int:
             action = integer_action_to_vector(action, self.env.n_agents)
@@ -171,7 +170,7 @@ class StateToActionGetter:
         if self.collision_happened(original_state, new_state):
             return self.env.reward_of_clash, True
 
-        goals = [loc == integer_state_to_vector(self.env.agents_goals, self.env.grid, self.env.n_agents)[i]
+        goals = [loc == self.env.agents_goals[i]
                  for i, loc in enumerate(new_state)]
         all_in_goal = all(goals)
 
@@ -181,19 +180,19 @@ class StateToActionGetter:
         return self.env.reward_of_living, False
 
     def __getitem__(self, a):
-        s = integer_state_to_vector(self.s, self.env.grid, self.env.n_agents)
+        curr_location = self.env.state_to_locations(self.s)
         a = integer_action_to_vector(a, self.env.n_agents)
 
-        if self.is_terminal(s):
+        if self.is_terminal(curr_location):
             return [(1.0, self.s, 0, True)]
 
         transitions = []
         # for i in range(self.env.n_agents):
-        #     if s[i] == integer_state_to_vector(self.env.agents_goals, self.env.grid, self.env.n_agents)[i]:
+        #     if s[i] == self.env.agents_goals[i]:
         #         a = a[:i] + (STAY,) + a[(i + 1):]
         for prob, noised_action in self.get_possible_actions(a):
-            new_state = execute_action(self.env.grid, s, noised_action)
-            reward, done = self.calc_transition_reward(s, a, new_state)
+            new_state = execute_action(self.env.grid, curr_location, noised_action)
+            reward, done = self.calc_transition_reward(curr_location, a, new_state)
             similar_transitions = [(p, s, r, d) for (p, s, r, d) in transitions
                                    if s == new_state and r == reward and d == done]
             if len(similar_transitions) > 0:
@@ -204,8 +203,7 @@ class StateToActionGetter:
                 transitions.append((prob, new_state, reward, done))
 
         return [(prob,
-                 vector_to_integer(new_state, len(self.env.grid) * len(self.env.grid[0]),
-                                   lambda v: len(self.env.grid[0]) * v[0] + v[1]),
+                 self.env.locations_to_state(new_state),
                  reward,
                  done)
                 for (prob, new_state, reward, done) in transitions]
@@ -238,10 +236,10 @@ class MapfEnv(DiscreteEnv):
         self.reward_of_living = reward_of_living
 
         # Initialize the match between state numbers and locations on grid
-        valid_locations = [loc for loc in self.grid if loc is EmptyCell]
-        loc_to_int = {loc: i for i, loc in enumerate(valid_locations)}
+        self.valid_locations = [loc for loc in self.grid if self.grid[loc] is EmptyCell]
+        self.loc_to_int = {loc: i for i, loc in enumerate(self.valid_locations)}
 
-        self.nS = (len(self.grid) * len(self.grid[0])) ** self.n_agents  # each agent may be in each of the cells.
+        self.nS = len(self.valid_locations) ** self.n_agents  # each agent may be in each of the cells.
         self.nA = len(ACTIONS) ** self.n_agents
 
         # self.isd = [1.0] + [0.0] * (self.nS - 1)  # irrelevant.
@@ -262,11 +260,10 @@ class MapfEnv(DiscreteEnv):
         self.reset()
 
     def step(self, a):
-        s = integer_state_to_vector(self.s, self.grid, self.n_agents)
+        curr_location = self.state_to_locations(self.s)
         vector_a = integer_action_to_vector(a, self.n_agents)
-        agents_goals = integer_state_to_vector(self.agents_goals, self.grid, self.n_agents)
         n_agents_stayed_in_goals = len([i for i in range(self.n_agents)
-                                        if s[i] == agents_goals[i] and vector_a[i] == STAY])
+                                        if curr_location[i] == self.agents_goals[i] and vector_a[i] == STAY])
 
         self.soc += self.n_agents - n_agents_stayed_in_goals
         self.makespan += 1
@@ -283,14 +280,14 @@ class MapfEnv(DiscreteEnv):
         self.lastaction = None
         self.makespan = 0
         self.soc = 0
-        self.s = self.agents_starts
+        self.s = self.locations_to_state(self.agents_starts)
         self.is_terminated = False
         return self.s
 
     def render(self, mode='human'):
         # init(autoreset=True)
-        v_state = integer_state_to_vector(self.s, self.grid, self.n_agents)
-        v_agent_goals = integer_state_to_vector(self.agents_goals, self.grid, self.n_agents)
+        v_state = self.state_to_locations(self.s)
+        v_agent_goals = self.agents_goals
 
         for i in range(len(self.grid)):
             print('')  # newline
@@ -312,8 +309,8 @@ class MapfEnv(DiscreteEnv):
     def render_with_policy(self, agent: int, policy: Callable[[int], int]):
         print('')
 
-        v_state = integer_state_to_vector(self.s, self.grid, self.n_agents)
-        v_agents_goals = integer_state_to_vector(self.agents_goals, self.grid, self.n_agents)
+        v_state = self.state_to_locations(self.s)
+        v_agents_goals = self.agents_goals
 
         v_agent_loc = v_state[agent]
         v_agent_goal = v_agents_goals[agent]
@@ -333,7 +330,8 @@ class MapfEnv(DiscreteEnv):
                     continue
 
                 vector_current_state = v_state[:agent] + ((i, j),) + v_state[agent + 1:]
-                integer_current_state = vector_state_to_integer(self.grid, vector_current_state)
+                self.locations_to_state(vector_current_state)
+                integer_current_state = self.locations_to_state(vector_current_state)
                 integer_joint_action = policy(integer_current_state)
                 vector_joint_action = integer_action_to_vector(integer_joint_action, self.n_agents)
                 agent_action = vector_joint_action[agent]
@@ -348,3 +346,14 @@ class MapfEnv(DiscreteEnv):
         self.observation_space = spaces.Discrete(self.nS)
         # self.P.mask = mask
         self.reset()
+
+    def state_to_locations(self, state):
+        return integer_to_vector(state, len(self.valid_locations), self.n_agents, lambda x: self.valid_locations[x])
+
+    def locations_to_state(self, locs):
+        if self.n_agents != len(locs):
+            raise AssertionError(
+                '{} locations number is different than the number of agents {}'.format(locs, self.n_agents))
+
+        local_state_vector = tuple([self.loc_to_int[loc] for loc in locs])
+        return vector_to_integer(local_state_vector, len(self.valid_locations), lambda x: x)

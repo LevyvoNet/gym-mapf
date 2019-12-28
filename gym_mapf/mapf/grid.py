@@ -32,7 +32,9 @@ class MapfGrid:
         return ret
 
     def __iter__(self):
-        return iter(self._map)
+        for col_idx in range(len(self._map[0])):
+            for line_idx in range(len(self._map)):
+                yield (line_idx, col_idx)
 
     def __len__(self):
         return len(self._map)

@@ -1,16 +1,14 @@
 import unittest
 import os.path
-from copy import copy
 
 from gym_mapf.envs.mapf_env import (MapfEnv,
-                                    integer_state_to_vector,
                                     integer_action_to_vector,
-                                    vector_state_to_integer,
                                     vector_action_to_integer)
 from gym_mapf.mapf.grid import MapfGrid
 from gym_mapf.envs.utils import parse_map_file
 from gym_mapf.envs import *
 from gym_mapf.tests.mapf_env_tests import MAPS_DIR
+from copy import copy
 
 RIGHT_FAIL = 0.1
 LEFT_FAIL = 0.1
@@ -32,8 +30,8 @@ class MapfEnvTest(unittest.TestCase):
         grid = MapfGrid(parse_map_file(map_file_path))
 
         # agents are starting a
-        agent_starts = vector_state_to_integer(grid, ((0, 0), (7, 7)))
-        agents_goals = vector_state_to_integer(grid, ((0, 2), (5, 7)))
+        agent_starts = ((0, 0), (7, 7))
+        agents_goals = ((0, 2), (5, 7))
 
         env = MapfEnv(grid, 2, agent_starts, agents_goals,
                       RIGHT_FAIL, LEFT_FAIL, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
@@ -43,33 +41,33 @@ class MapfEnvTest(unittest.TestCase):
                                   env.P[env.s][vector_action_to_integer((RIGHT, UP))]]
 
         self.assertEqual(set(first_step_transitions), {
-            (0.64, vector_state_to_integer(grid, ((0, 1), (6, 7))), REWARD_OF_LIVING, False),  # (RIGHT, UP)
-            (0.08, vector_state_to_integer(grid, ((1, 0), (6, 7))), REWARD_OF_LIVING, False),  # (DOWN, UP)
-            (0.08, vector_state_to_integer(grid, ((0, 0), (6, 7))), REWARD_OF_LIVING, False),  # (UP, UP)
-            (0.08, vector_state_to_integer(grid, ((0, 1), (7, 7))), REWARD_OF_LIVING, False),  # (RIGHT, RIGHT)
-            (0.08, vector_state_to_integer(grid, ((0, 1), (7, 6))), REWARD_OF_LIVING, False),  # (RIGHT, LEFT)
-            (0.01, vector_state_to_integer(grid, ((1, 0), (7, 7))), REWARD_OF_LIVING, False),  # (DOWN, RIGHT)
-            (0.01, vector_state_to_integer(grid, ((1, 0), (7, 6))), REWARD_OF_LIVING, False),  # (DOWN, LEFT)
-            (0.01, vector_state_to_integer(grid, ((0, 0), (7, 7))), REWARD_OF_LIVING, False),  # (UP, RIGHT)
-            (0.01, vector_state_to_integer(grid, ((0, 0), (7, 6))), REWARD_OF_LIVING, False)  # (UP, LEFT)
+            (0.64, env.locations_to_state(((0, 1), (6, 7))), REWARD_OF_LIVING, False),  # (RIGHT, UP)
+            (0.08, env.locations_to_state(((1, 0), (6, 7))), REWARD_OF_LIVING, False),  # (DOWN, UP)
+            (0.08, env.locations_to_state(((0, 0), (6, 7))), REWARD_OF_LIVING, False),  # (UP, UP)
+            (0.08, env.locations_to_state(((0, 1), (7, 7))), REWARD_OF_LIVING, False),  # (RIGHT, RIGHT)
+            (0.08, env.locations_to_state(((0, 1), (7, 6))), REWARD_OF_LIVING, False),  # (RIGHT, LEFT)
+            (0.01, env.locations_to_state(((1, 0), (7, 7))), REWARD_OF_LIVING, False),  # (DOWN, RIGHT)
+            (0.01, env.locations_to_state(((1, 0), (7, 6))), REWARD_OF_LIVING, False),  # (DOWN, LEFT)
+            (0.01, env.locations_to_state(((0, 0), (7, 7))), REWARD_OF_LIVING, False),  # (UP, RIGHT)
+            (0.01, env.locations_to_state(((0, 0), (7, 6))), REWARD_OF_LIVING, False)  # (UP, LEFT)
         })
 
-        wish_state = vector_state_to_integer(grid, ((0, 1), (6, 7)))
+        wish_state = env.locations_to_state(((0, 1), (6, 7)))
         second_step_transitions = [(round(prob, 2), next_state, reward, done)
                                    for (prob, next_state, reward, done) in
                                    env.P[wish_state][vector_action_to_integer((RIGHT, UP))]]
 
         # [(0,0), (7,7)]
         self.assertEqual(set(second_step_transitions), {
-            (0.64, vector_state_to_integer(grid, ((0, 2), (5, 7))), REWARD_OF_GOAL, True),  # (RIGHT, UP)
-            (0.08, vector_state_to_integer(grid, ((1, 1), (5, 7))), REWARD_OF_LIVING, False),  # (DOWN, UP)
-            (0.08, vector_state_to_integer(grid, ((0, 1), (5, 7))), REWARD_OF_LIVING, False),  # (UP, UP)
-            (0.08, vector_state_to_integer(grid, ((0, 2), (6, 7))), REWARD_OF_LIVING, False),  # (RIGHT, RIGHT)
-            (0.08, vector_state_to_integer(grid, ((0, 2), (6, 6))), REWARD_OF_LIVING, False),  # (RIGHT, LEFT)
-            (0.01, vector_state_to_integer(grid, ((1, 1), (6, 7))), REWARD_OF_LIVING, False),  # (DOWN, RIGHT)
-            (0.01, vector_state_to_integer(grid, ((1, 1), (6, 6))), REWARD_OF_LIVING, False),  # (DOWN, LEFT)
-            (0.01, vector_state_to_integer(grid, ((0, 1), (6, 7))), REWARD_OF_LIVING, False),  # (UP, RIGHT)
-            (0.01, vector_state_to_integer(grid, ((0, 1), (6, 6))), REWARD_OF_LIVING, False)  # (UP, LEFT)
+            (0.64, env.locations_to_state(((0, 2), (5, 7))), REWARD_OF_GOAL, True),  # (RIGHT, UP)
+            (0.08, env.locations_to_state(((1, 1), (5, 7))), REWARD_OF_LIVING, False),  # (DOWN, UP)
+            (0.08, env.locations_to_state(((0, 1), (5, 7))), REWARD_OF_LIVING, False),  # (UP, UP)
+            (0.08, env.locations_to_state(((0, 2), (6, 7))), REWARD_OF_LIVING, False),  # (RIGHT, RIGHT)
+            (0.08, env.locations_to_state(((0, 2), (6, 6))), REWARD_OF_LIVING, False),  # (RIGHT, LEFT)
+            (0.01, env.locations_to_state(((1, 1), (6, 7))), REWARD_OF_LIVING, False),  # (DOWN, RIGHT)
+            (0.01, env.locations_to_state(((1, 1), (6, 6))), REWARD_OF_LIVING, False),  # (DOWN, LEFT)
+            (0.01, env.locations_to_state(((0, 1), (6, 7))), REWARD_OF_LIVING, False),  # (UP, RIGHT)
+            (0.01, env.locations_to_state(((0, 1), (6, 6))), REWARD_OF_LIVING, False)  # (UP, LEFT)
         })
 
     def test_colliding_agents_state_is_terminal_and_negative_reward(self):
@@ -78,8 +76,8 @@ class MapfEnvTest(unittest.TestCase):
         grid = MapfGrid(parse_map_file(map_file_path))
 
         # agents are starting a
-        agent_starts = vector_state_to_integer(grid, ((0, 0), (0, 2)))
-        agents_goals = vector_state_to_integer(grid, ((7, 7), (5, 5)))
+        agent_starts = ((0, 0), (0, 2))
+        agents_goals = ((7, 7), (5, 5))
 
         env = MapfEnv(grid, 2, agent_starts, agents_goals,
                       RIGHT_FAIL, LEFT_FAIL, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
@@ -87,26 +85,53 @@ class MapfEnvTest(unittest.TestCase):
                        for (prob, next_state, reward, done)
                        in env.P[env.s][vector_action_to_integer((RIGHT, LEFT))]]
 
-        self.assertIn((0.64, vector_state_to_integer(grid, ((0, 1), (0, 1))), REWARD_OF_CLASH, True),
+        self.assertIn((0.64, env.locations_to_state(((0, 1), (0, 1))), REWARD_OF_CLASH, True),
                       set(transitions))
 
-    def test_soc_makespan(self):
+    def test_agent_doesnt_move_if_reach_to_goal(self):
         grid = MapfGrid([
             '....',
             '....',
             '....',
             '....'])
 
-        agent_starts = vector_state_to_integer(grid, ((0, 0), (3, 3), (1, 1)))
-        agents_goals = vector_state_to_integer(grid, ((0, 1), (1, 3), (1, 2)))
+        # one agent is already at it's goal
+        agent_starts = ((0, 0), (3, 3))
+        agents_goals = ((0, 0), (1, 3))
+
+        env = MapfEnv(grid, 2, agent_starts, agents_goals,
+                      RIGHT_FAIL, LEFT_FAIL, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+
+        transitions = [(round(prob, 2), next_state, reward, done)
+                       for (prob, next_state, reward, done)
+                       in env.P[env.s][vector_action_to_integer((RIGHT, UP))]]
+
+        self.assertEqual(set(transitions), {
+            (0.8, env.locations_to_state(((0, 0), (2, 3))), REWARD_OF_LIVING, False),  # (STAY, UP)
+            (0.1, env.locations_to_state(((0, 0), (3, 3))), REWARD_OF_LIVING, False),  # (STAY, RIGHT)
+            (0.1, env.locations_to_state(((0, 0), (3, 2))), REWARD_OF_LIVING, False),  # (STAY, LEFT)
+        })
+
+    def test_soc_makespan(self):
+        # TODO: fix it
+        # import ipdb
+        # ipdb.set_trace()
+        grid = MapfGrid([
+            '....',
+            '....',
+            '....',
+            '....'])
+
+        agent_starts = ((0, 0), (3, 3), (1, 1))
+        agents_goals = ((0, 1), (1, 3), (1, 2))
 
         determinstic_env = MapfEnv(grid, 3, agent_starts, agents_goals,
                                    0.0, 0.0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
 
         determinstic_env.step(vector_action_to_integer((RIGHT, UP, RIGHT)))
-        s, r, done, _ = determinstic_env.step(vector_action_to_integer((STAY, UP, STAY)))
+        s, r, done, _ = determinstic_env.step(vector_action_to_integer((RIGHT, UP, RIGHT)))
 
-        self.assertEqual(s, vector_state_to_integer(grid, ((0, 1), (1, 3), (1, 2))))
+        self.assertEqual(s, determinstic_env.locations_to_state(((0, 1), (1, 3), (1, 2))))
         self.assertEqual(r, REWARD_OF_GOAL)
         self.assertEqual(determinstic_env.soc, 4)
         self.assertEqual(determinstic_env.makespan, 2)
@@ -118,8 +143,7 @@ class MapfEnvTest(unittest.TestCase):
             '....',
             '....',
             '....'])
-        determinstic_env = MapfEnv(grid, 1, vector_state_to_integer(grid, ((0, 0),)),
-                                   vector_state_to_integer(grid, ((4, 0),)),
+        determinstic_env = MapfEnv(grid, 1, ((0, 0),), ((4, 0),),
                                    0.0, 0.0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
 
         determinstic_env.step(vector_action_to_integer((DOWN,)))
@@ -127,7 +151,7 @@ class MapfEnvTest(unittest.TestCase):
         determinstic_env.step(vector_action_to_integer((DOWN,)))
         s, r, done, _ = determinstic_env.step(vector_action_to_integer((DOWN,)))
 
-        self.assertEqual(s, vector_state_to_integer(grid, ((4, 0),)))
+        self.assertEqual(s, determinstic_env.locations_to_state(((4, 0),)))
         self.assertEqual(r, REWARD_OF_GOAL)
         self.assertEqual(determinstic_env.soc, 4)
         self.assertEqual(determinstic_env.makespan, 4)
@@ -139,8 +163,7 @@ class MapfEnvTest(unittest.TestCase):
             '....',
             '....',
             '....'])
-        env = MapfEnv(grid, 1, vector_state_to_integer(grid, ((0, 0),)),
-                      vector_state_to_integer(grid, ((4, 0),)),
+        env = MapfEnv(grid, 1, ((0, 0),), ((4, 0),),
                       0.0, 0.0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
 
         self.assertEqual(env.soc, 0)
@@ -162,8 +185,7 @@ class MapfEnvTest(unittest.TestCase):
     def test_action_from_terminal_state_has_no_effect(self):
         grid = MapfGrid(['..',
                          '..'])
-        env = MapfEnv(grid, 1, vector_state_to_integer(grid, ((0, 0),)),
-                      vector_state_to_integer(grid, ((1, 1),)),
+        env = MapfEnv(grid, 1, ((0, 0),), ((1, 1),),
                       0.0, 0.0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
 
         state, reward, done, _ = env.step(vector_action_to_integer((RIGHT,)))
@@ -182,43 +204,6 @@ class MapfEnvTest(unittest.TestCase):
         self.assertEqual(state_after_done, state)
         self.assertEqual(done_after_done, True)
         self.assertEqual(reward_after_done, 0)
-
-    def test_switch_spots_is_a_collision(self):
-        grid = MapfGrid(['..'])
-
-        agents_starts = vector_state_to_integer(grid, ((0, 0), (0, 1),))
-        agents_goals = vector_state_to_integer(grid, ((0, 1), (0, 0)))
-
-        determinstic_env = MapfEnv(grid, 2, agents_starts, agents_goals,
-                                   0.0, 0.0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
-
-        s, r, done, _ = determinstic_env.step(vector_action_to_integer((RIGHT, LEFT)))
-
-        # Assert the game terminated in a collision
-        self.assertEqual(done, True)
-        self.assertEqual(r, REWARD_OF_CLASH)
-
-    # def test_states_refers_only_to_empty_cells(self):
-    #     grid = MapfGrid(['.@.',
-    #                      '.@.',
-    #                      '...'])
-    #
-    #     # Don't care about these here
-    #     agents_starts = vector_state_to_integer(grid, ((0, 0),))
-    #     agents_goals = vector_state_to_integer(grid, ((0, 1),))
-    #
-    #     env = MapfEnv(grid, 1, agents_starts, agents_goals,
-    #                   0.0, 0.0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
-    #
-    #     state_to_location = {
-    #         0: ((0, 0),),
-    #         1: ((1, 0),),
-    #         2: ((2, 0),),
-    #         3: ((2, 1),),
-    #         4: ((0, 2),),
-    #         5: ((1, 2),),
-    #         6: ((2, 2),),
-    #     }
 
 
 if __name__ == '__main__':

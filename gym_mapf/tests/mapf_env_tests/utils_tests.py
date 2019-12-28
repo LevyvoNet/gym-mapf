@@ -1,8 +1,6 @@
 import unittest
 
-from gym_mapf.envs.mapf_env import (integer_state_to_vector,
-                                    integer_action_to_vector,
-                                    vector_state_to_integer,
+from gym_mapf.envs.mapf_env import (integer_action_to_vector,
                                     vector_action_to_integer,
                                     integer_to_vector_multiple_numbers,
                                     vector_to_integer_multiple_numbers)
@@ -22,7 +20,7 @@ class UtilsTest(unittest.TestCase):
                                       reward_of_goal=100.0,
                                       reward_of_living=0.0)
 
-        self.assertEqual(empty_8_8_1.s, vector_state_to_integer(empty_8_8_1.grid, ((0, 0), (5, 3))))
+        self.assertEqual(empty_8_8_1.s, empty_8_8_1.locations_to_state(((0, 0), (5, 3))))
 
         empty_48_48_16 = create_mapf_env(map_name='empty-48-48',
                                          scen_id=16,
@@ -33,7 +31,7 @@ class UtilsTest(unittest.TestCase):
                                          reward_of_goal=100.0,
                                          reward_of_living=0.0)
 
-        self.assertEqual(empty_48_48_16.s, vector_state_to_integer(empty_48_48_16.grid, ((40, 42), (17, 2))))
+        self.assertEqual(empty_48_48_16.s, empty_48_48_16.locations_to_state(((40, 42), (17, 2))))
 
     def test_integer_to_vector(self):
         # state in a 4x4 grid for a single agent.
@@ -56,7 +54,11 @@ class UtilsTest(unittest.TestCase):
 
     def test_vector_to_integer(self):
         # state in a 4x4 grid for a single agent.
-        self.assertEqual(vector_to_integer((2, 2), 4, lambda n: n), 10)
+        # XXXX
+        # XXXX
+        # XVXX
+        # XXXX
+        self.assertEqual(vector_to_integer((2, 1), 4, lambda n: n), 6)
 
         # action for 3 agents
         self.assertEqual(vector_to_integer((DOWN, STAY, UP), len(ACTIONS), lambda a: ACTIONS.index(a)), 28)

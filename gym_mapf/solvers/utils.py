@@ -2,8 +2,9 @@ from collections import Counter
 from typing import Callable
 
 from gym_mapf.envs import integer_to_vector
-from gym_mapf.envs.mapf_env import integer_action_to_vector, vector_action_to_integer, MapfEnv, integer_state_to_vector, \
-    vector_state_to_integer
+from gym_mapf.envs.mapf_env import (MapfEnv,
+                                    integer_action_to_vector,
+                                    vector_action_to_integer)
 from gym_mapf.envs.utils import get_local_view
 
 
@@ -31,10 +32,10 @@ def cross_policies(policies: list, envs: list):
 
 def print_path_to_state(path: dict, state: int, env: MapfEnv):
     curr_state = state
-    print("final state: {}".format(integer_state_to_vector(state, env.grid, env.n_agents)))
+    print("final state: {}".format(env.state_to_locations(state)))
     while path[curr_state] is not None:
         curr_state, action = path[curr_state]
-        print("state: {}, action: {}".format(integer_state_to_vector(curr_state, env.grid, env.n_agents),
+        print("state: {}, action: {}".format(env.state_to_locations(curr_state),
                                              integer_action_to_vector(action, env.n_agents)))
 
 
@@ -52,6 +53,7 @@ def detect_conflict(env: MapfEnv, joint_policy: Callable[[int], int]):
     visited_states = set()
     states_to_exapnd = [env.s]
     path = {env.s: None}
+    aux_local_env = get_local_view(env, [0])
 
     while len(states_to_exapnd) > 0:
         curr_expanded_state = states_to_exapnd.pop()
@@ -61,21 +63,22 @@ def detect_conflict(env: MapfEnv, joint_policy: Callable[[int], int]):
             if prob == 0:  # TODO: make gym_mapf not include transitions with probability 0
                 continue
 
-            next_state_vector = integer_state_to_vector(next_state, env.grid, env.n_agents)
+            next_state_vector = env.state_to_locations(next_state)
             loc_count = Counter(next_state_vector)
             shared_locations = [loc for loc, counts in loc_count.items() if counts > 1]
             if len(shared_locations) != 0:  # clash between two agents
+                # TODO: shouldn't I take care of every shared location instead of just the first one?
                 first_agent = next_state_vector.index(shared_locations[0])
                 second_agent = next_state_vector[first_agent + 1:].index(shared_locations[0]) + (first_agent + 1)
 
                 # calculate the local states for each agent that with the current action got them here.
-                vector_curr_expanded_state = integer_state_to_vector(curr_expanded_state, env.grid, env.n_agents)
+                vector_curr_expanded_state = env.state_to_locations(curr_expanded_state)
 
                 return (first_agent,
-                        vector_state_to_integer(env.grid, (vector_curr_expanded_state[first_agent],)),
+                        aux_local_env.locations_to_state((vector_curr_expanded_state[first_agent],)),
                         second_agent,
-                        vector_state_to_integer(env.grid, (vector_curr_expanded_state[second_agent],)),
-                        vector_state_to_integer(env.grid, (next_state_vector[first_agent],)))
+                        aux_local_env.locations_to_state((vector_curr_expanded_state[second_agent],)),
+                        aux_local_env.locations_to_state((shared_locations[0],)))
 
             if next_state not in visited_states:
                 states_to_exapnd.append(next_state)
