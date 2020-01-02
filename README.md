@@ -4,7 +4,7 @@
 
 # gym-mapf
 
-Multi Agent Path Finding openAI gym environment - under first stage of development
+Multi Agent Path Finding openAI gym environment.
 
 
 Installation
