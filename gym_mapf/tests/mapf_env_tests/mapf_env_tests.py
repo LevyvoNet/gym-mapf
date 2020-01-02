@@ -88,7 +88,6 @@ class MapfEnvTest(unittest.TestCase):
         self.assertIn((0.64, env.locations_to_state(((0, 1), (0, 1))), REWARD_OF_CLASH, True),
                       set(transitions))
 
-
     def test_soc_makespan(self):
         grid = MapfGrid([
             '....',
