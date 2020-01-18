@@ -1,7 +1,7 @@
 """Independence Detection Algorithm"""
 
 from gym_mapf.envs.mapf_env import MapfEnv
-from gym_mapf.solvers.utils import (detect_conflict, best_joint_policy)
+from gym_mapf.solvers.utils import (detect_conflict, best_joint_policy, get_local_view)
 from gym_mapf.solvers.value_iteration_agent import plan_with_value_iteration
 
 
@@ -18,25 +18,37 @@ def merge_agent_groups(agents_groups, g1, g2):
         agents_groups[g1] + agents_groups[g2]]
 
 
-def ID(env: MapfEnv):
+def ID(env: MapfEnv, info=None):
     """Solve MAPF gym environment with ID algorithm.
 
-    Return an optimal policy which guarantees no collision is possible.
+    Args:
+        env (MapfEnv): mapf env
+        info (dict): information about the run. For ID it will return information about conflicts
+            detected during the solving.
+
+    Returns:
+          function int->int. The optimal policy, function from state to action.
     """
+    info = {} if info is None else info
+    info.update({'conflicts': []})
     agents_groups = [[i] for i in range(env.n_agents)]
     curr_joint_policy = best_joint_policy(env, agents_groups, plan_with_value_iteration)
     conflict = detect_conflict(env, curr_joint_policy)
     while conflict:
-        i, _, j, _, _ = conflict
+        i, s_i, j, s_j, s_ij = conflict
+        local_env_single_agent = get_local_view(env, [i])
+        info['conflicts'].append((i,
+                                  local_env_single_agent.state_to_locations(s_i),
+                                  j,
+                                  local_env_single_agent.state_to_locations(s_j),
+                                  local_env_single_agent.state_to_locations(s_ij)))
+
         # merge groups of i and j
         agents_groups = merge_agent_groups(agents_groups,
                                            group_of_agent(agents_groups, i),
                                            group_of_agent(agents_groups, j))
 
-        print("ID merged groups {} and {}, agents groups are {}".format(
-            group_of_agent(agents_groups, i),
-            group_of_agent(agents_groups, j),
-            agents_groups))
+        print(f'ID merged groups of agent {i} and {j}, groups are {agents_groups}')
 
         # solve again with the new agent groups
         curr_joint_policy = best_joint_policy(env, agents_groups, plan_with_value_iteration)

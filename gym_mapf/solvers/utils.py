@@ -96,7 +96,7 @@ def might_conflict(clash_reward, transitions):
     return False
 
 
-def safe_actions(env, s):
+def safe_actions(env:MapfEnv, s):
     return [a for a in range(env.nA)
             if not might_conflict(env.reward_of_clash, env.P[s][a])]
 
