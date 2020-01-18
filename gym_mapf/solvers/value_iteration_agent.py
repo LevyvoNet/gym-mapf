@@ -57,7 +57,7 @@ def extract_policy(v, env, gamma=1.0):
     return policy
 
 
-def value_iteration(env, max_time, gamma=1.0):
+def value_iteration(env, gamma=1.0):
     """ Value-iteration algorithm"""
     # v=  np.full((env.nS), -1)
     v = np.zeros(env.nS)  # initialize value-function
@@ -81,20 +81,13 @@ def value_iteration(env, max_time, gamma=1.0):
 
     # OK, let's check what happened
     # if timeout_ctx.state == timeout_ctx.EXECUTED:
-    return v, True
-
-    return v, False
+    return v
 
 
 class ValueIterationAgent:
     def train(self, env, **kwargs):
         self.gamma = kwargs.get('gamma', 1.0)
-        try:
-            self.optimal_v, self.train_converged = value_iteration(env, **kwargs)
-        except stopit.utils.TimeoutException as e:
-            self.optimal_v, self.train_converged = None, False
-            return
-
+        self.optimal_v = value_iteration(env, **kwargs)
         self.policy = extract_policy(self.optimal_v, env, self.gamma)
 
     def select_best_action(self, env, **kwargs):
@@ -107,7 +100,7 @@ class ValueIterationAgent:
 def plan_with_value_iteration(env):
     """Get optimal policy derived from value iteration and its expected reward"""
     vi_agent = ValueIterationAgent()
-    vi_agent.train(env, max_time=60 * 5)
+    vi_agent.train(env)
 
     def policy_int_output(s):
         return int(vi_agent.policy[s])
