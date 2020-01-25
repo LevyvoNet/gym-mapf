@@ -1,7 +1,7 @@
 """Independence Detection Algorithm"""
 
 from gym_mapf.envs.mapf_env import MapfEnv
-from gym_mapf.solvers.utils import (detect_conflict, best_joint_policy, get_local_view)
+from gym_mapf.solvers.utils import (detect_conflict, best_joint_policy, get_local_view, init_info_if_needed)
 from gym_mapf.solvers.value_iteration_agent import plan_with_value_iteration
 
 
@@ -17,8 +17,8 @@ def merge_agent_groups(agents_groups, g1, g2):
     return [agents_groups[i] for i in range(len(agents_groups)) if i not in [g1, g2]] + [
         agents_groups[g1] + agents_groups[g2]]
 
-
-def ID(env: MapfEnv, info=None):
+@init_info_if_needed
+def ID(env: MapfEnv,info=None):
     """Solve MAPF gym environment with ID algorithm.
 
     Args:
@@ -29,7 +29,6 @@ def ID(env: MapfEnv, info=None):
     Returns:
           function int->int. The optimal policy, function from state to action.
     """
-    info = {} if info is None else info
     info.update({'conflicts': []})
     agents_groups = [[i] for i in range(env.n_agents)]
     curr_joint_policy = best_joint_policy(env, agents_groups, plan_with_value_iteration)

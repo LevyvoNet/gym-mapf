@@ -1,5 +1,6 @@
 from collections import Counter
 from typing import Callable
+from functools import wraps
 
 from gym_mapf.envs import integer_to_vector
 from gym_mapf.envs.mapf_env import (MapfEnv,
@@ -96,9 +97,18 @@ def might_conflict(clash_reward, transitions):
     return False
 
 
-def safe_actions(env:MapfEnv, s):
+def safe_actions(env: MapfEnv, s):
     return [a for a in range(env.nA)
             if not might_conflict(env.reward_of_clash, env.P[s][a])]
+
+
+def init_info_if_needed(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        kwargs['info'] = kwargs.get('info', {})
+        return f(*args, **kwargs)
+
+    return wrapper
 
 
 def best_joint_policy(env, agent_groups, low_level_planner):
