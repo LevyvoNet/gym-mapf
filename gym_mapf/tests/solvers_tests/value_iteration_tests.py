@@ -18,10 +18,14 @@ class ValueIterationTests(unittest.TestCase):
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -1, 10, -0.1)
 
-        reward, policy = plan_with_value_iteration(env)
+        policy = plan_with_value_iteration(env)
 
         interesting_state = env.locations_to_state(((1, 1), (0, 1)))
         expected_possible_actions = [vector_action_to_integer((STAY, UP)),
                                      vector_action_to_integer((DOWN, UP))]
 
         self.assertIn(policy(interesting_state), expected_possible_actions)
+
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)

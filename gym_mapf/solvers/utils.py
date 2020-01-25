@@ -109,7 +109,8 @@ def best_joint_policy(env, agent_groups, low_level_planner, **kwargs):
     policies = []
     for group, local_env in zip(agent_groups, local_envs):
         info[f'{group}'] = {}
-        r, p = low_level_planner(local_env, **{'info': info[f'{group}']})
+        r, p = low_level_planner(local_env, **{'info': info
+        [f'{group}']})
         policies.append(p)
 
     joint_policy = cross_policies(policies, local_envs)

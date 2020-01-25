@@ -62,7 +62,7 @@ def ID(env: MapfEnv, **kwargs):
         # solve again with the new agent groups
         curr_iter_info = {}
         info['iterations'].append(curr_iter_info)
-        curr_iter_info[f'{agents_groups}'] = agents_groups
+        curr_iter_info['agent_groups'] = agents_groups
         curr_iter_info['joint_policy'] = {}
         curr_joint_policy = best_joint_policy(env,
                                               agents_groups,

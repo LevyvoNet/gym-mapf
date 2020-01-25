@@ -70,14 +70,13 @@ def value_iteration(env, info, gamma=1.0):
         # debug print
         # if i % 100 == 0:
         #     print(v)
-
+        info['n_iterations'] = i + 1
         if (np.sum(np.fabs(prev_v - v)) <= eps):
             # debug print
             print('Value-iteration converged at iteration# %d.' % (i + 1))
             info['converged'] = True
             break
 
-    info['n_iterations'] = i
     return v
 
 
@@ -103,4 +102,4 @@ def plan_with_value_iteration(env, **kwargs):
     def policy_int_output(s):
         return int(vi_agent.policy[s])
 
-    return vi_agent.optimal_v[env.s], policy_int_output
+    return policy_int_output
