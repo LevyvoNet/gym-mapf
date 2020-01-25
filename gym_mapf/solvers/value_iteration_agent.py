@@ -102,4 +102,4 @@ def plan_with_value_iteration(env, **kwargs):
     def policy_int_output(s):
         return int(vi_agent.policy[s])
 
-    return policy_int_output
+    return vi_agent.optimal_v[env.s], policy_int_output
