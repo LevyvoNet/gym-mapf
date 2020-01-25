@@ -1,5 +1,4 @@
 import numpy as np
-import stopit
 
 from gym_mapf.solvers.utils import safe_actions
 
@@ -49,21 +48,19 @@ def extract_policy(v, env, gamma=1.0):
         for a_idx in range(len(possible_actions_from_state)):
             a = possible_actions_from_state[a_idx]
             for next_sr in env.P[s][a]:
-                # next_sr is a tuple of (probabili
-                # ty, next state, reward, done)
+                # next_sr is a tuple of (probability, next state, reward, done)
                 p, s_, r, _ = next_sr
                 q_sa[a_idx] += (p * (r + gamma * v[s_]))
         policy[s] = possible_actions_from_state[np.argmax(q_sa)]
     return policy
 
 
-def value_iteration(env, gamma=1.0):
+def value_iteration(env, info, gamma=1.0):
     """ Value-iteration algorithm"""
-    # v=  np.full((env.nS), -1)
+    info['converged'] = False
     v = np.zeros(env.nS)  # initialize value-function
     max_iterations = 100000
     eps = 1e-2
-    # with stopit.SignalTimeout(max_time, swallow_exc=False) as timeout_ctx:
     for i in range(max_iterations):
         prev_v = np.copy(v)
         for s in range(env.nS):
@@ -77,17 +74,17 @@ def value_iteration(env, gamma=1.0):
         if (np.sum(np.fabs(prev_v - v)) <= eps):
             # debug print
             print('Value-iteration converged at iteration# %d.' % (i + 1))
+            info['converged'] = True
             break
 
-    # OK, let's check what happened
-    # if timeout_ctx.state == timeout_ctx.EXECUTED:
+    info['n_iterations'] = i
     return v
 
 
 class ValueIterationAgent:
-    def train(self, env, **kwargs):
+    def train(self, env, info, **kwargs):
         self.gamma = kwargs.get('gamma', 1.0)
-        self.optimal_v = value_iteration(env, **kwargs)
+        self.optimal_v = value_iteration(env, info, **kwargs)
         self.policy = extract_policy(self.optimal_v, env, self.gamma)
 
     def select_best_action(self, env, **kwargs):
@@ -97,10 +94,11 @@ class ValueIterationAgent:
         return 'ValueIterationAgent()'
 
 
-def plan_with_value_iteration(env):
+def plan_with_value_iteration(env, **kwargs):
     """Get optimal policy derived from value iteration and its expected reward"""
+    info = kwargs.get('info', {})
     vi_agent = ValueIterationAgent()
-    vi_agent.train(env)
+    vi_agent.train(env, info)
 
     def policy_int_output(s):
         return int(vi_agent.policy[s])

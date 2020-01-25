@@ -102,21 +102,14 @@ def safe_actions(env: MapfEnv, s):
             if not might_conflict(env.reward_of_clash, env.P[s][a])]
 
 
-def init_info_if_needed(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        kwargs['info'] = kwargs.get('info', {})
-        return f(*args, **kwargs)
-
-    return wrapper
-
-
-def best_joint_policy(env, agent_groups, low_level_planner):
+def best_joint_policy(env, agent_groups, low_level_planner, **kwargs):
+    info = kwargs.get('info', {})
     local_envs = [get_local_view(env, group) for group in agent_groups]
 
     policies = []
-    for local_env in local_envs:
-        r, p = low_level_planner(local_env)
+    for group, local_env in zip(agent_groups, local_envs):
+        info[f'{group}'] = {}
+        r, p = low_level_planner(local_env, **{'info': info[f'{group}']})
         policies.append(p)
 
     joint_policy = cross_policies(policies, local_envs)

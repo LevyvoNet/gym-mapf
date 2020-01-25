@@ -62,7 +62,7 @@ def get_matching_constraints(vector_joint_state, constraints):
     return ret
 
 
-def sync_joint_policy(joint_policy, env:MapfEnv, constraints, possible_states_counts):
+def sync_joint_policy(joint_policy, env: MapfEnv, constraints, possible_states_counts):
     """Transform a joint policy from the space including constrains-states to the original one."""
 
     def joint_policy_synced(s):

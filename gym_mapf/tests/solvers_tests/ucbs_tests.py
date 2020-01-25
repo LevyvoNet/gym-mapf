@@ -60,5 +60,5 @@ class UcbsTests(unittest.TestCase):
                                     vector_action_to_integer((LEFT, LEFT))])
 
 
-if __name__== '__main__':
+if __name__ == '__main__':
     unittest.main(verbosity=2)

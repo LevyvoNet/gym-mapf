@@ -1,7 +1,9 @@
 """Independence Detection Algorithm"""
 
 from gym_mapf.envs.mapf_env import MapfEnv
-from gym_mapf.solvers.utils import (detect_conflict, best_joint_policy, get_local_view, init_info_if_needed)
+from gym_mapf.solvers.utils import (detect_conflict,
+                                    best_joint_policy,
+                                    get_local_view)
 from gym_mapf.solvers.value_iteration_agent import plan_with_value_iteration
 
 
@@ -17,8 +19,8 @@ def merge_agent_groups(agents_groups, g1, g2):
     return [agents_groups[i] for i in range(len(agents_groups)) if i not in [g1, g2]] + [
         agents_groups[g1] + agents_groups[g2]]
 
-@init_info_if_needed
-def ID(env: MapfEnv,info=None):
+
+def ID(env: MapfEnv, **kwargs):
     """Solve MAPF gym environment with ID algorithm.
 
     Args:
@@ -29,18 +31,26 @@ def ID(env: MapfEnv,info=None):
     Returns:
           function int->int. The optimal policy, function from state to action.
     """
-    info.update({'conflicts': []})
+    info = kwargs.get('info', {})
     agents_groups = [[i] for i in range(env.n_agents)]
-    curr_joint_policy = best_joint_policy(env, agents_groups, plan_with_value_iteration)
+    info['iterations'] = []
+    curr_iter_info = {}
+    info['iterations'].append(curr_iter_info)
+    curr_iter_info['agent_groups'] = agents_groups
+    curr_iter_info['joint_policy'] = {}
+    curr_joint_policy = best_joint_policy(env,
+                                          agents_groups,
+                                          plan_with_value_iteration,
+                                          **{'info': curr_iter_info['joint_policy']})
     conflict = detect_conflict(env, curr_joint_policy)
     while conflict:
         i, s_i, j, s_j, s_ij = conflict
         local_env_single_agent = get_local_view(env, [i])
-        info['conflicts'].append((i,
-                                  local_env_single_agent.state_to_locations(s_i),
-                                  j,
-                                  local_env_single_agent.state_to_locations(s_j),
-                                  local_env_single_agent.state_to_locations(s_ij)))
+        curr_iter_info['conflict'] = (i,
+                                      local_env_single_agent.state_to_locations(s_i),
+                                      j,
+                                      local_env_single_agent.state_to_locations(s_j),
+                                      local_env_single_agent.state_to_locations(s_ij))
 
         # merge groups of i and j
         agents_groups = merge_agent_groups(agents_groups,
@@ -50,7 +60,14 @@ def ID(env: MapfEnv,info=None):
         print(f'ID merged groups of agent {i} and {j}, groups are {agents_groups}')
 
         # solve again with the new agent groups
-        curr_joint_policy = best_joint_policy(env, agents_groups, plan_with_value_iteration)
+        curr_iter_info = {}
+        info['iterations'].append(curr_iter_info)
+        curr_iter_info[f'{agents_groups}'] = agents_groups
+        curr_iter_info['joint_policy'] = {}
+        curr_joint_policy = best_joint_policy(env,
+                                              agents_groups,
+                                              plan_with_value_iteration,
+                                              **{'info': curr_iter_info['joint_policy']})
 
         # find a new conflict
         conflict = detect_conflict(env, curr_joint_policy)
