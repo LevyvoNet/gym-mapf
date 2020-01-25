@@ -206,7 +206,7 @@ class StateToActionGetter:
                  self.env.locations_to_state(new_state),
                  reward,
                  done)
-                for (prob, new_state, reward, done) in transitions]
+                for (prob, new_state, reward, done) in transitions if prob != 0]
 
 
 class StateGetter:

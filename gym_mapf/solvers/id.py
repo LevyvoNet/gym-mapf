@@ -4,7 +4,7 @@ from gym_mapf.envs.mapf_env import MapfEnv
 from gym_mapf.solvers.utils import (detect_conflict,
                                     best_joint_policy,
                                     get_local_view)
-from gym_mapf.solvers.value_iteration_agent import plan_with_value_iteration
+from gym_mapf.solvers.value_iteration_agent import VI
 
 
 def group_of_agent(agents_groups, agent_idx):
@@ -40,7 +40,7 @@ def ID(env: MapfEnv, **kwargs):
     curr_iter_info['joint_policy'] = {}
     curr_joint_policy = best_joint_policy(env,
                                           agents_groups,
-                                          plan_with_value_iteration,
+                                          VI,
                                           **{'info': curr_iter_info['joint_policy']})
     conflict = detect_conflict(env, curr_joint_policy)
     while conflict:
@@ -66,7 +66,7 @@ def ID(env: MapfEnv, **kwargs):
         curr_iter_info['joint_policy'] = {}
         curr_joint_policy = best_joint_policy(env,
                                               agents_groups,
-                                              plan_with_value_iteration,
+                                              VI,
                                               **{'info': curr_iter_info['joint_policy']})
 
         # find a new conflict

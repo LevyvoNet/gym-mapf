@@ -61,9 +61,6 @@ def detect_conflict(env: MapfEnv, joint_policy: Callable[[int], int]):
         visited_states.add(curr_expanded_state)
         joint_action = joint_policy(curr_expanded_state)
         for prob, next_state, reward, done in env.P[curr_expanded_state][joint_action]:
-            if prob == 0:  # TODO: make gym_mapf not include transitions with probability 0
-                continue
-
             next_state_vector = env.state_to_locations(next_state)
             loc_count = Counter(next_state_vector)
             shared_locations = [loc for loc, counts in loc_count.items() if counts > 1]

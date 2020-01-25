@@ -93,7 +93,7 @@ class ValueIterationAgent:
         return 'ValueIterationAgent()'
 
 
-def plan_with_value_iteration(env, **kwargs):
+def VI(env, **kwargs):
     """Get optimal policy derived from value iteration and its expected reward"""
     info = kwargs.get('info', {})
     vi_agent = ValueIterationAgent()

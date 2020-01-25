@@ -9,7 +9,7 @@ from gym_mapf.envs.mapf_env import (MapfEnv,
 
 from gym_mapf.solvers.id import ID
 from gym_mapf.solvers.utils import best_joint_policy
-from gym_mapf.solvers.value_iteration_agent import plan_with_value_iteration
+from gym_mapf.solvers.value_iteration_agent import VI
 
 
 class IdTests(unittest.TestCase):
@@ -21,8 +21,8 @@ class IdTests(unittest.TestCase):
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -1, 1, -0.01)
 
-        independent_joiont_policy = best_joint_policy(env, [[0], [1]], plan_with_value_iteration)
-        merged_joint_policy = best_joint_policy(env, [[0, 1]], plan_with_value_iteration)
+        independent_joiont_policy = best_joint_policy(env, [[0], [1]], VI)
+        merged_joint_policy = best_joint_policy(env, [[0, 1]], VI)
 
         interesting_state = env.locations_to_state(((1, 1), (0, 1)))
 
@@ -44,8 +44,8 @@ class IdTests(unittest.TestCase):
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.01, -1, 1, -0.1)
 
-        independent_joiont_policy = best_joint_policy(env, [[0], [1]], plan_with_value_iteration)
-        merged_joint_policy = best_joint_policy(env, [[0, 1]], plan_with_value_iteration)
+        independent_joiont_policy = best_joint_policy(env, [[0], [1]], VI)
+        merged_joint_policy = best_joint_policy(env, [[0, 1]], VI)
 
         interesting_state = env.locations_to_state(((0, 0), (0, 1)))
 
