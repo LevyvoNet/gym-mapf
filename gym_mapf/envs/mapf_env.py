@@ -81,11 +81,6 @@ def execute_action(grid, s, noised_action):
     return new_state
 
 
-# def vector_state_to_integer(grid, s):
-#     return vector_to_integer(s, len(grid) * len(grid[0]),
-#                              lambda v: len(grid[0]) * v[0] + v[1])
-
-
 def vector_action_to_integer(a):
     return vector_to_integer(a, len(ACTIONS), lambda x: ACTIONS.index(x))
 
@@ -94,17 +89,11 @@ def integer_action_to_vector(a, n_agents):
     return integer_to_vector(a, len(ACTIONS), n_agents, lambda n: ACTIONS[n])
 
 
-# def integer_state_to_vector(s, grid, n_agents):
-#     return integer_to_vector(s,
-#                              len(grid) * len(grid[0]),
-#                              n_agents,
-#                              lambda n: (int(n / len(grid[0])), n % len(grid[0])))
-
-
 class StateToActionGetter:
     def __init__(self, env, s):
         self.env = env
         self.s = s
+        self.cache = {}
 
     def get_possible_actions(self, a):
         if len(a) == 1:
@@ -180,8 +169,12 @@ class StateToActionGetter:
         return self.env.reward_of_living, False
 
     def __getitem__(self, a):
+        ret = self.cache.get(a, None)
+        if ret is not None:
+            return ret
+
         curr_location = self.env.state_to_locations(self.s)
-        a = integer_action_to_vector(a, self.env.n_agents)
+        vector_a = integer_action_to_vector(a, self.env.n_agents)
 
         if self.is_terminal(curr_location):
             return [(1.0, self.s, 0, True)]
@@ -190,9 +183,9 @@ class StateToActionGetter:
         # for i in range(self.env.n_agents):
         #     if s[i] == self.env.agents_goals[i]:
         #         a = a[:i] + (STAY,) + a[(i + 1):]
-        for prob, noised_action in self.get_possible_actions(a):
+        for prob, noised_action in self.get_possible_actions(vector_a):
             new_state = execute_action(self.env.grid, curr_location, noised_action)
-            reward, done = self.calc_transition_reward(curr_location, a, new_state)
+            reward, done = self.calc_transition_reward(curr_location, vector_a, new_state)
             similar_transitions = [(p, s, r, d) for (p, s, r, d) in transitions
                                    if s == new_state and r == reward and d == done]
             if len(similar_transitions) > 0:
@@ -202,22 +195,30 @@ class StateToActionGetter:
             else:
                 transitions.append((prob, new_state, reward, done))
 
-        return [(prob,
-                 self.env.locations_to_state(new_state),
-                 reward,
-                 done)
-                for (prob, new_state, reward, done) in transitions if prob != 0]
+        ret = [(prob,
+                self.env.locations_to_state(new_state),
+                reward,
+                done)
+               for (prob, new_state, reward, done) in transitions if prob != 0]
+        self.cache[a] = ret
+        return ret
 
 
 class StateGetter:
     def __init__(self, env):
         self.env = env
+        self.cache = {}
 
     def __getitem__(self, s):
+        if s in self.cache:
+            return self.cache[s]
+
         if s in self.env.mask:
             return self.env.mask[s]
 
-        return StateToActionGetter(self.env, s)
+        ret = StateToActionGetter(self.env, s)
+        self.cache[s] = ret
+        return ret
 
 
 class MapfEnv(DiscreteEnv):
@@ -255,6 +256,9 @@ class MapfEnv(DiscreteEnv):
         self.observation_space = spaces.Discrete(self.nS)
         self.makespan = 0
         self.soc = 0
+
+        self.state_to_locations_cache = {}
+        self.locations_to_state_cache = {}
 
         self.seed()
         self.reset()
@@ -348,12 +352,22 @@ class MapfEnv(DiscreteEnv):
         self.reset()
 
     def state_to_locations(self, state):
-        return integer_to_vector(state, len(self.valid_locations), self.n_agents, lambda x: self.valid_locations[x])
+        if state in self.state_to_locations_cache:
+            return self.state_to_locations_cache[state]
+
+        ret = integer_to_vector(state, len(self.valid_locations), self.n_agents, lambda x: self.valid_locations[x])
+        self.state_to_locations_cache[state] = ret
+        return ret
 
     def locations_to_state(self, locs):
+        if locs in self.locations_to_state_cache:
+            return self.locations_to_state_cache[locs]
+
         if self.n_agents != len(locs):
             raise AssertionError(
                 '{} locations number is different than the number of agents {}'.format(locs, self.n_agents))
 
         local_state_vector = tuple([self.loc_to_int[loc] for loc in locs])
-        return vector_to_integer(local_state_vector, len(self.valid_locations), lambda x: x)
+        ret = vector_to_integer(local_state_vector, len(self.valid_locations), lambda x: x)
+        self.locations_to_state_cache[locs] = ret
+        return ret

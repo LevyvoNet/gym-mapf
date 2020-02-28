@@ -1,3 +1,4 @@
+import time
 import numpy as np
 
 from gym_mapf.solvers.utils import safe_actions
@@ -58,6 +59,7 @@ def extract_policy(v, env, gamma=1.0):
 def value_iteration(env, info, gamma=1.0):
     """ Value-iteration algorithm"""
     info['converged'] = False
+    info['n_iterations'] = 0
     v = np.zeros(env.nS)  # initialize value-function
     max_iterations = 100000
     eps = 1e-2
@@ -71,7 +73,7 @@ def value_iteration(env, info, gamma=1.0):
         # if i % 100 == 0:
         #     print(v)
         info['n_iterations'] = i + 1
-        if (np.sum(np.fabs(prev_v - v)) <= eps):
+        if np.sum(np.fabs(prev_v - v)) <= eps:
             # debug print
             print('Value-iteration converged at iteration# %d.' % (i + 1))
             info['converged'] = True
@@ -96,10 +98,13 @@ class ValueIterationAgent:
 def VI(env, **kwargs):
     """Get optimal policy derived from value iteration and its expected reward"""
     info = kwargs.get('info', {})
+    start = time.time()  # TODO: use a decorator for updateing info with time measurement
     vi_agent = ValueIterationAgent()
     vi_agent.train(env, info)
 
     def policy_int_output(s):
         return int(vi_agent.policy[s])
 
+    end = time.time()
+    info['VI_time'] = end - start
     return vi_agent.optimal_v[env.s], policy_int_output

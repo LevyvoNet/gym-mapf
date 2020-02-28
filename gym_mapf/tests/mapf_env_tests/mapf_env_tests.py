@@ -101,9 +101,6 @@ class MapfEnvTest(unittest.TestCase):
         determinstic_env = MapfEnv(grid, 3, agent_starts, agents_goals,
                                    0.0, 0.0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
 
-        import ipdb
-        ipdb.set_trace()
-
         determinstic_env.step(vector_action_to_integer((RIGHT, UP, RIGHT)))
         s, r, done, _ = determinstic_env.step(vector_action_to_integer((STAY, UP, STAY)))
 

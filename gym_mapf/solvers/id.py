@@ -1,5 +1,5 @@
 """Independence Detection Algorithm"""
-
+import time
 from gym_mapf.envs.mapf_env import MapfEnv
 from gym_mapf.solvers.utils import (detect_conflict,
                                     best_joint_policy,
@@ -32,6 +32,7 @@ def ID(env: MapfEnv, **kwargs):
           function int->int. The optimal policy, function from state to action.
     """
     info = kwargs.get('info', {})
+    start = time.time()  # TODO: use a decorator for updateing info with time measurement
     agents_groups = [[i] for i in range(env.n_agents)]
     info['iterations'] = []
     curr_iter_info = {}
@@ -42,7 +43,7 @@ def ID(env: MapfEnv, **kwargs):
                                           agents_groups,
                                           VI,
                                           **{'info': curr_iter_info['joint_policy']})
-    conflict = detect_conflict(env, curr_joint_policy)
+    conflict = detect_conflict(env, curr_joint_policy, **{'info': curr_iter_info})
     while conflict:
         i, s_i, j, s_j, s_ij = conflict
         local_env_single_agent = get_local_view(env, [i])
@@ -60,7 +61,7 @@ def ID(env: MapfEnv, **kwargs):
         print(f'ID merged groups of agent {i} and {j}, groups are {agents_groups}')
 
         # solve again with the new agent groups
-        curr_iter_info = {}
+        curr_iter_info = {}  # TODO: maybe a do while to avoid this code duplication?
         info['iterations'].append(curr_iter_info)
         curr_iter_info['agent_groups'] = agents_groups
         curr_iter_info['joint_policy'] = {}
@@ -70,6 +71,8 @@ def ID(env: MapfEnv, **kwargs):
                                               **{'info': curr_iter_info['joint_policy']})
 
         # find a new conflict
-        conflict = detect_conflict(env, curr_joint_policy)
+        conflict = detect_conflict(env, curr_joint_policy, **{'info': curr_iter_info})
 
+    end = time.time()
+    info['ID_time'] = end - start
     return curr_joint_policy

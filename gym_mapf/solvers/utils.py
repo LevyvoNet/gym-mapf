@@ -1,3 +1,4 @@
+import time
 from collections import Counter
 from typing import Callable
 from functools import wraps
@@ -40,7 +41,7 @@ def print_path_to_state(path: dict, state: int, env: MapfEnv):
                                              integer_action_to_vector(action, env.n_agents)))
 
 
-def detect_conflict(env: MapfEnv, joint_policy: Callable[[int], int]):
+def detect_conflict(env: MapfEnv, joint_policy: Callable[[int], int], **kwargs):
     """Find a conflict between agents.
 
     A conflict is <i, s_i, j, s_j, s_ij> where:
@@ -51,6 +52,7 @@ def detect_conflict(env: MapfEnv, joint_policy: Callable[[int], int]):
     * s_ij - the shared state which both agents were in after their acting.
             One of the agent should avoid reaching this state when i is in s_i and j is in s_j.
     """
+    info = kwargs.get('info', {})
     visited_states = set()
     states_to_exapnd = [env.s]
     path = {env.s: None}
@@ -101,6 +103,7 @@ def safe_actions(env: MapfEnv, s):
 
 def best_joint_policy(env, agent_groups, low_level_planner, **kwargs):
     info = kwargs.get('info', {})
+    start = time.time()  # TODO: use a decorator for updateing info with time measurement
     local_envs = [get_local_view(env, group) for group in agent_groups]
 
     policies = []
@@ -111,5 +114,8 @@ def best_joint_policy(env, agent_groups, low_level_planner, **kwargs):
         policies.append(p)
 
     joint_policy = cross_policies(policies, local_envs)
+
+    end = time.time()
+    info['best_joint_policy_time'] = end - start
 
     return joint_policy
