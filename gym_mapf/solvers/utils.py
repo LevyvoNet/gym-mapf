@@ -53,6 +53,7 @@ def detect_conflict(env: MapfEnv, joint_policy: Callable[[int], int], **kwargs):
             One of the agent should avoid reaching this state when i is in s_i and j is in s_j.
     """
     info = kwargs.get('info', {})
+    start = time.time()
     visited_states = set()
     states_to_exapnd = [env.s]
     path = {env.s: None}
@@ -74,6 +75,7 @@ def detect_conflict(env: MapfEnv, joint_policy: Callable[[int], int], **kwargs):
                 # calculate the local states for each agent that with the current action got them here.
                 vector_curr_expanded_state = env.state_to_locations(curr_expanded_state)
 
+                info['detect_conflict_time'] = time.time() - start
                 return (first_agent,
                         aux_local_env.locations_to_state((vector_curr_expanded_state[first_agent],)),
                         second_agent,
@@ -84,6 +86,7 @@ def detect_conflict(env: MapfEnv, joint_policy: Callable[[int], int], **kwargs):
                 states_to_exapnd.append(next_state)
                 path[next_state] = (curr_expanded_state, joint_action)
 
+    info['detect_conflict_time'] = time.time() - start
     return None
 
 
