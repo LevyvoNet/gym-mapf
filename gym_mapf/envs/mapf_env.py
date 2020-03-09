@@ -349,6 +349,11 @@ class MapfEnv(DiscreteEnv):
         self.nS += len([s for s in self.mask if s > (self.nS - 1)])  # add special states to the state count
         self.observation_space = spaces.Discrete(self.nS)
         # self.P.mask = mask
+
+        # remove from cache
+        for s in self.mask:
+            del self.P.cache[s]
+            
         self.reset()
 
     def state_to_locations(self, state):
