@@ -259,6 +259,7 @@ class MapfEnv(DiscreteEnv):
 
         self.state_to_locations_cache = {}
         self.locations_to_state_cache = {}
+        self.predecessors_cache = {}
 
         self.seed()
         self.reset()
@@ -353,7 +354,7 @@ class MapfEnv(DiscreteEnv):
         # remove from cache
         for s in self.mask:
             del self.P.cache[s]
-            
+
         self.reset()
 
     def state_to_locations(self, state):
@@ -376,3 +377,28 @@ class MapfEnv(DiscreteEnv):
         ret = vector_to_integer(local_state_vector, len(self.valid_locations), lambda x: x)
         self.locations_to_state_cache[locs] = ret
         return ret
+
+    def _single_location_predecessors(self, loc):
+        by_up = execute_action(self.grid, loc, (DOWN,))
+        by_down = execute_action(self.grid, loc, (UP,))
+        by_right = execute_action(self.grid, loc, (LEFT,))
+        by_left = execute_action(self.grid, loc, (RIGHT,))
+
+        return [x for x in filter(lambda prev_loc: prev_loc != loc, [by_up, by_down, by_right, by_left])]
+
+    def _multiple_locations_predecessors(self, locs):
+        head = self._single_location_predecessors((locs[0],))
+        if len(locs) == 1:
+            return head
+
+        return [first_loc + partial_location
+                for partial_location in self._multiple_locations_predecessors(locs[1:])
+                for first_loc in head]
+
+    def predecessors(self, s: int):
+        ret = self.predecessors_cache.get(s, None)
+        if ret is not None:
+            return ret
+
+        return [self.locations_to_state(loc_vec) for loc_vec in
+                self._multiple_locations_predecessors(self.state_to_locations(s))]

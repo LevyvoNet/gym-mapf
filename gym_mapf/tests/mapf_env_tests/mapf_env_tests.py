@@ -193,6 +193,74 @@ class MapfEnvTest(unittest.TestCase):
         self.assertEqual(done, True)
         self.assertEqual(r, REWARD_OF_CLASH)
 
+    def test_predecessors(self):
+        """Assert the predecessors function works correctly.
+
+        Create an environment which looks like that:
+        ....
+        ..0.
+        .1..
+
+        3X4 grid.
+        agent 0 is at (1,2)
+        agent 1 is at (2,1)
+
+        The predecessors for agent 0 are:
+        1. (0,2)
+        2. (1,1)
+        3. (1,3)
+        4. (2,2)
+
+        The predecessors for agent 1 are:
+        1. (2,2)
+        2. (2,0)
+        3. (1,1)
+
+        Therefore, the predecessors states of the initial state corresponds to these locations:
+        1.  ((0,2), (2,2))
+        2.  ((0,2), (2,0))
+        3.  ((0,2), (1,1))
+        4.  ((1,1), (2,2))
+        5.  ((1,1), (2,0))
+        6.  ((1,1), (1,1))
+        7.  ((1,3), (2,2))
+        8.  ((1,3), (2,0))
+        9.  ((1,3), (1,1))
+        10. ((2,2), (2,2))
+        11. ((2,2), (2,0))
+        12. ((2,2), (1,1))
+        """
+        grid = MapfGrid(['....',
+                         '....',
+                         '....'])
+
+        agents_starts = ((1, 2), (2, 1))
+        # don't care
+        agents_goals = ((0, 0), (2, 3))
+
+        env = MapfEnv(grid, 2, agents_starts, agents_goals,
+                      0.0, 0.0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+
+        expected_locations = [
+            ((0, 2), (2, 2)),
+            ((0, 2), (2, 0)),
+            ((0, 2), (1, 1)),
+            ((1, 1), (2, 2)),
+            ((1, 1), (2, 0)),
+            ((1, 1), (1, 1)),
+            ((1, 3), (2, 2)),
+            ((1, 3), (2, 0)),
+            ((1, 3), (1, 1)),
+            ((2, 2), (2, 2)),
+            ((2, 2), (2, 0)),
+            ((2, 2), (1, 1))
+        ]
+
+        expected_states = [env.locations_to_state(loc) for loc in expected_locations]
+
+        self.assertSetEqual(set(expected_states),
+                            set(env.predecessors(env.s)))
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

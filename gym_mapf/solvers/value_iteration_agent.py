@@ -2,6 +2,7 @@ import time
 import numpy as np
 
 from gym_mapf.solvers.utils import safe_actions
+from gym_mapf.envs.mapf_env import MapfEnv
 
 
 def run_episode(env, policy, gamma=1.0, render=False):
@@ -70,12 +71,53 @@ def value_iteration(env, info, gamma=1.0):
             v[s] = max(q_sa)
 
         # debug print
-        # if i % 100 == 0:
+        # if i % 10 == 0:
         #     print(v)
+
         info['n_iterations'] = i + 1
         if np.sum(np.fabs(prev_v - v)) <= eps:
             # debug print
             print('Value-iteration converged at iteration# %d.' % (i + 1))
+            info['converged'] = True
+            break
+
+    return v
+
+
+def prioritized_value_iteration(env: MapfEnv, info, gamma=1.0):
+    info['converged'] = False
+    info['n_iterations'] = 0
+    v = np.zeros(env.nS)  # initialize value-function
+    max_iterations = 100000
+    eps = 1e-2
+    iter_states = set(env.predecessors(env.locations_to_state(env.agents_goals)))
+    next_iter_states = set(iter_states)
+    for i in range(max_iterations):
+        prev_v = np.copy(v)
+        iter_states = set(next_iter_states)
+        next_iter_states = set()
+
+        for s in iter_states:
+            s_q_values = []
+            for a in safe_actions(env, s):
+                q_sa = 0
+                for p, s_, r, _ in env.P[s][a]:
+                    q_sa += p * (r + prev_v[s_])
+                    # TODO: handle duplicates (next_iter_states should contain only single instance of a state)
+                s_q_values.append(q_sa)
+
+            v[s] = max(s_q_values)
+            next_iter_states = next_iter_states.union(env.predecessors(s))
+
+        # debug print
+        # if i % 10 == 0:
+        #     print(v)
+
+        info['n_iterations'] = i + 1
+        if np.sum(np.fabs(prev_v - v)) <= eps:
+            # debug print
+            print(v)
+            print('Prioritized Value-iteration converged at iteration# %d.' % (i + 1))
             info['converged'] = True
             break
 
