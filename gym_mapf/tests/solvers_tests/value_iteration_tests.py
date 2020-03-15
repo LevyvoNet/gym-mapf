@@ -6,7 +6,7 @@ from gym_mapf.envs.mapf_env import (MapfEnv,
                                     integer_action_to_vector,
                                     UP, DOWN, RIGHT, LEFT, STAY,
                                     ACTIONS)
-from gym_mapf.solvers.value_iteration_agent import VI
+from gym_mapf.solvers.value_iteration import value_iteration_planning
 
 
 class ValueIterationTests(unittest.TestCase):
@@ -18,7 +18,7 @@ class ValueIterationTests(unittest.TestCase):
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -1, 10, -0.1)
 
-        reward, policy = VI(env)
+        reward, policy = value_iteration_planning(env)
 
         interesting_state = env.locations_to_state(((1, 1), (0, 1)))
         expected_possible_actions = [vector_action_to_integer((STAY, UP)),

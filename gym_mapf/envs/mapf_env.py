@@ -260,6 +260,7 @@ class MapfEnv(DiscreteEnv):
         self.state_to_locations_cache = {}
         self.locations_to_state_cache = {}
         self.predecessors_cache = {}
+        self._single_location_predecessors_cache={}
 
         self.seed()
         self.reset()
@@ -291,12 +292,14 @@ class MapfEnv(DiscreteEnv):
 
     def render(self, mode='human'):
         # init(autoreset=True)
+        # import ipdb
+        # ipdb.set_trace()
         v_state = self.state_to_locations(self.s)
         v_agent_goals = self.agents_goals
 
         for i in range(len(self.grid)):
-            print('')  # newline
             for j in range(len(self.grid[0])):
+                # print((i, j))
                 if (i, j) in v_state and (i, j) in v_agent_goals \
                         and v_agent_goals.index((i, j)) == v_state.index((i, j)):
                     # print an agent which reached it's goal
@@ -310,6 +313,8 @@ class MapfEnv(DiscreteEnv):
                     continue
 
                 print(CELL_TO_CHAR[self.grid[i, j]], end=' ')
+
+            print('')  # newline
 
     def render_with_policy(self, agent: int, policy: Callable[[int], int]):
         print('')
@@ -379,12 +384,19 @@ class MapfEnv(DiscreteEnv):
         return ret
 
     def _single_location_predecessors(self, loc):
+        ret = self._single_location_predecessors_cache.get(loc, None)
+        if ret is not None:
+            return ret
+
         by_up = execute_action(self.grid, loc, (DOWN,))
         by_down = execute_action(self.grid, loc, (UP,))
         by_right = execute_action(self.grid, loc, (LEFT,))
         by_left = execute_action(self.grid, loc, (RIGHT,))
+        by_stay = execute_action(self.grid, loc, (STAY,))
 
-        return [x for x in filter(lambda prev_loc: prev_loc != loc, [by_up, by_down, by_right, by_left])]
+        ret = [by_up, by_down, by_right, by_left, by_stay]
+        self._single_location_predecessors_cache[loc]=ret
+        return ret
 
     def _multiple_locations_predecessors(self, locs):
         head = self._single_location_predecessors((locs[0],))
@@ -400,5 +412,8 @@ class MapfEnv(DiscreteEnv):
         if ret is not None:
             return ret
 
-        return [self.locations_to_state(loc_vec) for loc_vec in
-                self._multiple_locations_predecessors(self.state_to_locations(s))]
+        ret = set([self.locations_to_state(loc_vec) for loc_vec in
+                   self._multiple_locations_predecessors(self.state_to_locations(s))])
+
+        self.predecessors_cache[s] = ret
+        return ret

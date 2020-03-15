@@ -5,7 +5,7 @@ from gym_mapf.envs import (vector_to_integer)
 from gym_mapf.envs.utils import get_local_view
 from gym_mapf.envs.mapf_env import (MapfEnv)
 from gym_mapf.solvers.utils import cross_policies, detect_conflict
-from gym_mapf.solvers.value_iteration_agent import VI
+from gym_mapf.solvers.value_iteration import value_iteration_planning
 
 
 def constraints_to_mask(constraints: list, local_env: MapfEnv):
@@ -98,7 +98,7 @@ def UCBS(env):
     # TODO: problematic action can be problematic state to reach instead. find_conflict should solve this.
     curr_constraints = []
     curr_joint_reward, curr_joint_policy = best_joint_policy_under_constraint(env, curr_constraints,
-                                                                              VI)
+                                                                              value_iteration_planning)
     search_tree = [(curr_joint_reward, curr_constraints, curr_joint_policy)]
     heapq.heapify(search_tree)
 
@@ -115,7 +115,7 @@ def UCBS(env):
                                                           (curr_constraints[i] +
                                                            (i, s_i, j, s_j, s_forbidden))
                                                           + curr_constraints[i + 1:],
-                                                          VI))
+                                                          value_iteration_planning))
 
         # now agent j is the one who compromises
         heapq.heappush(search_tree,
@@ -123,6 +123,6 @@ def UCBS(env):
                                                           (curr_constraints[j] +
                                                            (j, s_j, i, s_i, s_forbidden))
                                                           + curr_constraints[j + 1:],
-                                                          VI))
+                                                          value_iteration_planning))
 
         curr_joint_reward, curr_constraints, curr_joint_policy = search_tree.pop()
