@@ -93,30 +93,7 @@ class StateToActionGetter:
     def __init__(self, env, s):
         self.env = env
         self.s = s
-        self.cache = {}
-
-    def get_possible_actions(self, a):
-        if len(a) == 1:
-            right, left = POSSIBILITIES[a[0]]
-            return [
-                (self.env.right_fail, (right,)),
-                (self.env.left_fail, (left,)),
-                (1.0 - self.env.right_fail - self.env.left_fail, a)
-            ]
-
-        head, *tail = a
-        tail = tuple(tail)
-        right, left = POSSIBILITIES[head]
-        res = []
-        for prob, noised_action in self.get_possible_actions(tail):
-            res += [
-                (self.env.right_fail * prob, (right,) + noised_action),  # The first action noised to right
-                (self.env.left_fail * prob, (left,) + noised_action),  # The first action noised to left
-                ((1.0 - self.env.right_fail - self.env.left_fail) * prob, (head,) + noised_action)
-                # The first action remained the same
-            ]
-
-        return res
+        self.get_item_cache = {}
 
     def is_terminal(self, s):
         loc_count = Counter(s)
@@ -169,7 +146,7 @@ class StateToActionGetter:
         return self.env.reward_of_living, False
 
     def __getitem__(self, a):
-        ret = self.cache.get(a, None)
+        ret = self.get_item_cache.get(a, None)
         if ret is not None:
             return ret
 
@@ -183,7 +160,7 @@ class StateToActionGetter:
         # for i in range(self.env.n_agents):
         #     if s[i] == self.env.agents_goals[i]:
         #         a = a[:i] + (STAY,) + a[(i + 1):]
-        for prob, noised_action in self.get_possible_actions(vector_a):
+        for prob, noised_action in self.env.get_possible_actions(vector_a):
             new_state = execute_action(self.env.grid, curr_location, noised_action)
             reward, done = self.calc_transition_reward(curr_location, vector_a, new_state)
             similar_transitions = [(p, s, r, d) for (p, s, r, d) in transitions
@@ -200,7 +177,7 @@ class StateToActionGetter:
                 reward,
                 done)
                for (prob, new_state, reward, done) in transitions if prob != 0]
-        self.cache[a] = ret
+        self.get_item_cache[a] = ret
         return ret
 
 
@@ -260,10 +237,39 @@ class MapfEnv(DiscreteEnv):
         self.state_to_locations_cache = {}
         self.locations_to_state_cache = {}
         self.predecessors_cache = {}
-        self._single_location_predecessors_cache={}
+        self._single_location_predecessors_cache = {}
+        self.get_possible_actions_cache = {}
 
         self.seed()
         self.reset()
+
+    def get_possible_actions(self, a):
+        ret = self.get_possible_actions_cache.get(a, None)
+        if ret is not None:
+            return ret
+
+        if len(a) == 1:
+            right, left = POSSIBILITIES[a[0]]
+            return [
+                (self.right_fail, (right,)),
+                (self.left_fail, (left,)),
+                (1.0 - self.right_fail - self.left_fail, a)
+            ]
+
+        head, *tail = a
+        tail = tuple(tail)
+        right, left = POSSIBILITIES[head]
+        res = []
+        for prob, noised_action in self.get_possible_actions(tail):
+            res += [
+                (self.right_fail * prob, (right,) + noised_action),  # The first action noised to right
+                (self.left_fail * prob, (left,) + noised_action),  # The first action noised to left
+                ((1.0 - self.right_fail - self.left_fail) * prob, (head,) + noised_action)
+                # The first action remained the same
+            ]
+
+        self.get_possible_actions_cache[a] = res
+        return res
 
     def step(self, a):
         curr_location = self.state_to_locations(self.s)
@@ -395,7 +401,7 @@ class MapfEnv(DiscreteEnv):
         by_stay = execute_action(self.grid, loc, (STAY,))
 
         ret = [by_up, by_down, by_right, by_left, by_stay]
-        self._single_location_predecessors_cache[loc]=ret
+        self._single_location_predecessors_cache[loc] = ret
         return ret
 
     def _multiple_locations_predecessors(self, locs):
