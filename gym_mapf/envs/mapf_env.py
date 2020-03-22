@@ -92,11 +92,11 @@ def execute_action(grid, s, noised_action):
 
 
 def vector_action_to_integer(a):
-    return vector_to_integer(a, len(ACTIONS), lambda x: ACTIONS.index(x))
+    return vector_to_integer(a, [len(ACTIONS)] * len(a), lambda x: ACTIONS.index(x))
 
 
 def integer_action_to_vector(a, n_agents):
-    return integer_to_vector(a, len(ACTIONS), n_agents, lambda n: ACTIONS[n])
+    return integer_to_vector(a, [len(ACTIONS)] * n_agents, n_agents, lambda n: ACTIONS[n])
 
 
 class StateActionGetter:
@@ -114,14 +114,14 @@ class StateActionGetter:
         if ret is not None:
             return ret
 
-        curr_location = self.env.state_to_locations(self.s)
-        if self.env.is_terminal(curr_location):
+        state_locations = self.env.state_to_locations(self.s)
+        if self.env.is_terminal(state_locations):
             return [(1.0, self.s, 0, True)]
 
         single_agent_actions = [ACTIONS.index(single_agent_action)
                                 for single_agent_action in integer_action_to_vector(a, self.env.n_agents)]
         single_agent_states = [self.env.loc_to_int[single_agent_loc]
-                               for single_agent_loc in self.env.state_to_locations(self.s)]
+                               for single_agent_loc in state_locations]
         single_agent_movements = [self.env.single_agent_movements(single_agent_states[i], single_agent_actions[i])
                                   for i in range(self.env.n_agents)]
 
@@ -410,7 +410,7 @@ class MapfEnv(DiscreteEnv):
         if state in self.state_to_locations_cache:
             return self.state_to_locations_cache[state]
 
-        ret = integer_to_vector(state, len(self.valid_locations), self.n_agents, lambda x: self.valid_locations[x])
+        ret = integer_to_vector(state, [len(self.valid_locations)] * self.n_agents, self.n_agents, lambda x: self.valid_locations[x])
         self.state_to_locations_cache[state] = ret
         return ret
 
@@ -423,7 +423,7 @@ class MapfEnv(DiscreteEnv):
                 '{} locations number is different than the number of agents {}'.format(locs, self.n_agents))
 
         local_state_vector = tuple([self.loc_to_int[loc] for loc in locs])
-        ret = vector_to_integer(local_state_vector, len(self.valid_locations), lambda x: x)
+        ret = vector_to_integer(local_state_vector, [len(self.valid_locations)] * len(local_state_vector), lambda x: x)
         self.locations_to_state_cache[locs] = ret
         return ret
 

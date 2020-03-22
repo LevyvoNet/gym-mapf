@@ -25,7 +25,7 @@ POSSIBILITIES = {
 ACTIONS = [STAY, UP, RIGHT, DOWN, LEFT]
 
 
-def integer_to_vector(x, n_options_per_element, n_elements, index_to_element):
+def integer_to_vector(x, options_per_element, n_elements, index_to_element):
     """Return a vector representing an action/state from a given integer.
 
     Args:
@@ -36,20 +36,10 @@ def integer_to_vector(x, n_options_per_element, n_elements, index_to_element):
             vector elements and return anything that vector contains. For example, a function which returns 'UP' for 0,
             1 for 'RIGHT',etc. Or a function which returns (2,2) given 10 for a 4x4 grid ((2,2) is the 10-th cell of that grid).
     """
-    if type(n_options_per_element) == int:
-        options_per_element = [n_options_per_element] * n_elements
-    else:
-        options_per_element = n_options_per_element
-
     return integer_to_vector_multiple_numbers(x, options_per_element, n_elements, index_to_element)
 
 
-def vector_to_integer(v, n_options_per_element, element_to_index):
-    if type(n_options_per_element) == int:
-        options_per_element = [n_options_per_element] * len(v)
-    else:
-        options_per_element = n_options_per_element
-
+def vector_to_integer(v, options_per_element, element_to_index):
     return vector_to_integer_multiple_numbers(v, options_per_element, element_to_index)
 
 
