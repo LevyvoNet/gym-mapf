@@ -277,6 +277,15 @@ class MapfEnvTest(unittest.TestCase):
         self.assertSetEqual(set(expected_states),
                             set(env.predecessors(env.s)))
 
+    def test_similar_transitions_probability_summed(self):
+        grid = MapfGrid(['..',
+                         '..'])
+        env = MapfEnv(grid, 1, ((0, 0),), ((1, 1),),
+                      0.05, 0.05, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+
+        a = vector_action_to_integer((STAY, STAY))
+        self.assertEqual(env.P[env.s][a], [(1, env.s, REWARD_OF_LIVING, False)])
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

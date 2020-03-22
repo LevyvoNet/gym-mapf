@@ -1,10 +1,10 @@
-from collections import Counter
+from collections import Counter, defaultdict, namedtuple
 from typing import Callable
 import itertools
 import functools
+import time
 
 import numpy as np
-import pandas as pd
 from colorama import Fore
 from gym import spaces
 from gym.envs.toy_text.discrete import DiscreteEnv
@@ -24,6 +24,13 @@ ACTION_TO_CHAR = {
     LEFT: '<',
     STAY: 'S'
 }
+
+Indices = namedtuple('Indices', ['prev', 'next'])
+
+
+def empty_indeices():
+    return Indices([], [])
+
 
 np_random = np.random.RandomState()
 
@@ -98,27 +105,17 @@ class StateActionGetter:
         self.s = s
         self.get_item_cache = {}
 
-    def is_terminal(self, s):
-        loc_count = Counter(s)
-        if len([x for x in loc_count.values() if x > 1]) != 0:  # clash between two agents.
-            return True
-
-        goals = [loc == self.env.agents_goals[i]
-                 for i, loc in enumerate(s)]
-        all_in_goal = all(goals)
-
-        if all_in_goal:
-            return True
-
-        return False
-
     def __getitem__(self, a):
         """Return transitions given a state and an action from that state
 
         The transitions are in form of (prob, new_state, reward, done)
         """
+        ret = self.get_item_cache.get(a, None)
+        if ret is not None:
+            return ret
+
         curr_location = self.env.state_to_locations(self.s)
-        if self.is_terminal(curr_location):
+        if self.env.is_terminal(curr_location):
             return [(1.0, self.s, 0, True)]
 
         single_agent_actions = [ACTIONS.index(single_agent_action)
@@ -131,48 +128,18 @@ class StateActionGetter:
         transitions = []
         for comb in itertools.product(*single_agent_movements):
             prob = functools.reduce(lambda x, y: x * y, [x[2] for x in comb])
-            multiagent_prev_locations = tuple([self.env.valid_locations[int(s)] for s in
-                                               [x[0] for x in comb]])
-            # TODO: do this more efficiently, we don't need to go through the grid representation of the states
             multiagent_next_locations = tuple([self.env.valid_locations[int(s)] for s in
                                                [x[1] for x in comb]])
+
             multiagent_next_state = self.env.locations_to_state(multiagent_next_locations)
-            reward, done = self.env.calc_transition_reward(multiagent_prev_locations, a, multiagent_next_locations)
+
+            reward, done = self.env.calc_transition_reward_from_local_states([x[0] for x in comb], a,
+                                                                             [x[1] for x in comb])
+
             transitions.append((prob, multiagent_next_state, reward, done))
 
+        self.get_item_cache[a] = transitions
         return transitions
-
-    # def __getitem__(self, a):
-    #     ret = self.get_item_cache.get(a, None)
-    #     if ret is not None:
-    #         return ret
-    #
-    #     curr_location = self.env.state_to_locations(self.s)
-    #     vector_a = integer_action_to_vector(a, self.env.n_agents)
-    #
-    #     if self.is_terminal(curr_location):
-    #         return [(1.0, self.s, 0, True)]
-    #
-    #     transitions = []
-    #     for prob, noised_action in self.env.get_possible_actions(vector_a):
-    #         new_state = execute_action(self.env.grid, curr_location, noised_action)
-    #         reward, done = self.calc_transition_reward(curr_location, vector_a, new_state)
-    #         similar_transitions = [(p, s, r, d) for (p, s, r, d) in transitions
-    #                                if s == new_state and r == reward and d == done]
-    #         if len(similar_transitions) > 0:
-    #             idx = transitions.index(similar_transitions[0])
-    #             old_prob, _, _, _ = transitions[idx]
-    #             transitions = transitions[:idx] + [(old_prob + prob, new_state, reward, done)] + transitions[(idx + 1):]
-    #         else:
-    #             transitions.append((prob, new_state, reward, done))
-    #
-    #     ret = [(prob,
-    #             self.env.locations_to_state(new_state),
-    #             reward,
-    #             done)
-    #            for (prob, new_state, reward, done) in transitions if prob != 0]
-    #     self.get_item_cache[a] = ret
-    #     return ret
 
 
 class StateGetter:
@@ -234,6 +201,7 @@ class MapfEnv(DiscreteEnv):
         self._single_location_predecessors_cache = {}
         self.get_possible_actions_cache = {}
         self.single_agent_movements_cache = {}
+        self.is_terminal_cache = {}
 
         self.seed()
         self.reset()
@@ -250,16 +218,23 @@ class MapfEnv(DiscreteEnv):
             (self.right_fail, right_a),
             (self.left_fail, left_a)
         ]
-        movements = [(s, self.loc_to_int[execute_action(self.grid, (location,), (noised_action,))[0]], prob)
-                     for prob, noised_action in noised_actions_and_probability]
+        noised_actions_and_probability = [(p, a) for (p, a) in noised_actions_and_probability if p > 0]
+        movements = []
+        movements_next_state = []
+        for prob, noised_action in noised_actions_and_probability:
+            next_state = self.loc_to_int[execute_action(self.grid, (location,), (noised_action,))[0]]
+            if next_state in movements_next_state:
+                movement_index = movements_next_state.index(next_state)
+                movements[movement_index] = (s, next_state, movements[movement_index][2] + prob)
+            else:
+                movements.append((s, next_state, prob))
+                movements_next_state.append(next_state)
 
-        movements_df = pd.DataFrame(data=movements, columns=['prev_state', 'next_state', 'prob'])
-        movements_df = movements_df[movements_df['prob'] != 0]
-        movements_df = movements_df.groupby(['prev_state', 'next_state'])['prob'].sum().reset_index()
+        # movements = [(s, self.loc_to_int[execute_action(self.grid, (location,), (noised_action,))[0]], prob)
+        #              for prob, noised_action in noised_actions_and_probability]
 
-        ret = movements_df.values
-        self.single_agent_movements_cache[(s, a)] = ret
-        return ret
+        self.single_agent_movements_cache[(s, a)] = movements
+        return movements
 
     def get_possible_actions(self, a):
         ret = self.get_possible_actions_cache.get(a, None)
@@ -289,38 +264,49 @@ class MapfEnv(DiscreteEnv):
         self.get_possible_actions_cache[a] = res
         return res
 
-    def collision_happened(self, old_state, new_state):
-        # two agents at the same spot
-        loc_count = Counter(new_state)
-        if len([x for x in loc_count.values() if x > 1]) != 0:
+    def is_terminal(self, s):
+        ret = self.is_terminal_cache.get(s, None)
+        if ret is not None:
+            return ret
+
+        loc_count = Counter(s)
+        if len([x for x in loc_count.values() if x > 1]) != 0:  # clash between two agents.
+            self.is_terminal_cache[s] = True
             return True
 
-        # agents switched spots
-        for i in range(self.n_agents):
-            for j in range(self.n_agents):
-                if old_state[i] == new_state[j] and old_state[j] == new_state[i] and i != j:
-                    return True
-
-        return False
-
-    def calc_transition_reward(self, original_state, action, new_state):
-        if type(original_state) == int:
-            original_state = self.state_to_locations(original_state)
-
-        if type(new_state) == int:
-            new_state = self.state_to_locations(new_state)
-
-        if type(action) == int:
-            action = integer_action_to_vector(action, self.n_agents)
-
-        if self.collision_happened(original_state, new_state):
-            return self.reward_of_clash, True
-
         goals = [loc == self.agents_goals[i]
-                 for i, loc in enumerate(new_state)]
+                 for i, loc in enumerate(s)]
         all_in_goal = all(goals)
 
         if all_in_goal:
+            self.is_terminal_cache[s] = True
+            return True
+
+        self.is_terminal_cache[s] = False
+        return False
+
+    def calc_transition_reward_from_local_states(self, prev_local_states, action, next_local_states):
+        states_data = defaultdict(empty_indeices)
+        for i, (prev_state, next_state) in enumerate(zip(prev_local_states, next_local_states)):
+            states_data[prev_state].prev.append(i)
+            states_data[next_state].next.append(i)
+
+            if len(states_data[next_state].next) > 1:
+                # collision happened
+                return self.reward_of_clash, True
+
+            if len(states_data[next_state].next) > 0 and len(states_data[next_state].prev) > 0:
+                # there is an agent in next_state and there was before as well, find out if it the same one
+                next_agent = states_data[next_state].next[0]
+                prev_agent = states_data[next_state].prev[0]
+                if next_agent != prev_agent:
+                    # It is not the same, check out if the new agent switched with the old one
+                    if prev_local_states[next_agent] == next_local_states[prev_agent]:
+                        # switch between agents is also a clash
+                        return self.reward_of_clash, True
+
+        if all([self.loc_to_int[self.agents_goals[i]] == next_local_states[i] for i in range(self.n_agents)]):
+            # goal state
             return self.reward_of_goal, True
 
         return self.reward_of_living, False

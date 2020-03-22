@@ -1,5 +1,6 @@
 import time
 import numpy as np
+import math
 
 from gym_mapf.solvers.utils import safe_actions
 from gym_mapf.envs.mapf_env import MapfEnv
@@ -28,17 +29,35 @@ def value_iteration(env, info, gamma=1.0):
     v = np.zeros(env.nS)  # initialize value-function
     max_iterations = 100000
     eps = 1e-2
+    s_count = 0
+    real_start = time.time()
     for i in range(max_iterations):
         prev_v = np.copy(v)
         start = time.time()
         for s in range(env.nS):
-            q_sa = [sum([p * (r + prev_v[s_]) for p, s_, r, _ in env.P[s][a]]) for a in safe_actions(env, s)]
+            q_sa = []
+            for a in range(env.nA):
+                q_sa_a = 0
+                for p, s_, r, done in env.P[s][a]:
+                    if r == env.reward_of_clash and done:
+                        # This is a dangerous action which might get to conflict
+                        q_sa_a = -math.inf
+                        break
+                    q_sa_a += p * (r + prev_v[s_])
+
+                q_sa.append(q_sa_a)
+
             v[s] = max(q_sa)
+            s_count += 1
+            # debug print, delete later
+            # if s_count % 1000 == 0:
+            #     print(
+            #         f'done {s_count}/{env.nS} which are {100 * s_count / env.nS} % after {time.time() - real_start} seconds')
 
         # debug print
         # if i % 10 == 0:
         #     print(v)
-        print(f'VI: iteration {i+1} took {time.time() - start} seconds')
+        print(f'VI: iteration {i + 1} took {time.time() - start} seconds')
 
         info['n_iterations'] = i + 1
         if np.sum(np.fabs(prev_v - v)) <= eps:
@@ -85,19 +104,31 @@ def prioritized_value_iteration(env: MapfEnv, info, gamma=1.0):
     v = np.zeros(env.nS)  # initialize value-function
     max_iterations = 100000
     eps = 1e-2
+    q_sa_a = 0
     layers = get_layers(env)
     for i in range(max_iterations):
         prev_v = np.copy(v)
         start = time.time()
         for layer in layers:
             for s in layer:
-                q_sa = [sum([p * (r + v[s_]) for p, s_, r, _ in env.P[s][a]]) for a in safe_actions(env, s)]
+                q_sa = []
+                for a in range(env.nA):
+                    q_sa_a = 0
+                    for p, s_, r, done in env.P[s][a]:
+                        if r == env.reward_of_clash and done:
+                            # This is a dangerous action which might get to conflict
+                            q_sa_a = -math.inf
+                            break
+                        q_sa_a += p * (r + v[s_])
+
+                    q_sa.append(q_sa_a)
+
                 v[s] = max(q_sa)
 
         # debug print
         # if i % 10 == 0:
         #     print(v)
-        print(f'PVI: iteration {i+1} took {time.time() - start} seconds')
+        print(f'PVI: iteration {i + 1} took {time.time() - start} seconds')
 
         info['n_iterations'] = i + 1
         if np.sum(np.fabs(prev_v - v)) <= eps:
