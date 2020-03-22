@@ -1,4 +1,4 @@
-from collections import Counter, defaultdict, namedtuple
+from collections import Counter, defaultdict
 from typing import Callable
 import itertools
 import functools
@@ -25,11 +25,9 @@ ACTION_TO_CHAR = {
     STAY: 'S'
 }
 
-Indices = namedtuple('Indices', ['prev', 'next'])
 
-
-def empty_indeices():
-    return Indices([], [])
+def empty_indices():
+    return {'prev': [], 'next': []}
 
 
 np_random = np.random.RandomState()
@@ -286,19 +284,19 @@ class MapfEnv(DiscreteEnv):
         return False
 
     def calc_transition_reward_from_local_states(self, prev_local_states, action, next_local_states):
-        states_data = defaultdict(empty_indeices)
+        states_data = defaultdict(empty_indices)
         for i, (prev_state, next_state) in enumerate(zip(prev_local_states, next_local_states)):
-            states_data[prev_state].prev.append(i)
-            states_data[next_state].next.append(i)
+            states_data[prev_state]['prev'].append(i)
+            states_data[next_state]['next'].append(i)
 
-            if len(states_data[next_state].next) > 1:
+            if len(states_data[next_state]['next']) > 1:
                 # collision happened
                 return self.reward_of_clash, True
 
-            if len(states_data[next_state].next) > 0 and len(states_data[next_state].prev) > 0:
+            if len(states_data[next_state]['next']) > 0 and len(states_data[next_state]['prev']) > 0:
                 # there is an agent in next_state and there was before as well, find out if it the same one
-                next_agent = states_data[next_state].next[0]
-                prev_agent = states_data[next_state].prev[0]
+                next_agent = states_data[next_state]['next'][0]
+                prev_agent = states_data[next_state]['prev'][0]
                 if next_agent != prev_agent:
                     # It is not the same, check out if the new agent switched with the old one
                     if prev_local_states[next_agent] == next_local_states[prev_agent]:
@@ -410,7 +408,8 @@ class MapfEnv(DiscreteEnv):
         if state in self.state_to_locations_cache:
             return self.state_to_locations_cache[state]
 
-        ret = integer_to_vector(state, [len(self.valid_locations)] * self.n_agents, self.n_agents, lambda x: self.valid_locations[x])
+        ret = integer_to_vector(state, [len(self.valid_locations)] * self.n_agents, self.n_agents,
+                                lambda x: self.valid_locations[x])
         self.state_to_locations_cache[state] = ret
         return ret
 
