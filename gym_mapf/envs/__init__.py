@@ -23,6 +23,9 @@ POSSIBILITIES = {
     STAY: (STAY, STAY)
 }
 ACTIONS = [STAY, UP, RIGHT, DOWN, LEFT]
+ACTIONS_TO_INT = {
+    a: ACTIONS.index(a) for a in ACTIONS
+}
 
 
 def integer_to_vector(x, options_per_element, n_elements, index_to_element):

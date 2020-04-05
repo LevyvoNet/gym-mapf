@@ -97,64 +97,14 @@ def integer_action_to_vector(a, n_agents):
     return integer_to_vector(a, [len(ACTIONS)] * n_agents, n_agents, lambda n: ACTIONS[n])
 
 
-class StateActionGetter:
-    def __init__(self, env, s):
-        self.env = env
-        self.s = s
-        self.get_item_cache = {}
+def function_to_get_item_of_object(func):
+    """Return an object which its __get_item_ calls the given function"""
 
-    def __getitem__(self, a):
-        """Return transitions given a state and an action from that state
+    class ret_type:
+        def __getitem__(self, item):
+            return func(item)
 
-        The transitions are in form of (prob, new_state, reward, done)
-        """
-        ret = self.get_item_cache.get(a, None)
-        if ret is not None:
-            return ret
-
-        state_locations = self.env.state_to_locations(self.s)
-        if self.env.is_terminal(state_locations):
-            return [(1.0, self.s, 0, True)]
-
-        single_agent_actions = [ACTIONS.index(single_agent_action)
-                                for single_agent_action in integer_action_to_vector(a, self.env.n_agents)]
-        single_agent_states = [self.env.loc_to_int[single_agent_loc]
-                               for single_agent_loc in state_locations]
-        single_agent_movements = [self.env.single_agent_movements(single_agent_states[i], single_agent_actions[i])
-                                  for i in range(self.env.n_agents)]
-
-        transitions = []
-        for comb in itertools.product(*single_agent_movements):
-            prob = functools.reduce(lambda x, y: x * y, [x[2] for x in comb])
-            multiagent_next_locations = tuple([self.env.valid_locations[int(s)] for s in
-                                               [x[1] for x in comb]])
-
-            multiagent_next_state = self.env.locations_to_state(multiagent_next_locations)
-
-            reward, done = self.env.calc_transition_reward_from_local_states([x[0] for x in comb], a,
-                                                                             [x[1] for x in comb])
-
-            transitions.append((prob, multiagent_next_state, reward, done))
-
-        self.get_item_cache[a] = transitions
-        return transitions
-
-
-class StateGetter:
-    def __init__(self, env):
-        self.env = env
-        self.cache = {}
-
-    def __getitem__(self, s):
-        if s in self.cache:
-            return self.cache[s]
-
-        if s in self.env.mask:
-            return self.env.mask[s]
-
-        ret = StateActionGetter(self.env, s)
-        self.cache[s] = ret
-        return ret
+    return ret_type()
 
 
 class MapfEnv(DiscreteEnv):
@@ -186,7 +136,10 @@ class MapfEnv(DiscreteEnv):
         self.mask = mask
         self.nS += len([s for s in self.mask if s > (self.nS - 1)])  # add special states to the state count
 
-        self.P = StateGetter(self)
+        # This is an object which its __get_item__ expects s and returns an object which expects a
+
+        self.P = function_to_get_item_of_object(self._partial_get_transitions)
+        # self.P = StateGetter(self)
 
         self.action_space = spaces.Discrete(self.nA)
         self.observation_space = spaces.Discrete(self.nS)
@@ -200,6 +153,8 @@ class MapfEnv(DiscreteEnv):
         self.get_possible_actions_cache = {}
         self.single_agent_movements_cache = {}
         self.is_terminal_cache = {}
+        self.transitions_cache = {}
+        self.s_transitions_cache = {}
 
         self.seed()
         self.reset()
@@ -400,7 +355,7 @@ class MapfEnv(DiscreteEnv):
 
         # remove from cache
         for s in self.mask:
-            del self.P.cache[s]
+            del self.s_transitions_cache[s]
 
         self.reset()
 
@@ -459,4 +414,57 @@ class MapfEnv(DiscreteEnv):
                    self._multiple_locations_predecessors(self.state_to_locations(s))])
 
         self.predecessors_cache[s] = ret
+        return ret
+
+    def _get_transitions(self, s, a):
+        """Return transitions given a state and an action from that state
+
+        The transitions are in form of (prob, new_state, reward, done)
+        """
+        s_a_cache = self.transitions_cache.get(s, None)
+        if s_a_cache is not None:
+            ret = s_a_cache.get(a, None)
+            if ret is not None:
+                return ret
+
+        state_locations = self.state_to_locations(s)
+        if self.is_terminal(state_locations):
+            return [(1.0, s, 0, True)]
+
+        single_agent_actions = [ACTIONS_TO_INT[single_agent_action]
+                                for single_agent_action in integer_action_to_vector(a, self.n_agents)]
+        single_agent_states = [self.loc_to_int[single_agent_loc]
+                               for single_agent_loc in state_locations]
+        single_agent_movements = [self.single_agent_movements(single_agent_states[i], single_agent_actions[i])
+                                  for i in range(self.n_agents)]
+
+        transitions = []
+        for comb in itertools.product(*single_agent_movements):
+            prob = functools.reduce(lambda x, y: x * y, [x[2] for x in comb])
+            multiagent_next_locations = tuple([self.valid_locations[int(s)] for s in
+                                               [x[1] for x in comb]])
+
+            multiagent_next_state = self.locations_to_state(multiagent_next_locations)
+
+            reward, done = self.calc_transition_reward_from_local_states([x[0] for x in comb], a,
+                                                                         [x[1] for x in comb])
+
+            transitions.append((prob, multiagent_next_state, reward, done))
+
+        if s_a_cache is None:
+            self.transitions_cache[s] = {}
+        self.transitions_cache[s][a] = transitions
+
+        return transitions
+
+    def _partial_get_transitions(self, s):
+        ret = self.s_transitions_cache.get(s, None)
+        if ret is not None:
+            return ret
+
+        if s in self.mask:
+            return self.mask[s]
+
+        ret = function_to_get_item_of_object(functools.partial(self._get_transitions, s))
+        self.s_transitions_cache[s] = ret
         return ret
