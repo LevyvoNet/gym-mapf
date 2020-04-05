@@ -47,7 +47,7 @@ def stay_if_hit_obstacle(exec_func):
 
 
 @stay_if_hit_obstacle
-def execute_up(loc, map):
+def execute_up(loc, _):
     return max(0, loc[0] - 1), loc[1]
 
 
@@ -62,7 +62,7 @@ def execute_right(loc, map):
 
 
 @stay_if_hit_obstacle
-def execute_left(loc, map):
+def execute_left(loc, _):
     return loc[0], max(0, loc[1] - 1)
 
 
