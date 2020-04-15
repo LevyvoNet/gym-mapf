@@ -9,7 +9,7 @@ from gym_mapf.envs.mapf_env import (MapfEnv,
 
 from gym_mapf.solvers.id import ID
 from gym_mapf.solvers.utils import best_joint_policy
-from gym_mapf.solvers.value_iteration import value_iteration_planning
+from gym_mapf.solvers.vi import value_iteration_planning
 
 
 class IdTests(unittest.TestCase):

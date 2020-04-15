@@ -1,7 +1,7 @@
 import unittest
 
 from gym_mapf.solvers.ucbs import best_joint_policy_under_constraint
-from gym_mapf.solvers.value_iteration import value_iteration_planning
+from gym_mapf.solvers.vi import value_iteration_planning
 from gym_mapf.envs.utils import MapfGrid, get_local_view
 from gym_mapf.envs.mapf_env import (MapfEnv,
                                     vector_action_to_integer,
