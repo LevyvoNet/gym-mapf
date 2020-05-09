@@ -122,3 +122,13 @@ def best_joint_policy(env, agent_groups, low_level_planner, **kwargs):
     info['best_joint_policy_time'] = end - start
 
     return joint_policy
+
+
+def render_states(env, states):
+    s_initial = env.s
+    for state in states:
+        env.s = state
+        print(state)
+        env.render()
+
+    env.s = s_initial

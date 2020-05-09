@@ -5,7 +5,7 @@ from gym_mapf.envs import (vector_to_integer)
 from gym_mapf.envs.utils import get_local_view
 from gym_mapf.envs.mapf_env import (MapfEnv)
 from gym_mapf.solvers.utils import cross_policies, detect_conflict
-from gym_mapf.solvers.vi import value_iteration_planning
+from gym_mapf.solvers.general.vi import value_iteration_planning
 
 
 def constraints_to_mask(constraints: list, local_env: MapfEnv):

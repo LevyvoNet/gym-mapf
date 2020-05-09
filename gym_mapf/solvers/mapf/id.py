@@ -4,7 +4,7 @@ from gym_mapf.envs.mapf_env import MapfEnv
 from gym_mapf.solvers.utils import (detect_conflict,
                                     best_joint_policy,
                                     get_local_view)
-from gym_mapf.solvers.vi import value_iteration_planning
+from gym_mapf.solvers.general.vi import value_iteration_planning
 
 
 def group_of_agent(agents_groups, agent_idx):

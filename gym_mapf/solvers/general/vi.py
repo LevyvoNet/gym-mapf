@@ -69,16 +69,6 @@ def value_iteration(env, info, gamma=1.0):
     return v
 
 
-def render_states(env, states):
-    s_initial = env.s
-    for state in states:
-        env.s = state
-        print(state)
-        env.render()
-
-    env.s = s_initial
-
-
 def get_layers(env):
     layers = []
     visited_states = set()

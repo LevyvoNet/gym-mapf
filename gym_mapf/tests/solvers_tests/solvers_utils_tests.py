@@ -1,12 +1,11 @@
 import unittest
 
 from gym_mapf.solvers.utils import cross_policies, detect_conflict, best_joint_policy
-from gym_mapf.solvers.vi import value_iteration_planning
+from gym_mapf.solvers.general.vi import value_iteration_planning
 from gym_mapf.envs.utils import MapfGrid, get_local_view
 from gym_mapf.envs.mapf_env import (MapfEnv,
                                     vector_action_to_integer,
-                                    integer_action_to_vector,
-                                    UP, DOWN, RIGHT, LEFT, STAY,
+                                    DOWN, RIGHT, LEFT, STAY,
                                     ACTIONS)
 
 
