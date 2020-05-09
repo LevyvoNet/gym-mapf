@@ -27,7 +27,7 @@ def value_iteration(env, info, gamma=1.0):
     info['converged'] = False
     info['n_iterations'] = 0
     v = np.zeros(env.nS)  # initialize value-function
-    max_iterations = 100000
+    max_iterations = 1000
     eps = 1e-2
     s_count = 0
     real_start = time.time()
@@ -134,7 +134,7 @@ def value_iteration_planning(env, **kwargs):
     """Get optimal policy derived from value iteration and its expected reward"""
     info = kwargs.get('info', {})
     start = time.time()  # TODO: use a decorator for updating info with time measurement
-    gamma = 1.0
+    gamma = kwargs.get('gamma', 1.0)
     v = value_iteration(env, info, gamma)
     policy_table = extract_policy(v, env, gamma)
 
@@ -149,7 +149,7 @@ def value_iteration_planning(env, **kwargs):
 def prioritized_value_iteration_planning(env, **kwargs):
     info = kwargs.get('info', {})
     start = time.time()  # TODO: use a decorator for updating info with time measurement
-    gamma = 1.0
+    gamma = kwargs.get('gamma', 1.0)
     v = prioritized_value_iteration(env, info, gamma)
     policy_table = extract_policy(v, env, gamma)
 
