@@ -14,7 +14,8 @@ class ValueIterationTests(unittest.TestCase):
         agents_starts = ((0, 0), (0, 2))
         agents_goals = ((0, 2), (0, 0))
 
-        env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -1, 10, -0.1)
+        # These parameters are for making sre that VI avoids collision regardless of reward efficiency
+        env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -0.0000001, 0, -0.1)
 
         reward, policy = value_iteration_planning(env)
 

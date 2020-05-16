@@ -49,14 +49,11 @@ def value_iteration(env, info, gamma=1.0):
 
             v[s] = max(q_sa)
             s_count += 1
-            # debug print, delete later
-            # if s_count % 1000 == 0:
-            #     print(
-            #         f'done {s_count}/{env.nS} which are {100 * s_count / env.nS} % after {time.time() - real_start} seconds')
 
         # debug print
         # if i % 10 == 0:
         #     print(v)
+
         print(f'VI: iteration {i + 1} took {time.time() - start} seconds')
 
         info['n_iterations'] = i + 1
