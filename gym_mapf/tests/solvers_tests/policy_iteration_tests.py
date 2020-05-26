@@ -4,7 +4,7 @@ from gym_mapf.envs.utils import MapfGrid
 from gym_mapf.envs.mapf_env import (MapfEnv,
                                     vector_action_to_integer,
                                     UP, DOWN, STAY)
-from gym_mapf.solvers.general.pi import policy_iteration
+from gym_mapf.solvers.pi import policy_iteration
 
 
 class ValueIterationTests(unittest.TestCase):
@@ -23,7 +23,7 @@ class ValueIterationTests(unittest.TestCase):
         expected_possible_actions = [vector_action_to_integer((STAY, UP)),
                                      vector_action_to_integer((DOWN, UP))]
 
-        self.assertIn(policy[interesting_state], expected_possible_actions)
+        self.assertIn(policy(interesting_state), expected_possible_actions)
 
 
 if __name__ == '__main__':

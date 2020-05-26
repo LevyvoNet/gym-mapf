@@ -104,7 +104,7 @@ def safe_actions(env: MapfEnv, s):
             if not might_conflict(env.reward_of_clash, env.P[s][a])]
 
 
-def best_joint_policy(env, agent_groups, low_level_planner, **kwargs):
+def solve_independently_and_cross(env, agent_groups, low_level_planner, **kwargs):
     info = kwargs.get('info', {})
     start = time.time()  # TODO: use a decorator for updateing info with time measurement
     local_envs = [get_local_view(env, group) for group in agent_groups]

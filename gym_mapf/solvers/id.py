@@ -2,9 +2,9 @@
 import time
 from gym_mapf.envs.mapf_env import MapfEnv
 from gym_mapf.solvers.utils import (detect_conflict,
-                                    best_joint_policy,
+                                    solve_independently_and_cross,
                                     get_local_view)
-from gym_mapf.solvers.general.vi import value_iteration_planning
+from gym_mapf.solvers.vi import value_iteration_planning
 
 
 def group_of_agent(agents_groups, agent_idx):
@@ -39,10 +39,10 @@ def ID(env: MapfEnv, **kwargs):
     info['iterations'].append(curr_iter_info)
     curr_iter_info['agent_groups'] = agents_groups
     curr_iter_info['joint_policy'] = {}
-    curr_joint_policy = best_joint_policy(env,
-                                          agents_groups,
-                                          value_iteration_planning,
-                                          **{'info': curr_iter_info['joint_policy']})
+    curr_joint_policy = solve_independently_and_cross(env,
+                                                      agents_groups,
+                                                      value_iteration_planning,
+                                                      **{'info': curr_iter_info['joint_policy']})
     conflict = detect_conflict(env, curr_joint_policy, **{'info': curr_iter_info})
     while conflict:
         i, s_i, j, s_j, s_ij = conflict
@@ -65,10 +65,10 @@ def ID(env: MapfEnv, **kwargs):
         info['iterations'].append(curr_iter_info)
         curr_iter_info['agent_groups'] = agents_groups
         curr_iter_info['joint_policy'] = {}
-        curr_joint_policy = best_joint_policy(env,
-                                              agents_groups,
-                                              value_iteration_planning,
-                                              **{'info': curr_iter_info['joint_policy']})
+        curr_joint_policy = solve_independently_and_cross(env,
+                                                          agents_groups,
+                                                          value_iteration_planning,
+                                                          **{'info': curr_iter_info['joint_policy']})
 
         # find a new conflict
         conflict = detect_conflict(env, curr_joint_policy, **{'info': curr_iter_info})
