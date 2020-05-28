@@ -1,7 +1,7 @@
 import itertools
 
 from gym_mapf.envs import map_name_to_files
-from gym_mapf.mapf.grid import MapfGrid
+from gym_mapf.envs.grid import MapfGrid
 from gym_mapf.envs.mapf_env import MapfEnv
 
 

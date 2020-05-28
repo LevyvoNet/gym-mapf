@@ -2,9 +2,8 @@ import unittest
 import os.path
 
 from gym_mapf.envs.mapf_env import (MapfEnv,
-                                    integer_action_to_vector,
                                     vector_action_to_integer)
-from gym_mapf.mapf.grid import MapfGrid
+from gym_mapf.envs.grid import MapfGrid
 from gym_mapf.envs.utils import parse_map_file
 from gym_mapf.envs import *
 from gym_mapf.tests.mapf_env_tests import MAPS_DIR

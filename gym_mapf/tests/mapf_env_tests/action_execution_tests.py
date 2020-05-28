@@ -1,7 +1,7 @@
 import unittest
 import os
 
-from gym_mapf.mapf.grid import MapfGrid
+from gym_mapf.envs.grid import MapfGrid
 from gym_mapf.envs import UP, DOWN, LEFT, RIGHT, STAY
 from gym_mapf.envs.mapf_env import execute_action
 from gym_mapf.envs.utils import parse_map_file

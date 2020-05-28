@@ -2,7 +2,6 @@ from collections import Counter, defaultdict
 from typing import Callable
 import itertools
 import functools
-import time
 
 import numpy as np
 from colorama import Fore
@@ -10,7 +9,7 @@ from gym import spaces
 from gym.envs.toy_text.discrete import DiscreteEnv
 
 from gym_mapf.envs import *
-from gym_mapf.mapf.grid import EmptyCell, ObstacleCell
+from gym_mapf.envs.grid import EmptyCell, ObstacleCell
 
 CELL_TO_CHAR = {
     EmptyCell: '.',
