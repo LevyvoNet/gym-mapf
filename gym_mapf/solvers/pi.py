@@ -4,7 +4,7 @@ import math
 
 from gym_mapf.envs.mapf_env import MapfEnv
 from gym_mapf.solvers.utils import solve_independently_and_cross
-from gym_mapf.solvers.policy import Policy
+from gym_mapf.solvers.policy import Policy, TabularValueFunctionPolicy
 
 
 def one_step_lookahead(env, state, V, discount_factor=1.0):
@@ -102,60 +102,61 @@ def policy_iteration(env, **kwargs):
     V = np.zeros(env.nS)
 
     # intialize a random policy
-    policy = np.random.randint(0, 4, env.nS)
-    policy_prev = np.copy(policy)
+    policy_curr = np.random.randint(0, 4, env.nS)
+    policy_prev = np.copy(policy_curr)
 
     for i in range(max_iteration):
         # evaluate given policy
         start = time.time()
-        V = policy_eval(env, policy, V, gamma)
+        V = policy_eval(env, policy_curr, V, gamma)
 
         # improve policy
-        policy = update_policy(env, policy, V, gamma)
+        policy_curr = update_policy(env, policy_curr, V, gamma)
 
         # if policy not changed over 10 iterations it converged.
         if i % 10 == 0:
-            if np.all(np.equal(policy, policy_prev)):
+            if np.all(np.equal(policy_curr, policy_prev)):
                 print('policy converged at iteration %d' % (i + 1))
                 break
-            policy_prev = np.copy(policy)
+            policy_prev = np.copy(policy_curr)
 
         print(f'PI: iteration {i + 1} took {time.time() - start} seconds')
 
-    def policy_func(s):
-        return policy[s]
+    policy = TabularValueFunctionPolicy(env, gamma)
+    policy.v = V
+    policy.tabular_policy = policy_curr
 
-    return V, policy_func
+    return policy
 
 
-def my_policy_iteration(env: MapfEnv, **kwargs) -> Policy:
-    info = kwargs.get('info', {})
-    gamma = kwargs.get('gamma', 1.0)
-    max_iteration = 1000
-
-    # Initialize self interested policies and value functions
-    policy = solve_independently_and_cross(env, [[i] for i in range(env.n_agents)],
-                                           prioritized_value_iteration_planning,
-                                           **{'info': info})
-
-    # intialize the state-Value function
-    V = np.zeros(env.nS)
-
-    for i in range(max_iteration):
-        # evaluate given policy
-        start = time.time()
-        V = policy_eval(env, policy, V, gamma)
-
-        # improve policy
-        policy = update_policy(env, policy, V, gamma)
-
-        # if policy not changed over 10 iterations it converged.
-        if i % 10 == 0:
-            if np.all(np.equal(policy, policy_prev)):
-                print('policy converged at iteration %d' % (i + 1))
-                break
-            policy_prev = np.copy(policy)
-
-        print(f'my_PI: iteration {i + 1} took {time.time() - start} seconds')
-
-    return V, policy
+# def my_policy_iteration(env: MapfEnv, **kwargs) -> Policy:
+#     info = kwargs.get('info', {})
+#     gamma = kwargs.get('gamma', 1.0)
+#     max_iteration = 1000
+#
+#     # Initialize self interested policies and value functions
+#     policy = solve_independently_and_cross(env, [[i] for i in range(env.n_agents)],
+#                                            prioritized_value_iteration_planning,
+#                                            **{'info': info})
+#
+#     # intialize the state-Value function
+#     V = np.zeros(env.nS)
+#
+#     for i in range(max_iteration):
+#         # evaluate given policy
+#         start = time.time()
+#         V = policy_eval(env, policy, V, gamma)
+#
+#         # improve policy
+#         policy = update_policy(env, policy, V, gamma)
+#
+#         # if policy not changed over 10 iterations it converged.
+#         if i % 10 == 0:
+#             if np.all(np.equal(policy, policy_prev)):
+#                 print('policy converged at iteration %d' % (i + 1))
+#                 break
+#             policy_prev = np.copy(policy)
+#
+#         print(f'my_PI: iteration {i + 1} took {time.time() - start} seconds')
+#
+#     return V, policy

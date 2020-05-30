@@ -1,8 +1,6 @@
 import time
 import json
 from collections import Counter
-from typing import Callable
-from functools import wraps
 
 from gym_mapf.envs import integer_to_vector
 from gym_mapf.envs.mapf_env import (MapfEnv,
@@ -31,28 +29,6 @@ class CrossedPolicy(Policy):
 
     def load_from_str(json_str: str) -> object:
         raise NotImplementedError()
-
-
-# def cross_policies(policies: list, envs: list):
-#     """Joint policy in a 'cross' matter.
-#
-#     Args:
-#         policies: list of functions, function i is the policy for agent i.
-#         envs: list of matching envs for each of the policies
-#     """
-#     if len(policies) != len(envs):
-#         raise AssertionError("some went wrong!")
-#
-#     n_envs = len(envs)
-#
-#     def joint_policy(s):
-#         local_states = integer_to_vector(s, [env.nS for env in envs], n_envs, lambda x: x)
-#         vector_joint_action = sum([integer_action_to_vector(policies[i](local_states[i]), envs[i].n_agents)
-#                                    for i in range(n_envs)], ())
-#         joint_action = vector_action_to_integer(vector_joint_action)
-#         return joint_action
-#
-#     return joint_policy
 
 
 def print_path_to_state(path: dict, state: int, env: MapfEnv):
@@ -129,7 +105,7 @@ def safe_actions(env: MapfEnv, s):
 
 def solve_independently_and_cross(env, agent_groups, low_level_planner, **kwargs):
     info = kwargs.get('info', {})
-    start = time.time()  # TODO: use a decorator for updateing info with time measurement
+    start = time.time()  # TODO: use a decorator for updating info with time measurement
     local_envs = [get_local_view(env, group) for group in agent_groups]
 
     policies = []

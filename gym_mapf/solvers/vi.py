@@ -1,40 +1,10 @@
 import time
 import numpy as np
 import math
-import json
 
 from gym_mapf.solvers.utils import safe_actions
 from gym_mapf.envs.mapf_env import MapfEnv
-from gym_mapf.envs.utils import mapf_env_load_from_json
-from gym_mapf.solvers.policy import Policy
-
-
-class ValueIterationPolicy(Policy):
-    def __init__(self, env: MapfEnv, gamma):
-        super().__init__(env)
-        self.v = np.zeros(env.nS)
-        self.tabular_policy = np.zeros(env.nS)
-        self.gamma = gamma
-
-    def act(self, s):
-        return int(self.tabular_policy[s])
-
-    def dump_to_str(self):
-        return json.dumps({'v': self.v.tolist(),
-                           'gamma': self.gamma,
-                           'env': self.env})
-
-    @staticmethod
-    def load_from_str(json_str: str) -> Policy:
-        json_obj = json.loads(json_str)
-        env = mapf_env_load_from_json(json_obj['env'])
-        v = np.asarray(json_obj['v'])
-        gamma = json_obj['gamma']
-        vi_policy = ValueIterationPolicy(env, gamma)
-        vi_policy.v = v
-        vi_policy.tabular_policy = extract_policy(v, env)
-
-        return vi_policy
+from gym_mapf.solvers.policy import TabularValueFunctionPolicy
 
 
 def extract_policy(v, env, gamma=1.0):
@@ -166,7 +136,7 @@ def value_iteration_planning(env, **kwargs):
     v = value_iteration(env, info, gamma)
     tabular_policy = extract_policy(v, env, gamma)
 
-    policy = ValueIterationPolicy(env, gamma)
+    policy = TabularValueFunctionPolicy(env, gamma)
     policy.v = v
     policy.tabular_policy = tabular_policy
 
@@ -183,7 +153,7 @@ def prioritized_value_iteration_planning(env, **kwargs):
     v = prioritized_value_iteration(env, info, gamma)
     tabular_policy = extract_policy(v, env, gamma)
 
-    policy = ValueIterationPolicy(env, gamma)
+    policy = TabularValueFunctionPolicy(env, gamma)
     policy.v = v
     policy.tabular_policy = tabular_policy
 
