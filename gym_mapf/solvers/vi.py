@@ -181,11 +181,12 @@ def prioritized_value_iteration_planning(env, **kwargs):
     start = time.time()  # TODO: use a decorator for updating info with time measurement
     gamma = kwargs.get('gamma', 1.0)
     v = prioritized_value_iteration(env, info, gamma)
-    policy_table = extract_policy(v, env, gamma)
+    tabular_policy = extract_policy(v, env, gamma)
 
-    def policy_int_output(s):
-        return int(policy_table[s])
+    policy = ValueIterationPolicy(env, gamma)
+    policy.v = v
+    policy.tabular_policy = tabular_policy
 
     end = time.time()
     info['prioritized_VI_time'] = end - start
-    return v[env.s], policy_int_output
+    return policy
