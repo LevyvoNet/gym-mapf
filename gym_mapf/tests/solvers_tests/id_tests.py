@@ -28,10 +28,10 @@ class IdTests(unittest.TestCase):
                                      vector_action_to_integer((DOWN, UP))]
 
         # Assert independent_joint_policy just choose the most efficient action
-        self.assertEqual(independent_joiont_policy(interesting_state), vector_action_to_integer((UP, LEFT)))
+        self.assertEqual(independent_joiont_policy.act(interesting_state), vector_action_to_integer((UP, LEFT)))
 
         # Assert merged_joint_policy avoids collision
-        self.assertIn(merged_joint_policy(interesting_state), expected_possible_actions)
+        self.assertIn(merged_joint_policy.act(interesting_state), expected_possible_actions)
 
     def test_two_columns_independent_vs_merged(self):
         grid = MapfGrid(['..',
@@ -50,10 +50,10 @@ class IdTests(unittest.TestCase):
         expected_possible_actions = [vector_action_to_integer((LEFT, RIGHT))]
 
         # Assert independent_joint_policy just choose the most efficient action
-        self.assertEqual(independent_joiont_policy(interesting_state), vector_action_to_integer((DOWN, DOWN)))
+        self.assertEqual(independent_joiont_policy.act(interesting_state), vector_action_to_integer((DOWN, DOWN)))
 
         # Assert merged_joint_policy avoids collision
-        self.assertIn(merged_joint_policy(interesting_state), expected_possible_actions)
+        self.assertIn(merged_joint_policy.act(interesting_state), expected_possible_actions)
 
     def test_corridor_switch_ID_merge_agents(self):
         grid = MapfGrid(['...',
@@ -70,7 +70,7 @@ class IdTests(unittest.TestCase):
         expected_possible_actions = [vector_action_to_integer((STAY, UP)),
                                      vector_action_to_integer((DOWN, UP))]
 
-        self.assertIn(policy(interesting_state), expected_possible_actions)
+        self.assertIn(policy.act(interesting_state), expected_possible_actions)
 
     def test_narrow_empty_grid(self):
         grid = MapfGrid(['....'])
@@ -82,7 +82,7 @@ class IdTests(unittest.TestCase):
 
         joint_policy = ID(env)
 
-        self.assertEqual(joint_policy(env.s), vector_action_to_integer((LEFT, RIGHT)))
+        self.assertEqual(joint_policy.act(env.s), vector_action_to_integer((LEFT, RIGHT)))
 
 
 if __name__ == '__main__':

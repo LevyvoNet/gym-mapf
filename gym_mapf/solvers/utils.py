@@ -1,4 +1,5 @@
 import time
+import json
 from collections import Counter
 from typing import Callable
 from functools import wraps
@@ -8,28 +9,50 @@ from gym_mapf.envs.mapf_env import (MapfEnv,
                                     integer_action_to_vector,
                                     vector_action_to_integer)
 from gym_mapf.envs.utils import get_local_view
+from gym_mapf.solvers.policy import Policy
 
 
-def cross_policies(policies: list, envs: list):
-    """Joint policy in a 'cross' matter.
+class CrossedPolicy(Policy):
+    def __init__(self, env, policies: list):
+        super().__init__(env)
+        self.policies = policies
+        self.envs = [policy.env for policy in self.policies]
 
-    Args:
-        policies: list of functions, function i is the policy for agent i.
-        envs: list of matching envs for each of the policies
-    """
-    if len(policies) != len(envs):
-        raise AssertionError("some went wrong!")
-
-    n_envs = len(envs)
-
-    def joint_policy(s):
-        local_states = integer_to_vector(s, [env.nS for env in envs], n_envs, lambda x: x)
-        vector_joint_action = sum([integer_action_to_vector(policies[i](local_states[i]), envs[i].n_agents)
-                                   for i in range(n_envs)], ())
+    def act(self, s):
+        local_states = integer_to_vector(s, [env.nS for env in self.envs], len(self.envs), lambda x: x)
+        vector_joint_action = sum(
+            [integer_action_to_vector(self.policies[i].act(local_states[i]), self.envs[i].n_agents)
+             for i in range(len(self.envs))], ())
         joint_action = vector_action_to_integer(vector_joint_action)
         return joint_action
 
-    return joint_policy
+    def dump_to_str(self):
+        return json.dumps([policy.dump_to_str() for policy in self.policies])
+
+    def load_from_str(json_str: str) -> object:
+        raise NotImplementedError()
+
+
+# def cross_policies(policies: list, envs: list):
+#     """Joint policy in a 'cross' matter.
+#
+#     Args:
+#         policies: list of functions, function i is the policy for agent i.
+#         envs: list of matching envs for each of the policies
+#     """
+#     if len(policies) != len(envs):
+#         raise AssertionError("some went wrong!")
+#
+#     n_envs = len(envs)
+#
+#     def joint_policy(s):
+#         local_states = integer_to_vector(s, [env.nS for env in envs], n_envs, lambda x: x)
+#         vector_joint_action = sum([integer_action_to_vector(policies[i](local_states[i]), envs[i].n_agents)
+#                                    for i in range(n_envs)], ())
+#         joint_action = vector_action_to_integer(vector_joint_action)
+#         return joint_action
+#
+#     return joint_policy
 
 
 def print_path_to_state(path: dict, state: int, env: MapfEnv):
@@ -41,7 +64,7 @@ def print_path_to_state(path: dict, state: int, env: MapfEnv):
                                              integer_action_to_vector(action, env.n_agents)))
 
 
-def detect_conflict(env: MapfEnv, joint_policy: Callable[[int], int], **kwargs):
+def detect_conflict(env: MapfEnv, joint_policy: Policy, **kwargs):
     """Find a conflict between agents.
 
     A conflict is <i, s_i, j, s_j, s_ij> where:
@@ -62,7 +85,7 @@ def detect_conflict(env: MapfEnv, joint_policy: Callable[[int], int], **kwargs):
     while len(states_to_exapnd) > 0:
         curr_expanded_state = states_to_exapnd.pop()
         visited_states.add(curr_expanded_state)
-        joint_action = joint_policy(curr_expanded_state)
+        joint_action = joint_policy.act(curr_expanded_state)
         for prob, next_state, reward, done in env.P[curr_expanded_state][joint_action]:
             next_state_vector = env.state_to_locations(next_state)
             loc_count = Counter(next_state_vector)
@@ -112,11 +135,10 @@ def solve_independently_and_cross(env, agent_groups, low_level_planner, **kwargs
     policies = []
     for group, local_env in zip(agent_groups, local_envs):
         info[f'{group}'] = {}
-        r, p = low_level_planner(local_env, **{'info': info
-        [f'{group}']})
-        policies.append(p)
+        policy = low_level_planner(local_env, **{'info': info[f'{group}']})
+        policies.append(policy)
 
-    joint_policy = cross_policies(policies, local_envs)
+    joint_policy = CrossedPolicy(env, policies)
 
     end = time.time()
     info['best_joint_policy_time'] = end - start

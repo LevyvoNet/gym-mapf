@@ -1,12 +1,31 @@
 import unittest
+import json
 
-from gym_mapf.solvers.utils import cross_policies, detect_conflict, solve_independently_and_cross
+from gym_mapf.solvers.policy import Policy
+from gym_mapf.solvers.utils import CrossedPolicy, detect_conflict, solve_independently_and_cross
 from gym_mapf.solvers.vi import value_iteration_planning
 from gym_mapf.envs.utils import MapfGrid, get_local_view
 from gym_mapf.envs.mapf_env import (MapfEnv,
                                     vector_action_to_integer,
                                     DOWN, RIGHT, LEFT, STAY,
                                     ACTIONS)
+
+
+class DictPolicy(Policy):
+    def __init__(self, env, dict_policy):
+        super().__init__(env)
+        self.dict_policy = dict_policy
+
+    def act(self, s):
+        return self.dict_policy[s]
+
+    def dump_to_str(self):
+        return json.dumps({'env': self.env,
+                           'dict_policy': self.dict_policy})
+
+    def load_from_str(json_str: str) -> object:
+        json_obj = json.loads(json_str)
+        return DictPolicy(json_obj['env'], json_obj['dict_policy'])
 
 
 class SolversUtilsTests(unittest.TestCase):
@@ -41,8 +60,9 @@ class SolversUtilsTests(unittest.TestCase):
             6: ACTIONS.index(STAY),
         }
 
-        joint_policy = cross_policies([policy1.get, policy2.get],
-                                      [get_local_view(env, [0]), get_local_view(env, [1])])
+        joint_policy = CrossedPolicy(env, [DictPolicy(get_local_view(env, [0]), policy1),
+                                           DictPolicy(get_local_view(env, [1]), policy2)])
+
         aux_local_env = get_local_view(env, [0])
 
         self.assertEqual(detect_conflict(env, joint_policy),
@@ -88,7 +108,8 @@ class SolversUtilsTests(unittest.TestCase):
             8: ACTIONS.index(DOWN),
         }
 
-        joint_policy = cross_policies([policy1.get, policy2.get], [get_local_view(env, [0]), get_local_view(env, [1])])
+        joint_policy = CrossedPolicy(env, [DictPolicy(get_local_view(env, [0]), policy1),
+                                          DictPolicy(get_local_view(env, [1]), policy2)])
 
         self.assertEqual(detect_conflict(env, joint_policy), None)
 
@@ -108,7 +129,7 @@ class SolversUtilsTests(unittest.TestCase):
         interesting_state = env.locations_to_state(((0, 0), (0, 2)))
 
         # Assert independent_joint_policy just choose the most efficient action
-        self.assertEqual(independent_joiont_policy(interesting_state), vector_action_to_integer((DOWN, DOWN)))
+        self.assertEqual(independent_joiont_policy.act(interesting_state), vector_action_to_integer((DOWN, DOWN)))
 
         # Assert no conflict
         self.assertEqual(detect_conflict(env, independent_joiont_policy), None)

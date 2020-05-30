@@ -4,7 +4,7 @@ import math
 
 from gym_mapf.envs.mapf_env import MapfEnv
 from gym_mapf.solvers.utils import solve_independently_and_cross
-from gym_mapf.solvers.vi import prioritized_value_iteration_planning
+from gym_mapf.solvers.policy import Policy
 
 
 def one_step_lookahead(env, state, V, discount_factor=1.0):
@@ -128,7 +128,7 @@ def policy_iteration(env, **kwargs):
     return V, policy_func
 
 
-def my_policy_iteration(env: MapfEnv, **kwargs):
+def my_policy_iteration(env: MapfEnv, **kwargs) -> Policy:
     info = kwargs.get('info', {})
     gamma = kwargs.get('gamma', 1.0)
     max_iteration = 1000

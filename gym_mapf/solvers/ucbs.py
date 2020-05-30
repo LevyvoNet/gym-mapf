@@ -4,7 +4,7 @@ from math import inf
 from gym_mapf.envs import (vector_to_integer)
 from gym_mapf.envs.utils import get_local_view
 from gym_mapf.envs.mapf_env import (MapfEnv)
-from gym_mapf.solvers.utils import cross_policies, detect_conflict
+from gym_mapf.solvers.utils import CrossedPolicy, detect_conflict
 from gym_mapf.solvers.vi import value_iteration_planning
 
 
@@ -41,12 +41,14 @@ def best_joint_policy_under_constraint(env, constraints, low_level_planner):
         agent_mask = constraints_to_mask(constraints[i], local_envs[i])
         local_envs[i].set_mask(agent_mask)
 
-        r, p = low_level_planner(local_envs[i])
-        total_reward += r
-        policies.append(p)  # solve as if agent i is alone
+        policy = low_level_planner(local_envs[i])
+        # Assume the low level planner maintains a value table for all states.
+        total_reward += policy.v[policy.env.s]
+        policies.append(policy)  # solve as if agent i is alone
 
     possible_states_counts = [local_envs[i].nS for i in range(env.n_agents)]
-    joint_policy = cross_policies(policies, local_envs)
+
+    joint_policy = CrossedPolicy(env, policies)
     # now set the special states on the joint policy
     synced_joint_policy = sync_joint_policy(joint_policy, env, constraints, possible_states_counts)
     # TODO: fix total_reward, it's inaccurate. Calculate it via policy evaluation.
@@ -87,9 +89,9 @@ def sync_joint_policy(joint_policy, env: MapfEnv, constraints, possible_states_c
 
                     # TODO: support more than one constraint under the same state
                     s = vector_to_integer(synced_vector_joint_state, possible_states_counts, lambda x: x)
-                    return joint_policy(s)
+                    return joint_policy.act(s)
 
-        return joint_policy(s)
+        return joint_policy.act(s)
 
     return joint_policy_synced
 

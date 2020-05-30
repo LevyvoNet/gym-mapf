@@ -61,3 +61,7 @@ def get_local_view(env: MapfEnv, agent_indexes: list):
 
     return MapfEnv(env.grid, len(agent_indexes), vector_local_agents_starts, vector_local_agents_goals,
                    env.right_fail, env.left_fail, env.reward_of_clash, env.reward_of_goal, env.reward_of_living)
+
+
+def mapf_env_load_from_json(json_str: str) -> MapfEnv:
+    raise NotImplementedError()

@@ -19,7 +19,7 @@ class Policy(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def dump_to_json(self):
+    def dump_to_str(self):
         """Dump policy parameters to a JSON in a reproducible way
 
         Returns:
@@ -28,11 +28,10 @@ class Policy(metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    def load_from_json(cls, json_str):
+    def load_from_str(json_str:str) -> object:
         """Load policy from JSON
 
         Args:
-            cls (type): the type of policy to load, need to be known in advance.
             json_str (str): a string with a JSON representation dumped by the policy dump_to_json method.
 
         Returns:
