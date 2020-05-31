@@ -102,7 +102,7 @@ def policy_iteration(env, **kwargs):
     V = np.zeros(env.nS)
 
     # intialize a random policy
-    policy_curr = np.random.randint(0, 4, env.nS)
+    policy_curr = np.random.randint(0, env.nA, env.nS)
     policy_prev = np.copy(policy_curr)
 
     for i in range(max_iteration):
@@ -116,7 +116,7 @@ def policy_iteration(env, **kwargs):
         # if policy not changed over 10 iterations it converged.
         if i % 10 == 0:
             if np.all(np.equal(policy_curr, policy_prev)):
-                print('policy converged at iteration %d' % (i + 1))
+                print('policy iteration converged at iteration %d' % (i + 1))
                 break
             policy_prev = np.copy(policy_curr)
 
@@ -129,34 +129,64 @@ def policy_iteration(env, **kwargs):
     return policy
 
 
-# def my_policy_iteration(env: MapfEnv, **kwargs) -> Policy:
-#     info = kwargs.get('info', {})
-#     gamma = kwargs.get('gamma', 1.0)
-#     max_iteration = 1000
-#
-#     # Initialize self interested policies and value functions
-#     policy = solve_independently_and_cross(env, [[i] for i in range(env.n_agents)],
-#                                            prioritized_value_iteration_planning,
-#                                            **{'info': info})
-#
-#     # intialize the state-Value function
-#     V = np.zeros(env.nS)
-#
-#     for i in range(max_iteration):
-#         # evaluate given policy
-#         start = time.time()
-#         V = policy_eval(env, policy, V, gamma)
-#
-#         # improve policy
-#         policy = update_policy(env, policy, V, gamma)
-#
-#         # if policy not changed over 10 iterations it converged.
-#         if i % 10 == 0:
-#             if np.all(np.equal(policy, policy_prev)):
-#                 print('policy converged at iteration %d' % (i + 1))
-#                 break
-#             policy_prev = np.copy(policy)
-#
-#         print(f'my_PI: iteration {i + 1} took {time.time() - start} seconds')
-#
-#     return V, policy
+def relevant_states_policy_iteration(env, **kwargs):
+    info = kwargs.get('info', {})
+    gamma = kwargs.get('gamma', 1.0)
+    max_iteration = 1000
+
+    # intialize the state-Value function
+    V = np.zeros(env.nS)
+
+    # intialize a random policy
+    policy_curr = np.random.randint(0, env.nA, env.nS)
+    policy_prev = np.copy(policy_curr)
+
+    for i in range(max_iteration):
+        # evaluate given policy
+        start = time.time()
+        V = policy_eval(env, policy_curr, V, gamma)
+
+        # improve policy
+        visited_states = set()
+        states_to_visit = set([env.s])
+        while len(states_to_visit) > 0:
+            # import ipdb
+            # ipdb.set_trace()
+            # print(f'There are {len(states_to_visit)} to visit out of {env.nS}')
+            curr_state = states_to_visit.pop()
+            visited_states.add(curr_state)
+            curr_state_action_values = np.zeros(env.nA)
+            # choose the best action and update V
+            for action in range(env.nA):
+                for prob, next_state, reward, done in env.P[curr_state][action]:
+                    if reward == env.reward_of_clash and done:
+                        curr_state_action_values[action] = -math.inf
+                        break
+
+                    curr_state_action_values[action] += prob * (reward + gamma * V[next_state])
+
+            policy_curr[curr_state] = np.argmax(curr_state_action_values)
+            for _, next_state, _, _ in env.P[curr_state][policy_prev[curr_state]]:
+                if next_state not in visited_states:
+                    states_to_visit.add(next_state)
+
+        print(f"visited {len(visited_states)} states out of {env.nS}")
+        print(f"iteration {i} over")
+        from gym_mapf.solvers.utils import render_states
+        # import ipdb
+        # ipdb.set_trace()
+
+        # if policy not changed over 10 iterations it converged.
+        if i % 10 == 0:
+            if np.all(np.equal(policy_curr, policy_prev)):
+                print('better policy converged at iteration %d' % (i + 1))
+                break
+            policy_prev = np.copy(policy_curr)
+
+        print(f'better PI: iteration {i + 1} took {time.time() - start} seconds')
+
+    policy = TabularValueFunctionPolicy(env, gamma)
+    policy.v = V
+    policy.tabular_policy = policy_curr
+
+    return policy
