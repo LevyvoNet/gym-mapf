@@ -3,8 +3,7 @@ import numpy as np
 import math
 
 from gym_mapf.envs.mapf_env import MapfEnv
-from gym_mapf.solvers.utils import solve_independently_and_cross
-from gym_mapf.solvers.policy import Policy, TabularValueFunctionPolicy
+from gym_mapf.solvers.utils import solve_independently_and_cross, Policy, TabularValueFunctionPolicy
 
 
 def one_step_lookahead(env, state, V, discount_factor=1.0):
@@ -122,9 +121,8 @@ def policy_iteration(env, **kwargs):
 
         print(f'PI: iteration {i + 1} took {time.time() - start} seconds')
 
-    policy = TabularValueFunctionPolicy(env, gamma)
-    policy.v = V
-    policy.tabular_policy = policy_curr
+    policy = TabularValueFunctionPolicy(env, 1.0)
+    policy.v = policy_eval(env, policy_curr, V, gamma)
 
     return policy
 
@@ -172,9 +170,6 @@ def relevant_states_policy_iteration(env, **kwargs):
 
         print(f"visited {len(visited_states)} states out of {env.nS}")
         print(f"iteration {i} over")
-        from gym_mapf.solvers.utils import render_states
-        # import ipdb
-        # ipdb.set_trace()
 
         # if policy not changed over 10 iterations it converged.
         if i % 10 == 0:
@@ -185,8 +180,7 @@ def relevant_states_policy_iteration(env, **kwargs):
 
         print(f'better PI: iteration {i + 1} took {time.time() - start} seconds')
 
-    policy = TabularValueFunctionPolicy(env, gamma)
-    policy.v = V
-    policy.tabular_policy = policy_curr
+    policy = TabularValueFunctionPolicy(env, 1.0)
+    policy.v = policy_eval(env, policy_curr, V, gamma)
 
     return policy

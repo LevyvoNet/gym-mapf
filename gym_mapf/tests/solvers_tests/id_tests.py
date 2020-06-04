@@ -63,7 +63,7 @@ class IdTests(unittest.TestCase):
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -1, 1, -0.01)
 
-        policy = ID(env)
+        policy = ID(env, value_iteration_planning)
 
         interesting_state = env.locations_to_state(((1, 1), (0, 1)))
 
@@ -80,7 +80,7 @@ class IdTests(unittest.TestCase):
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -1, 1, -0.01)
 
-        joint_policy = ID(env)
+        joint_policy = ID(env, value_iteration_planning)
 
         self.assertEqual(joint_policy.act(env.s), vector_action_to_integer((LEFT, RIGHT)))
 

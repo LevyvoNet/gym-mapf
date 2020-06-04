@@ -50,7 +50,10 @@ def create_mapf_env(map_name, scen_id, n_agents, right_fail, left_fail, reward_o
     return env
 
 
-def get_local_view(env: MapfEnv, agent_indexes: list):
+def get_local_view(env: MapfEnv, agent_indexes: list, **kwargs):
+    right_fail = kwargs.get('right_fail', env.right_fail)
+    left_fail = kwargs.get('left_fail', env.left_fail)
+
     vector_local_agents_starts = tuple(itertools.compress(env.agents_starts,
                                                           [1 if x in agent_indexes else 0
                                                            for x in range(env.n_agents)]))
@@ -60,7 +63,7 @@ def get_local_view(env: MapfEnv, agent_indexes: list):
                                                           for x in range(env.n_agents)]))
 
     return MapfEnv(env.grid, len(agent_indexes), vector_local_agents_starts, vector_local_agents_goals,
-                   env.right_fail, env.left_fail, env.reward_of_clash, env.reward_of_goal, env.reward_of_living)
+                   right_fail, left_fail, env.reward_of_clash, env.reward_of_goal, env.reward_of_living)
 
 
 def mapf_env_load_from_json(json_str: str) -> MapfEnv:

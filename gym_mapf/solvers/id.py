@@ -1,10 +1,11 @@
 """Independence Detection Algorithm"""
 import time
+from typing import Callable
+
 from gym_mapf.envs.mapf_env import MapfEnv
 from gym_mapf.solvers.utils import (detect_conflict,
                                     solve_independently_and_cross,
-                                    get_local_view)
-from gym_mapf.solvers.vi import value_iteration_planning
+                                    get_local_view, Policy)
 
 
 def group_of_agent(agents_groups, agent_idx):
@@ -20,19 +21,20 @@ def merge_agent_groups(agents_groups, g1, g2):
         agents_groups[g1] + agents_groups[g2]]
 
 
-def ID(env: MapfEnv, **kwargs):
+def ID(env: MapfEnv, low_level_planner: Callable[[MapfEnv], Policy], **kwargs):
     """Solve MAPF gym environment with ID algorithm.
 
     Args:
         env (MapfEnv): mapf env
         info (dict): information about the run. For ID it will return information about conflicts
             detected during the solving.
+        low_level_planner (Callable[[MapfEnv], Policy]): a planner function which receives env and returns a policy.
 
     Returns:
           function int->int. The optimal policy, function from state to action.
     """
     info = kwargs.get('info', {})
-    start = time.time()  # TODO: use a decorator for updateing info with time measurement
+    start = time.time()  # TODO: use a decorator for updating info with time measurement
     agents_groups = [[i] for i in range(env.n_agents)]
     info['iterations'] = []
     curr_iter_info = {}
@@ -41,7 +43,7 @@ def ID(env: MapfEnv, **kwargs):
     curr_iter_info['joint_policy'] = {}
     curr_joint_policy = solve_independently_and_cross(env,
                                                       agents_groups,
-                                                      value_iteration_planning,
+                                                      low_level_planner,
                                                       **{'info': curr_iter_info['joint_policy']})
     conflict = detect_conflict(env, curr_joint_policy, **{'info': curr_iter_info})
     while conflict:
@@ -67,7 +69,7 @@ def ID(env: MapfEnv, **kwargs):
         curr_iter_info['joint_policy'] = {}
         curr_joint_policy = solve_independently_and_cross(env,
                                                           agents_groups,
-                                                          value_iteration_planning,
+                                                          low_level_planner,
                                                           **{'info': curr_iter_info['joint_policy']})
 
         # find a new conflict

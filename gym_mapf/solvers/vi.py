@@ -2,9 +2,8 @@ import time
 import numpy as np
 import math
 
-from gym_mapf.solvers.utils import safe_actions
+from gym_mapf.solvers.utils import safe_actions, TabularValueFunctionPolicy
 from gym_mapf.envs.mapf_env import MapfEnv
-from gym_mapf.solvers.policy import TabularValueFunctionPolicy
 
 
 def extract_policy(v, env, gamma=1.0):
@@ -86,7 +85,7 @@ def get_layers(env):
     return layers
 
 
-def prioritized_value_iteration(env: MapfEnv, info, gamma=1.0):
+def prioritized_value_iteration(env: MapfEnv, info, gamma=1.0, **kwargs):
     info['converged'] = False
     info['n_iterations'] = 0
     v = np.zeros(env.nS)  # initialize value-function
@@ -134,11 +133,9 @@ def value_iteration_planning(env, **kwargs):
     start = time.time()  # TODO: use a decorator for updating info with time measurement
     gamma = kwargs.get('gamma', 1.0)
     v = value_iteration(env, info, gamma)
-    tabular_policy = extract_policy(v, env, gamma)
 
-    policy = TabularValueFunctionPolicy(env, gamma)
+    policy = TabularValueFunctionPolicy(env, 1.0)
     policy.v = v
-    policy.tabular_policy = tabular_policy
 
     end = time.time()
     info['VI_time'] = end - start
@@ -151,11 +148,9 @@ def prioritized_value_iteration_planning(env, **kwargs):
     start = time.time()  # TODO: use a decorator for updating info with time measurement
     gamma = kwargs.get('gamma', 1.0)
     v = prioritized_value_iteration(env, info, gamma)
-    tabular_policy = extract_policy(v, env, gamma)
 
-    policy = TabularValueFunctionPolicy(env, gamma)
+    policy = TabularValueFunctionPolicy(env, 1.0)
     policy.v = v
-    policy.tabular_policy = tabular_policy
 
     end = time.time()
     info['prioritized_VI_time'] = end - start
