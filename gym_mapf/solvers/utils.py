@@ -30,22 +30,22 @@ class Policy(metaclass=ABCMeta):
 
     @abstractmethod
     def dump_to_str(self):
-        """Dump policy parameters to a JSON in a reproducible way
+        """Dump policy parameters to a string in a reproducible way
 
         Returns:
-            str. JSON representation of the policy.
+            str. string representation of the policy.
         """
 
     @staticmethod
     @abstractmethod
     def load_from_str(json_str: str) -> object:
-        """Load policy from JSON
+        """Load policy from string
 
         Args:
-            json_str (str): a string with a JSON representation dumped by the policy dump_to_json method.
+            json_str (str): a string with a string representation dumped by the policy dump_to_json method.
 
         Returns:
-            Policy. The policy represented by the given JSON.
+            Policy. The policy represented by the given string.
         """
 
 
@@ -68,6 +68,32 @@ class CrossedPolicy(Policy):
 
     def load_from_str(json_str: str) -> object:
         raise NotImplementedError()
+
+
+class Planner(metaclass=ABCMeta):
+    @abstractmethod
+    def plan(self, env: MapfEnv) -> Policy:
+        """Return a policy for a given MAPF env"""
+
+    @abstractmethod
+    def dump_to_str(self):
+        """Dump planner parameters to a string in a reproducible way
+
+        Returns:
+            str. string representation of the planner.
+        """
+
+    @staticmethod
+    @abstractmethod
+    def load_from_str(json_str: str) -> object:
+        """Load planner from string
+
+        Args:
+            json_str (str): a string with a string representation dumped by the policy dump_to_json method.
+
+        Returns:
+            Planner. The policy represented by the given string.
+        """
 
 
 def print_path_to_state(path: dict, state: int, env: MapfEnv):

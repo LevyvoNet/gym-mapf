@@ -4,7 +4,7 @@ import math
 from typing import Callable
 
 from gym_mapf.envs.mapf_env import MapfEnv
-from gym_mapf.solvers.utils import safe_actions, Policy
+from gym_mapf.solvers.utils import TabularValueFunctionPolicy
 
 
 def greedy_action(env: MapfEnv, s, v, gamma):
@@ -51,7 +51,7 @@ def rtdp(env: MapfEnv, heuristic_function: Callable[[int], float], n_iterations:
         print(f"iteration {i + 1} took {time.time() - start} seconds for {n_moves} moves, final reward: {r}")
 
     env.reset()
-    policy = TabularValuePolicy(env, gamma)
+    policy = TabularValueFunctionPolicy(env, gamma)
     policy.v = v
 
     return policy
