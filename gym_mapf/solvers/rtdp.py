@@ -3,11 +3,34 @@ import time
 import math
 from typing import Callable
 
-from gym_mapf.envs.mapf_env import MapfEnv
+from gym_mapf.envs.mapf_env import MapfEnv, function_to_get_item_of_object
 from gym_mapf.solvers.vi import prioritized_value_iteration
 from gym_mapf.solvers.utils import Planner, Policy, TabularValueFunctionPolicy, get_local_view
 from gym_mapf.solvers.utils import render_states
 from gym_mapf.envs.mapf_env import integer_action_to_vector
+
+
+class RtdpPolicy(TabularValueFunctionPolicy):
+    def __init__(self, env, gamma, heuristic):
+        super().__init__(env, gamma)
+        self.v_partial_table = {}
+        # Now this v behaves like a full numpy array
+        self.v = function_to_get_item_of_object(self._get_value)
+        self.heuristic = heuristic
+
+    def _get_value(self, s):
+        if s in self.v_partial_table:
+            return self.v_partial_table[s]
+
+        value = self.heuristic(s)
+        self.v_partial_table[s] = value
+        return value
+
+    def dump_to_str(self):
+        pass
+
+    def load_from_str(json_str: str) -> object:
+        pass
 
 
 def greedy_action(env: MapfEnv, s, v, gamma):
@@ -32,14 +55,9 @@ def rtdp(env: MapfEnv, heuristic_function: Callable[[int], float], n_iterations:
     info = kwargs.get('info', {})
 
     # initialize V to an upper bound
-    # TODO: use lazy evaluation for v
-    v = np.full(env.nS, 0.0)
-    for s in range(env.nS):
-        v[s] = heuristic_function(s)
+    policy = RtdpPolicy(env, gamma, heuristic_function)
 
     # follow the greedy policy, for each transition do a bellman update on V
-    # import ipdb
-    # ipdb.set_trace()
     for i in range(n_iterations):
         env.reset()
         s = env.s
@@ -48,16 +66,14 @@ def rtdp(env: MapfEnv, heuristic_function: Callable[[int], float], n_iterations:
         n_moves = 0
         while not done:
             # env.render()
-            a = greedy_action(env, s, v, gamma)
+            a = greedy_action(env, s, policy.v, gamma)
             # print(f'action {integer_action_to_vector(a, env.n_agents)} chosen')
             # time.sleep(1)
-            new_v_s = sum([prob * (reward + gamma * v[next_state])
+            new_v_s = sum([prob * (reward + gamma * policy.v[next_state])
                            for prob, next_state, reward, done in env.P[s][a]])
-            v[s] = new_v_s
+            policy.v_partial_table[s] = new_v_s
 
             # simulate the step and sample a new state
-            # import ipdb
-            # ipdb.set_trace()
             s, r, done, _ = env.step(a)
             n_moves += 1
 
@@ -65,8 +81,6 @@ def rtdp(env: MapfEnv, heuristic_function: Callable[[int], float], n_iterations:
         print(f"iteration {i + 1} took {time.time() - start} seconds for {n_moves} moves, final reward: {r}")
 
     env.reset()
-    policy = TabularValueFunctionPolicy(env, gamma)
-    policy.v = v
 
     return policy
 
