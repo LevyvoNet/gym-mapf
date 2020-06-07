@@ -5,9 +5,9 @@ from gym_mapf.envs.mapf_env import (MapfEnv,
                                     vector_action_to_integer,
                                     UP, DOWN, RIGHT, LEFT, STAY)
 
-from gym_mapf.solvers.id import ID
+from gym_mapf.solvers.vi import ValueIterationPlanner
+from gym_mapf.solvers.id import IdPlanner
 from gym_mapf.solvers.utils import solve_independently_and_cross
-from gym_mapf.solvers.vi import value_iteration_planning
 
 
 class IdTests(unittest.TestCase):
@@ -19,8 +19,8 @@ class IdTests(unittest.TestCase):
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -1, 1, -0.01)
 
-        independent_joiont_policy = solve_independently_and_cross(env, [[0], [1]], value_iteration_planning)
-        merged_joint_policy = solve_independently_and_cross(env, [[0, 1]], value_iteration_planning)
+        independent_joiont_policy = solve_independently_and_cross(env, [[0], [1]], ValueIterationPlanner(1.0))
+        merged_joint_policy = solve_independently_and_cross(env, [[0, 1]], ValueIterationPlanner(1.0))
 
         interesting_state = env.locations_to_state(((1, 1), (0, 1)))
 
@@ -42,8 +42,8 @@ class IdTests(unittest.TestCase):
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.01, -1, 1, -0.1)
 
-        independent_joiont_policy = solve_independently_and_cross(env, [[0], [1]], value_iteration_planning)
-        merged_joint_policy = solve_independently_and_cross(env, [[0, 1]], value_iteration_planning)
+        independent_joiont_policy = solve_independently_and_cross(env, [[0], [1]], ValueIterationPlanner(1.0))
+        merged_joint_policy = solve_independently_and_cross(env, [[0, 1]], ValueIterationPlanner(1.0))
 
         interesting_state = env.locations_to_state(((0, 0), (0, 1)))
 
@@ -63,7 +63,9 @@ class IdTests(unittest.TestCase):
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -1, 1, -0.01)
 
-        policy = ID(env, value_iteration_planning)
+        vi_planner = ValueIterationPlanner(gamma=1.0)
+        id_planner = IdPlanner(vi_planner)
+        policy = id_planner.plan(env, )
 
         interesting_state = env.locations_to_state(((1, 1), (0, 1)))
 
@@ -80,7 +82,9 @@ class IdTests(unittest.TestCase):
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -1, 1, -0.01)
 
-        joint_policy = ID(env, value_iteration_planning)
+        vi_planner = ValueIterationPlanner(gamma=1.0)
+        id_planner = IdPlanner(vi_planner)
+        joint_policy = id_planner.plan(env, )
 
         self.assertEqual(joint_policy.act(env.s), vector_action_to_integer((LEFT, RIGHT)))
 

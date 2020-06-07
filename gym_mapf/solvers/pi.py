@@ -1,9 +1,10 @@
 import time
 import numpy as np
 import math
+import json
 
 from gym_mapf.envs.mapf_env import MapfEnv
-from gym_mapf.solvers.utils import solve_independently_and_cross, Policy, TabularValueFunctionPolicy
+from gym_mapf.solvers.utils import Planner, Policy, TabularValueFunctionPolicy
 
 
 def one_step_lookahead(env, state, V, discount_factor=1.0):
@@ -184,3 +185,20 @@ def relevant_states_policy_iteration(env, **kwargs):
     policy.v = policy_eval(env, policy_curr, V, gamma)
 
     return policy
+
+
+class PolicyIterationPlanner(Planner):
+    def __init__(self, gamma):
+        super().__init__()
+        self.gamma = gamma
+
+    def plan(self, env: MapfEnv, **kwargs) -> Policy:
+        return policy_iteration(env)
+
+    def dump_to_str(self):
+        return json.dumps({'gamma': self.gamma})
+
+    @staticmethod
+    def load_from_str(json_str: str) -> object:
+        json_obj = json.loads(json_str)
+        return PolicyIterationPlanner(json_obj['gamma'])

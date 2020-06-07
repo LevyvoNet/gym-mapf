@@ -72,8 +72,10 @@ class CrossedPolicy(Policy):
 
 class Planner(metaclass=ABCMeta):
     @abstractmethod
-    def plan(self, env: MapfEnv) -> Policy:
-        """Return a policy for a given MAPF env"""
+    def plan(self, env: MapfEnv, **kwargs) -> Policy:
+        """Return a policy for a given MAPF env
+        :param **kwargs:
+        """
 
     @abstractmethod
     def dump_to_str(self):
@@ -168,7 +170,7 @@ def safe_actions(env: MapfEnv, s):
             if not might_conflict(env.reward_of_clash, env.P[s][a])]
 
 
-def solve_independently_and_cross(env, agent_groups, low_level_planner, **kwargs):
+def solve_independently_and_cross(env, agent_groups, low_level_planner: Planner, **kwargs):
     info = kwargs.get('info', {})
     start = time.time()  # TODO: use a decorator for updating info with time measurement
     local_envs = [get_local_view(env, group) for group in agent_groups]
@@ -176,7 +178,7 @@ def solve_independently_and_cross(env, agent_groups, low_level_planner, **kwargs
     policies = []
     for group, local_env in zip(agent_groups, local_envs):
         info[f'{group}'] = {}
-        policy = low_level_planner(local_env, **{'info': info[f'{group}']})
+        policy = low_level_planner.plan(local_env, **{'info': info[f'{group}']})
         policies.append(policy)
 
     joint_policy = CrossedPolicy(env, 1.0, policies)

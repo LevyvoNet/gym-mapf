@@ -1,8 +1,9 @@
 import time
 import numpy as np
 import math
+import json
 
-from gym_mapf.solvers.utils import safe_actions, TabularValueFunctionPolicy
+from gym_mapf.solvers.utils import safe_actions, TabularValueFunctionPolicy, Planner, Policy
 from gym_mapf.envs.mapf_env import MapfEnv
 
 
@@ -155,3 +156,37 @@ def prioritized_value_iteration_planning(env, **kwargs):
     end = time.time()
     info['prioritized_VI_time'] = end - start
     return policy
+
+
+class ValueIterationPlanner(Planner):
+    def __init__(self, gamma):
+        super().__init__()
+        self.gamma = gamma
+
+    def plan(self, env: MapfEnv, **kwargs) -> Policy:
+        return value_iteration_planning(env)
+
+    def dump_to_str(self):
+        return json.dumps({'gamma': self.gamma})
+
+    @staticmethod
+    def load_from_str(json_str: str) -> object:
+        json_obj = json.loads(json_str)
+        return ValueIterationPlanner(json_obj['gamma'])
+
+
+class PrioritizedValueIterationPlanner(Planner):
+    def __init__(self, gamma):
+        super().__init__()
+        self.gamma = gamma
+
+    def plan(self, env: MapfEnv, **kwargs) -> Policy:
+        return prioritized_value_iteration_planning(env)
+
+    def dump_to_str(self):
+        return json.dumps({'gamma': self.gamma})
+
+    @staticmethod
+    def load_from_str(json_str: str) -> object:
+        json_obj = json.loads(json_str)
+        return ValueIterationPlanner(json_obj['gamma'])

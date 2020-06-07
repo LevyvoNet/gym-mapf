@@ -5,7 +5,9 @@ from typing import Callable
 from gym_mapf.envs.mapf_env import MapfEnv
 from gym_mapf.solvers.utils import (detect_conflict,
                                     solve_independently_and_cross,
-                                    get_local_view, Policy)
+                                    get_local_view,
+                                    Policy,
+                                    Planner)
 
 
 def group_of_agent(agents_groups, agent_idx):
@@ -21,7 +23,7 @@ def merge_agent_groups(agents_groups, g1, g2):
         agents_groups[g1] + agents_groups[g2]]
 
 
-def ID(env: MapfEnv, low_level_planner: Callable[[MapfEnv], Policy], **kwargs):
+def ID(env: MapfEnv, low_level_planner: Planner, **kwargs):
     """Solve MAPF gym environment with ID algorithm.
 
     Args:
@@ -78,3 +80,18 @@ def ID(env: MapfEnv, low_level_planner: Callable[[MapfEnv], Policy], **kwargs):
     end = time.time()
     info['ID_time'] = end - start
     return curr_joint_policy
+
+
+class IdPlanner(Planner):
+    def __init__(self, low_level_planner: Planner):
+        self.low_level_planner = low_level_planner
+
+    def plan(self, env: MapfEnv, **kwargs) -> Policy:
+        return ID(env, self.low_level_planner)
+
+    def dump_to_str(self):
+        pass
+
+    @staticmethod
+    def load_from_str(json_str: str) -> object:
+        pass

@@ -2,7 +2,7 @@ import unittest
 import json
 
 from gym_mapf.solvers.utils import CrossedPolicy, detect_conflict, solve_independently_and_cross, Policy
-from gym_mapf.solvers.vi import value_iteration_planning
+from gym_mapf.solvers.vi import ValueIterationPlanner
 from gym_mapf.envs.utils import MapfGrid, get_local_view
 from gym_mapf.envs.mapf_env import (MapfEnv,
                                     vector_action_to_integer,
@@ -123,7 +123,7 @@ class SolversUtilsTests(unittest.TestCase):
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.01, -1, 1, -0.1)
 
-        independent_joiont_policy = solve_independently_and_cross(env, [[0], [1]], value_iteration_planning)
+        independent_joiont_policy = solve_independently_and_cross(env, [[0], [1]], ValueIterationPlanner(1.0))
 
         interesting_state = env.locations_to_state(((0, 0), (0, 2)))
 
