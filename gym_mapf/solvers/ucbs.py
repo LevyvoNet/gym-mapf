@@ -5,7 +5,7 @@ from gym_mapf.envs import (vector_to_integer)
 from gym_mapf.envs.utils import get_local_view
 from gym_mapf.envs.mapf_env import (MapfEnv)
 from gym_mapf.solvers.utils import CrossedPolicy, detect_conflict
-from gym_mapf.solvers.vi import value_iteration_planning
+from gym_mapf.solvers.vi import ValueIterationPlanner
 
 
 def constraints_to_mask(constraints: list, local_env: MapfEnv):
@@ -41,7 +41,7 @@ def best_joint_policy_under_constraint(env, constraints, low_level_planner):
         agent_mask = constraints_to_mask(constraints[i], local_envs[i])
         local_envs[i].set_mask(agent_mask)
 
-        policy = low_level_planner(local_envs[i])
+        policy = low_level_planner.plan(local_envs[i])
         # Assume the low level planner maintains a value table for all states.
         total_reward += policy.v[policy.env.s]
         policies.append(policy)  # solve as if agent i is alone
@@ -96,11 +96,11 @@ def sync_joint_policy(joint_policy, env: MapfEnv, constraints, possible_states_c
     return joint_policy_synced
 
 
-def UCBS(env):
+def UCBS(env, gamma):
     # TODO: problematic action can be problematic state to reach instead. find_conflict should solve this.
     curr_constraints = []
     curr_joint_reward, curr_joint_policy = best_joint_policy_under_constraint(env, curr_constraints,
-                                                                              value_iteration_planning)
+                                                                              ValueIterationPlanner(gamma))
     search_tree = [(curr_joint_reward, curr_constraints, curr_joint_policy)]
     heapq.heapify(search_tree)
 

@@ -80,54 +80,6 @@ def policy_eval(env, policy, V, discount_factor):
     return policy_value
 
 
-def policy_iteration(env, **kwargs):
-    """
-    Algorithm to solve MPD.
-
-    Arguments:
-        env: openAI GYM Enviorment object.
-        gamma: MDP discount factor.
-        max_iteration: Maximum No.  of iterations to run.
-
-    Return:
-        V: Optimal state-Value function. Vector of lenth nS.
-        new_policy: Optimal policy. Vector of length nS.
-
-    """
-    info = kwargs.get('info', {})
-    gamma = kwargs.get('gamma', 1.0)
-    max_iteration = 1000
-
-    # intialize the state-Value function
-    V = np.zeros(env.nS)
-
-    # intialize a random policy
-    policy_curr = np.random.randint(0, env.nA, env.nS)
-    policy_prev = np.copy(policy_curr)
-
-    for i in range(max_iteration):
-        # evaluate given policy
-        start = time.time()
-        V = policy_eval(env, policy_curr, V, gamma)
-
-        # improve policy
-        policy_curr = update_policy(env, policy_curr, V, gamma)
-
-        # if policy not changed over 10 iterations it converged.
-        if i % 10 == 0:
-            if np.all(np.equal(policy_curr, policy_prev)):
-                print('policy iteration converged at iteration %d' % (i + 1))
-                break
-            policy_prev = np.copy(policy_curr)
-
-        print(f'PI: iteration {i + 1} took {time.time() - start} seconds')
-
-    policy = TabularValueFunctionPolicy(env, 1.0)
-    policy.v = policy_eval(env, policy_curr, V, gamma)
-
-    return policy
-
-
 def relevant_states_policy_iteration(env, **kwargs):
     info = kwargs.get('info', {})
     gamma = kwargs.get('gamma', 1.0)
@@ -193,7 +145,37 @@ class PolicyIterationPlanner(Planner):
         self.gamma = gamma
 
     def plan(self, env: MapfEnv, **kwargs) -> Policy:
-        return policy_iteration(env)
+        gamma = kwargs.get('gamma', 1.0)
+        max_iteration = 1000
+
+        # intialize the state-Value function
+        V = np.zeros(env.nS)
+
+        # intialize a random policy
+        policy_curr = np.random.randint(0, env.nA, env.nS)
+        policy_prev = np.copy(policy_curr)
+
+        for i in range(max_iteration):
+            # evaluate given policy
+            start = time.time()
+            V = policy_eval(env, policy_curr, V, gamma)
+
+            # improve policy
+            policy_curr = update_policy(env, policy_curr, V, gamma)
+
+            # if policy not changed over 10 iterations it converged.
+            if i % 10 == 0:
+                if np.all(np.equal(policy_curr, policy_prev)):
+                    print('policy iteration converged at iteration %d' % (i + 1))
+                    break
+                policy_prev = np.copy(policy_curr)
+
+            print(f'PI: iteration {i + 1} took {time.time() - start} seconds')
+
+        policy = TabularValueFunctionPolicy(env, 1.0)
+        policy.v = policy_eval(env, policy_curr, V, gamma)
+
+        return policy
 
     def dump_to_str(self):
         return json.dumps({'gamma': self.gamma})

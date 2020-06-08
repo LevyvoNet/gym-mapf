@@ -23,50 +23,6 @@ def extract_policy(v, env, gamma=1.0):
     return policy
 
 
-def value_iteration(env, info, gamma=1.0):
-    """ Value-iteration algorithm"""
-    info['converged'] = False
-    info['n_iterations'] = 0
-    v = np.zeros(env.nS)  # initialize value-function
-    max_iterations = 1000
-    eps = 1e-2
-    s_count = 0
-    real_start = time.time()
-    for i in range(max_iterations):
-        prev_v = np.copy(v)
-        start = time.time()
-        for s in range(env.nS):
-            q_sa = []
-            for a in range(env.nA):
-                q_sa_a = 0
-                for p, s_, r, done in env.P[s][a]:
-                    if r == env.reward_of_clash and done:
-                        # This is a dangerous action which might get to conflict
-                        q_sa_a = -math.inf
-                        break
-                    q_sa_a += p * (r + prev_v[s_])
-
-                q_sa.append(q_sa_a)
-
-            v[s] = max(q_sa)
-            s_count += 1
-
-        # debug print
-        # if i % 10 == 0:
-        #     print(v)
-
-        print(f'VI: iteration {i + 1} took {time.time() - start} seconds')
-
-        info['n_iterations'] = i + 1
-        if np.sum(np.fabs(prev_v - v)) <= eps:
-            # debug print
-            print('value iteration converged at iteration# %d.' % (i + 1))
-            info['converged'] = True
-            break
-
-    return v
-
-
 def get_layers(env):
     layers = []
     visited_states = set()
@@ -86,19 +42,26 @@ def get_layers(env):
     return layers
 
 
-def prioritized_value_iteration(env: MapfEnv, info, gamma=1.0, **kwargs):
-    info['converged'] = False
-    info['n_iterations'] = 0
-    v = np.zeros(env.nS)  # initialize value-function
-    max_iterations = 100000
-    eps = 1e-2
-    q_sa_a = 0
-    layers = get_layers(env)
-    for i in range(max_iterations):
-        prev_v = np.copy(v)
-        start = time.time()
-        for layer in layers:
-            for s in layer:
+class ValueIterationPlanner(Planner):
+    def __init__(self, gamma):
+        super().__init__()
+        self.gamma = gamma
+
+    def plan(self, env: MapfEnv, **kwargs) -> TabularValueFunctionPolicy:
+        """ Value-iteration algorithm"""
+        self.info['converged'] = False
+        self.info['n_iterations'] = 0
+        start = time.time()  # TODO: use a decorator for updating info with time measurement
+        gamma = kwargs.get('gamma', 1.0)
+        v = np.zeros(env.nS)  # initialize value-function
+        max_iterations = 1000
+        eps = 1e-2
+        s_count = 0
+        real_start = time.time()
+        for i in range(max_iterations):
+            prev_v = np.copy(v)
+            start = time.time()
+            for s in range(env.nS):
                 q_sa = []
                 for a in range(env.nA):
                     q_sa_a = 0
@@ -107,64 +70,33 @@ def prioritized_value_iteration(env: MapfEnv, info, gamma=1.0, **kwargs):
                             # This is a dangerous action which might get to conflict
                             q_sa_a = -math.inf
                             break
-                        q_sa_a += p * (r + v[s_])
+                        q_sa_a += p * (r + prev_v[s_])
 
                     q_sa.append(q_sa_a)
 
                 v[s] = max(q_sa)
+                s_count += 1
 
-        # debug print
-        # if i % 10 == 0:
-        #     print(v)
-        print(f'PVI: iteration {i + 1} took {time.time() - start} seconds')
-
-        info['n_iterations'] = i + 1
-        if np.sum(np.fabs(prev_v - v)) <= eps:
             # debug print
-            print('prioritized value iteration converged at iteration# %d.' % (i + 1))
-            info['converged'] = True
-            break
+            # if i % 10 == 0:
+            #     print(v)
 
-    return v
+            print(f'VI: iteration {i + 1} took {time.time() - start} seconds')
 
+            self.info['n_iterations'] = i + 1
+            if np.sum(np.fabs(prev_v - v)) <= eps:
+                # debug print
+                print('value iteration converged at iteration# %d.' % (i + 1))
+                self.info['converged'] = True
+                break
 
-def value_iteration_planning(env, **kwargs):
-    """Get optimal policy derived from value iteration and its expected reward"""
-    info = kwargs.get('info', {})
-    start = time.time()  # TODO: use a decorator for updating info with time measurement
-    gamma = kwargs.get('gamma', 1.0)
-    v = value_iteration(env, info, gamma)
+        policy = TabularValueFunctionPolicy(env, self.gamma)
+        policy.v = v
 
-    policy = TabularValueFunctionPolicy(env, 1.0)
-    policy.v = v
+        end = time.time()
+        self.info['VI_time'] = end - start
 
-    end = time.time()
-    info['VI_time'] = end - start
-
-    return policy
-
-
-def prioritized_value_iteration_planning(env, **kwargs):
-    info = kwargs.get('info', {})
-    start = time.time()  # TODO: use a decorator for updating info with time measurement
-    gamma = kwargs.get('gamma', 1.0)
-    v = prioritized_value_iteration(env, info, gamma)
-
-    policy = TabularValueFunctionPolicy(env, 1.0)
-    policy.v = v
-
-    end = time.time()
-    info['prioritized_VI_time'] = end - start
-    return policy
-
-
-class ValueIterationPlanner(Planner):
-    def __init__(self, gamma):
-        super().__init__()
-        self.gamma = gamma
-
-    def plan(self, env: MapfEnv, **kwargs) -> Policy:
-        return value_iteration_planning(env)
+        return policy
 
     def dump_to_str(self):
         return json.dumps({'gamma': self.gamma})
@@ -180,8 +112,52 @@ class PrioritizedValueIterationPlanner(Planner):
         super().__init__()
         self.gamma = gamma
 
-    def plan(self, env: MapfEnv, **kwargs) -> Policy:
-        return prioritized_value_iteration_planning(env)
+    def plan(self, env: MapfEnv, **kwargs) -> TabularValueFunctionPolicy:
+        self.info['converged'] = False
+        self.info['n_iterations'] = 0
+        start = time.time()  # TODO: use a decorator for updating info with time measurement
+        v = np.zeros(env.nS)  # initialize value-function
+        max_iterations = 100000
+        eps = 1e-2
+        q_sa_a = 0
+        layers = get_layers(env)
+        for i in range(max_iterations):
+            prev_v = np.copy(v)
+            start = time.time()
+            for layer in layers:
+                for s in layer:
+                    q_sa = []
+                    for a in range(env.nA):
+                        q_sa_a = 0
+                        for p, s_, r, done in env.P[s][a]:
+                            if r == env.reward_of_clash and done:
+                                # This is a dangerous action which might get to conflict
+                                q_sa_a = -math.inf
+                                break
+                            q_sa_a += p * (r + v[s_])
+
+                        q_sa.append(q_sa_a)
+
+                    v[s] = max(q_sa)
+
+            # debug print
+            # if i % 10 == 0:
+            #     print(v)
+            print(f'PVI: iteration {i + 1} took {time.time() - start} seconds')
+
+            self.info['n_iterations'] = i + 1
+            if np.sum(np.fabs(prev_v - v)) <= eps:
+                # debug print
+                print('prioritized value iteration converged at iteration# %d.' % (i + 1))
+                self.info['converged'] = True
+                break
+
+        policy = TabularValueFunctionPolicy(env, self.gamma)
+        policy.v = v
+
+        end = time.time()
+        self.info['prioritized_VI_time'] = end - start
+        return policy
 
     def dump_to_str(self):
         return json.dumps({'gamma': self.gamma})

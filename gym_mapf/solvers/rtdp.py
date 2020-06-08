@@ -4,10 +4,8 @@ import math
 from typing import Callable
 
 from gym_mapf.envs.mapf_env import MapfEnv, function_to_get_item_of_object
-from gym_mapf.solvers.vi import prioritized_value_iteration
+from gym_mapf.solvers.vi import PrioritizedValueIterationPlanner
 from gym_mapf.solvers.utils import Planner, Policy, TabularValueFunctionPolicy, get_local_view
-from gym_mapf.solvers.utils import render_states
-from gym_mapf.envs.mapf_env import integer_action_to_vector
 
 
 class RtdpPolicy(TabularValueFunctionPolicy):
@@ -51,40 +49,6 @@ def greedy_action(env: MapfEnv, s, v, gamma):
     return np.random.choice(np.argwhere(action_values == max_value).flatten())
 
 
-def rtdp(env: MapfEnv, heuristic_function: Callable[[int], float], n_iterations: int, gamma: float, **kwargs):
-    info = kwargs.get('info', {})
-
-    # initialize V to an upper bound
-    policy = RtdpPolicy(env, gamma, heuristic_function)
-
-    # follow the greedy policy, for each transition do a bellman update on V
-    for i in range(n_iterations):
-        env.reset()
-        s = env.s
-        done = False
-        start = time.time()
-        n_moves = 0
-        while not done:
-            # env.render()
-            a = greedy_action(env, s, policy.v, gamma)
-            # print(f'action {integer_action_to_vector(a, env.n_agents)} chosen')
-            # time.sleep(1)
-            new_v_s = sum([prob * (reward + gamma * policy.v[next_state])
-                           for prob, next_state, reward, done in env.P[s][a]])
-            policy.v_partial_table[s] = new_v_s
-
-            # simulate the step and sample a new state
-            s, r, done, _ = env.step(a)
-            n_moves += 1
-
-        # iteration finished
-        print(f"iteration {i + 1} took {time.time() - start} seconds for {n_moves} moves, final reward: {r}")
-
-    env.reset()
-
-    return policy
-
-
 def manhattan_heuristic(env: MapfEnv):
     def heuristic_function(s):
         locations = env.state_to_locations(s)
@@ -100,7 +64,8 @@ def manhattan_heuristic(env: MapfEnv):
 
 def prioritized_value_iteration_heuristic(env: MapfEnv) -> Callable[[int], float]:
     local_envs = [get_local_view(env, [i]) for i in range(env.n_agents)]
-    local_v = [prioritized_value_iteration(local_env, {}, 1.0) for local_env in local_envs]
+    pvi_planner = PrioritizedValueIterationPlanner(1.0)
+    local_v = [(pvi_planner.plan(local_env)).v for local_env in local_envs]
 
     def heuristic_function(s):
         locations = env.state_to_locations(s)
@@ -120,7 +85,35 @@ class RtdpPlanner(Planner):
         self.gamma = gamma
 
     def plan(self, env: MapfEnv, **kwargs) -> Policy:
-        return rtdp(env, self.heuristic_function(env), self.n_iterations, self.gamma)
+        # initialize V to an upper bound
+        policy = RtdpPolicy(env, self.gamma, self.heuristic_function(env))
+
+        # follow the greedy policy, for each transition do a bellman update on V
+        for i in range(self.n_iterations):
+            env.reset()
+            s = env.s
+            done = False
+            start = time.time()
+            n_moves = 0
+            while not done:
+                # env.render()
+                a = greedy_action(env, s, policy.v, self.gamma)
+                # print(f'action {integer_action_to_vector(a, env.n_agents)} chosen')
+                # time.sleep(1)
+                new_v_s = sum([prob * (reward + self.gamma * policy.v[next_state])
+                               for prob, next_state, reward, done in env.P[s][a]])
+                policy.v_partial_table[s] = new_v_s
+
+                # simulate the step and sample a new state
+                s, r, done, _ = env.step(a)
+                n_moves += 1
+
+            # iteration finished
+            print(f"iteration {i + 1} took {time.time() - start} seconds for {n_moves} moves, final reward: {r}")
+
+        env.reset()
+
+        return policy
 
     def dump_to_str(self):
         pass
