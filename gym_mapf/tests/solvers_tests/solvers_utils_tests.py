@@ -123,7 +123,7 @@ class SolversUtilsTests(unittest.TestCase):
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.01, -1, 1, -0.1)
 
-        independent_joiont_policy = solve_independently_and_cross(env, [[0], [1]], ValueIterationPlanner(1.0))
+        independent_joiont_policy = solve_independently_and_cross(env, [[0], [1]], ValueIterationPlanner(1.0), {})
 
         interesting_state = env.locations_to_state(((0, 0), (0, 2)))
 

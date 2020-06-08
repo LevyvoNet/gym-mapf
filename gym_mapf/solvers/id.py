@@ -1,6 +1,6 @@
 """Independence Detection Algorithm"""
 import time
-from typing import Callable
+from typing import Dict
 
 from gym_mapf.envs.mapf_env import MapfEnv
 from gym_mapf.solvers.utils import (detect_conflict,
@@ -23,36 +23,38 @@ def merge_agent_groups(agents_groups, g1, g2):
         agents_groups[g1] + agents_groups[g2]]
 
 
-
-
 class IdPlanner(Planner):
     def __init__(self, low_level_planner: Planner):
+        """Initialize an Independence Detection Planner
+
+        Args:
+            low_level_planner (Planner): a planner function which receives env and returns a policy.
+        """
         super().__init__()
         self.low_level_planner = low_level_planner
 
-    def plan(self, env: MapfEnv, **kwargs) -> Policy:
+    def plan(self, env: MapfEnv, info: Dict, **kwargs) -> Policy:
         """Solve MAPF gym environment with ID algorithm.
 
         Args:
             env (MapfEnv): mapf env
             info (dict): information about the run. For ID it will return information about conflicts
                 detected during the solving.
-            low_level_planner (Callable[[MapfEnv], Policy]): a planner function which receives env and returns a policy.
 
         Returns:
               function int->int. The optimal policy, function from state to action.
         """
         start = time.time()  # TODO: use a decorator for updating info with time measurement
         agents_groups = [[i] for i in range(env.n_agents)]
-        self.info['iterations'] = []
+        info['iterations'] = []
         curr_iter_info = {}
-        self.info['iterations'].append(curr_iter_info)
+        info['iterations'].append(curr_iter_info)
         curr_iter_info['agent_groups'] = agents_groups
         curr_iter_info['joint_policy'] = {}
-        curr_joint_policy = solve_independently_and_cross(env,
-                                                          agents_groups,
+        curr_joint_policy = solve_independently_and_cross(env, agents_groups,
                                                           self.low_level_planner,
-                                                          **{'info': curr_iter_info['joint_policy']})
+                                                          curr_iter_info['joint_policy'])
+
         conflict = detect_conflict(env, curr_joint_policy, **{'info': curr_iter_info})
         while conflict:
             i, s_i, j, s_j, s_ij = conflict
@@ -72,19 +74,19 @@ class IdPlanner(Planner):
 
             # solve again with the new agent groups
             curr_iter_info = {}  # TODO: maybe a do while to avoid this code duplication?
-            self.info['iterations'].append(curr_iter_info)
+            info['iterations'].append(curr_iter_info)
             curr_iter_info['agent_groups'] = agents_groups
             curr_iter_info['joint_policy'] = {}
             curr_joint_policy = solve_independently_and_cross(env,
                                                               agents_groups,
                                                               self.low_level_planner,
-                                                              **{'info': curr_iter_info['joint_policy']})
+                                                              curr_iter_info['joint_policy'])
 
             # find a new conflict
             conflict = detect_conflict(env, curr_joint_policy, **{'info': curr_iter_info})
 
         end = time.time()
-        self.info['ID_time'] = end - start
+        info['ID_time'] = end - start
         return curr_joint_policy
 
     def dump_to_str(self):

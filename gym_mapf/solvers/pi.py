@@ -2,6 +2,7 @@ import time
 import numpy as np
 import math
 import json
+from typing import Dict
 
 from gym_mapf.envs.mapf_env import MapfEnv
 from gym_mapf.solvers.utils import Planner, Policy, TabularValueFunctionPolicy
@@ -81,7 +82,6 @@ def policy_eval(env, policy, V, discount_factor):
 
 
 def relevant_states_policy_iteration(env, **kwargs):
-    info = kwargs.get('info', {})
     gamma = kwargs.get('gamma', 1.0)
     max_iteration = 1000
 
@@ -144,7 +144,7 @@ class PolicyIterationPlanner(Planner):
         super().__init__()
         self.gamma = gamma
 
-    def plan(self, env: MapfEnv, **kwargs) -> Policy:
+    def plan(self, env: MapfEnv,info:Dict, **kwargs) -> Policy:
         gamma = kwargs.get('gamma', 1.0)
         max_iteration = 1000
 

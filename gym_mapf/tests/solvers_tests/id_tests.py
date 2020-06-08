@@ -19,8 +19,8 @@ class IdTests(unittest.TestCase):
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -1, 1, -0.01)
 
-        independent_joiont_policy = solve_independently_and_cross(env, [[0], [1]], ValueIterationPlanner(1.0))
-        merged_joint_policy = solve_independently_and_cross(env, [[0, 1]], ValueIterationPlanner(1.0))
+        independent_joiont_policy = solve_independently_and_cross(env, [[0], [1]], ValueIterationPlanner(1.0), {})
+        merged_joint_policy = solve_independently_and_cross(env, [[0, 1]], ValueIterationPlanner(1.0), {})
 
         interesting_state = env.locations_to_state(((1, 1), (0, 1)))
 
@@ -42,8 +42,8 @@ class IdTests(unittest.TestCase):
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.01, -1, 1, -0.1)
 
-        independent_joiont_policy = solve_independently_and_cross(env, [[0], [1]], ValueIterationPlanner(1.0))
-        merged_joint_policy = solve_independently_and_cross(env, [[0, 1]], ValueIterationPlanner(1.0))
+        independent_joiont_policy = solve_independently_and_cross(env, [[0], [1]], ValueIterationPlanner(1.0), {})
+        merged_joint_policy = solve_independently_and_cross(env, [[0, 1]], ValueIterationPlanner(1.0), {})
 
         interesting_state = env.locations_to_state(((0, 0), (0, 1)))
 
@@ -55,25 +55,6 @@ class IdTests(unittest.TestCase):
         # Assert merged_joint_policy avoids collision
         self.assertIn(merged_joint_policy.act(interesting_state), expected_possible_actions)
 
-    def test_corridor_switch_ID_merge_agents(self):
-        grid = MapfGrid(['...',
-                         '@.@'])
-        agents_starts = ((0, 0), (0, 2))
-        agents_goals = ((0, 2), (0, 0))
-
-        env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -1, 1, -0.01)
-
-        vi_planner = ValueIterationPlanner(gamma=1.0)
-        id_planner = IdPlanner(vi_planner)
-        policy = id_planner.plan(env, )
-
-        interesting_state = env.locations_to_state(((1, 1), (0, 1)))
-
-        expected_possible_actions = [vector_action_to_integer((STAY, UP)),
-                                     vector_action_to_integer((DOWN, UP))]
-
-        self.assertIn(policy.act(interesting_state), expected_possible_actions)
-
     def test_narrow_empty_grid(self):
         grid = MapfGrid(['....'])
 
@@ -84,7 +65,7 @@ class IdTests(unittest.TestCase):
 
         vi_planner = ValueIterationPlanner(gamma=1.0)
         id_planner = IdPlanner(vi_planner)
-        joint_policy = id_planner.plan(env, )
+        joint_policy = id_planner.plan(env, {})
 
         self.assertEqual(joint_policy.act(env.s), vector_action_to_integer((LEFT, RIGHT)))
 

@@ -41,7 +41,7 @@ def best_joint_policy_under_constraint(env, constraints, low_level_planner):
         agent_mask = constraints_to_mask(constraints[i], local_envs[i])
         local_envs[i].set_mask(agent_mask)
 
-        policy = low_level_planner.plan(local_envs[i])
+        policy = low_level_planner.plan(local_envs[i], {})
         # Assume the low level planner maintains a value table for all states.
         total_reward += policy.v[policy.env.s]
         policies.append(policy)  # solve as if agent i is alone
@@ -117,7 +117,7 @@ def UCBS(env, gamma):
                                                           (curr_constraints[i] +
                                                            (i, s_i, j, s_j, s_forbidden))
                                                           + curr_constraints[i + 1:],
-                                                          value_iteration_planning))
+                                                          ValueIterationPlanner(1.0)))
 
         # now agent j is the one who compromises
         heapq.heappush(search_tree,
@@ -125,6 +125,6 @@ def UCBS(env, gamma):
                                                           (curr_constraints[j] +
                                                            (j, s_j, i, s_i, s_forbidden))
                                                           + curr_constraints[j + 1:],
-                                                          value_iteration_planning))
+                                                          ValueIterationPlanner(1.0)))
 
         curr_joint_reward, curr_constraints, curr_joint_policy = search_tree.pop()

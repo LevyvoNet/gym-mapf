@@ -8,7 +8,8 @@ from gym_mapf.envs.mapf_env import (MapfEnv,
 from gym_mapf.solvers.utils import Planner
 from gym_mapf.solvers import (ValueIterationPlanner,
                               PolicyIterationPlanner,
-                              RtdpPlanner)
+                              RtdpPlanner,
+                              IdPlanner)
 from gym_mapf.solvers.rtdp import manhattan_heuristic, prioritized_value_iteration_heuristic
 
 
@@ -27,7 +28,7 @@ class GeneralPlannersTest(unittest.TestCase):
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -0.001, 0, -1)
 
         planner = self.get_planner()
-        policy = planner.plan(env)
+        policy = planner.plan(env, {})
 
         interesting_state = env.locations_to_state(((1, 1), (0, 1)))
         expected_possible_actions = [vector_action_to_integer((STAY, UP)),
@@ -49,6 +50,11 @@ class GeneralPolicyIterationPlannerTest(GeneralPlannersTest):
 class GeneralRtdpPlannerTest(GeneralPlannersTest):
     def get_planner(self) -> Planner:
         return RtdpPlanner(prioritized_value_iteration_heuristic, 100, 1.0)
+
+
+class GeneralIdPlannerTest(GeneralPlannersTest):
+    def get_planner(self) -> Planner:
+        return IdPlanner(ValueIterationPlanner(gamma=1.0))
 
 
 if __name__ == '__main__':

@@ -2,6 +2,7 @@ import time
 import json
 from abc import ABCMeta, abstractmethod
 from collections import Counter
+from typing import Dict
 
 import numpy as np
 
@@ -72,12 +73,15 @@ class CrossedPolicy(Policy):
 
 class Planner(metaclass=ABCMeta):
     def __init__(self):
-        self.info = {}
+        pass
 
     @abstractmethod
-    def plan(self, env: MapfEnv, **kwargs) -> Policy:
+    def plan(self, env: MapfEnv, info: Dict, **kwargs) -> Policy:
         """Return a policy for a given MAPF env
-        :param **kwargs:
+
+        Args:
+            env (MapfEnv): the environment to solve
+            info (dict): a JSON representation to update with information during the run
         """
 
     @abstractmethod
@@ -173,15 +177,21 @@ def safe_actions(env: MapfEnv, s):
             if not might_conflict(env.reward_of_clash, env.P[s][a])]
 
 
-def solve_independently_and_cross(env, agent_groups, low_level_planner: Planner, **kwargs):
-    info = kwargs.get('info', {})
+def solve_independently_and_cross(env, agent_groups, low_level_planner: Planner, info: Dict):
+    """Solve the MDP MAPF for the local views of the given agent groups
+
+    Args:
+        agent_groups (list): a list of lists, each list is a group of agents.
+        low_level_planner (Planner): a low level planner to solve the local envs with.
+        info (dict): information to update during the solving
+    """
     start = time.time()  # TODO: use a decorator for updating info with time measurement
     local_envs = [get_local_view(env, group) for group in agent_groups]
 
     policies = []
     for group, local_env in zip(agent_groups, local_envs):
         info[f'{group}'] = {}
-        policy = low_level_planner.plan(local_env, **{'info': info[f'{group}']})
+        policy = low_level_planner.plan(local_env, info[f'{group}'])
         policies.append(policy)
 
     joint_policy = CrossedPolicy(env, 1.0, policies)

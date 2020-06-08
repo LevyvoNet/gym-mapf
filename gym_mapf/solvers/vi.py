@@ -2,6 +2,7 @@ import time
 import numpy as np
 import math
 import json
+from typing import Dict
 
 from gym_mapf.solvers.utils import safe_actions, TabularValueFunctionPolicy, Planner, Policy
 from gym_mapf.envs.mapf_env import MapfEnv
@@ -47,10 +48,10 @@ class ValueIterationPlanner(Planner):
         super().__init__()
         self.gamma = gamma
 
-    def plan(self, env: MapfEnv, **kwargs) -> TabularValueFunctionPolicy:
+    def plan(self, env: MapfEnv, info: Dict, **kwargs) -> TabularValueFunctionPolicy:
         """ Value-iteration algorithm"""
-        self.info['converged'] = False
-        self.info['n_iterations'] = 0
+        info['converged'] = False
+        info['n_iterations'] = 0
         start = time.time()  # TODO: use a decorator for updating info with time measurement
         gamma = kwargs.get('gamma', 1.0)
         v = np.zeros(env.nS)  # initialize value-function
@@ -83,18 +84,18 @@ class ValueIterationPlanner(Planner):
 
             print(f'VI: iteration {i + 1} took {time.time() - start} seconds')
 
-            self.info['n_iterations'] = i + 1
+            info['n_iterations'] = i + 1
             if np.sum(np.fabs(prev_v - v)) <= eps:
                 # debug print
                 print('value iteration converged at iteration# %d.' % (i + 1))
-                self.info['converged'] = True
+                info['converged'] = True
                 break
 
         policy = TabularValueFunctionPolicy(env, self.gamma)
         policy.v = v
 
         end = time.time()
-        self.info['VI_time'] = end - start
+        info['VI_time'] = end - start
 
         return policy
 
@@ -112,9 +113,9 @@ class PrioritizedValueIterationPlanner(Planner):
         super().__init__()
         self.gamma = gamma
 
-    def plan(self, env: MapfEnv, **kwargs) -> TabularValueFunctionPolicy:
-        self.info['converged'] = False
-        self.info['n_iterations'] = 0
+    def plan(self, env: MapfEnv, info: Dict, **kwargs) -> TabularValueFunctionPolicy:
+        info['converged'] = False
+        info['n_iterations'] = 0
         start = time.time()  # TODO: use a decorator for updating info with time measurement
         v = np.zeros(env.nS)  # initialize value-function
         max_iterations = 100000
@@ -145,18 +146,18 @@ class PrioritizedValueIterationPlanner(Planner):
             #     print(v)
             print(f'PVI: iteration {i + 1} took {time.time() - start} seconds')
 
-            self.info['n_iterations'] = i + 1
+            info['n_iterations'] = i + 1
             if np.sum(np.fabs(prev_v - v)) <= eps:
                 # debug print
                 print('prioritized value iteration converged at iteration# %d.' % (i + 1))
-                self.info['converged'] = True
+                info['converged'] = True
                 break
 
         policy = TabularValueFunctionPolicy(env, self.gamma)
         policy.v = v
 
         end = time.time()
-        self.info['prioritized_VI_time'] = end - start
+        info['prioritized_VI_time'] = end - start
         return policy
 
     def dump_to_str(self):

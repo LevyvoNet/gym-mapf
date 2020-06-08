@@ -1,7 +1,7 @@
 import numpy as np
 import time
 import math
-from typing import Callable
+from typing import Callable, Dict
 
 from gym_mapf.envs.mapf_env import MapfEnv, function_to_get_item_of_object
 from gym_mapf.solvers.vi import PrioritizedValueIterationPlanner
@@ -65,7 +65,7 @@ def manhattan_heuristic(env: MapfEnv):
 def prioritized_value_iteration_heuristic(env: MapfEnv) -> Callable[[int], float]:
     local_envs = [get_local_view(env, [i]) for i in range(env.n_agents)]
     pvi_planner = PrioritizedValueIterationPlanner(1.0)
-    local_v = [(pvi_planner.plan(local_env)).v for local_env in local_envs]
+    local_v = [(pvi_planner.plan(local_env, {})).v for local_env in local_envs]
 
     def heuristic_function(s):
         locations = env.state_to_locations(s)
@@ -84,7 +84,7 @@ class RtdpPlanner(Planner):
         self.n_iterations = n_iterations
         self.gamma = gamma
 
-    def plan(self, env: MapfEnv, **kwargs) -> Policy:
+    def plan(self, env: MapfEnv, info: Dict, **kwargs) -> Policy:
         # initialize V to an upper bound
         policy = RtdpPolicy(env, self.gamma, self.heuristic_function(env))
 
