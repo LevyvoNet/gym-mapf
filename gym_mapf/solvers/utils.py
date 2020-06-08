@@ -71,6 +71,9 @@ class CrossedPolicy(Policy):
 
 
 class Planner(metaclass=ABCMeta):
+    def __init__(self):
+        self.info = {}
+
     @abstractmethod
     def plan(self, env: MapfEnv, **kwargs) -> Policy:
         """Return a policy for a given MAPF env

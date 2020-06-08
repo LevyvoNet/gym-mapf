@@ -84,6 +84,7 @@ def ID(env: MapfEnv, low_level_planner: Planner, **kwargs):
 
 class IdPlanner(Planner):
     def __init__(self, low_level_planner: Planner):
+        super().__init__()
         self.low_level_planner = low_level_planner
 
     def plan(self, env: MapfEnv, **kwargs) -> Policy:

@@ -114,6 +114,7 @@ def prioritized_value_iteration_heuristic(env: MapfEnv) -> Callable[[int], float
 class RtdpPlanner(Planner):
     def __init__(self, heuristic_function: Callable[[MapfEnv], Callable[[int], float]], n_iterations: int,
                  gamma: float):
+        super().__init__()
         self.heuristic_function = heuristic_function
         self.n_iterations = n_iterations
         self.gamma = gamma
