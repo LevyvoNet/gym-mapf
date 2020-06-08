@@ -85,6 +85,8 @@ class RtdpPlanner(Planner):
         self.gamma = gamma
 
     def plan(self, env: MapfEnv, info: Dict, **kwargs) -> Policy:
+        info['iterations'] = []
+
         # initialize V to an upper bound
         policy = RtdpPolicy(env, self.gamma, self.heuristic_function(env))
 
@@ -108,6 +110,9 @@ class RtdpPlanner(Planner):
                 s, r, done, _ = env.step(a)
                 n_moves += 1
 
+            info['iterations'].append({
+                'n_moves': n_moves,
+            })
             # iteration finished
             print(f"iteration {i + 1} took {time.time() - start} seconds for {n_moves} moves, final reward: {r}")
 
