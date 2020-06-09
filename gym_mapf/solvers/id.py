@@ -82,8 +82,10 @@ class IdPlanner(Planner):
                                                               self.low_level_planner,
                                                               curr_iter_info['joint_policy'])
 
+            print(f'ID found joint policy for groups {agents_groups}, looking for conflicts...')
             # find a new conflict
             conflict = detect_conflict(env, curr_joint_policy, **{'info': curr_iter_info})
+            print('ID detected conflict for groups {agents_groups}')
 
         end = time.time()
         info['ID_time'] = end - start

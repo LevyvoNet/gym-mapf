@@ -8,22 +8,6 @@ from gym_mapf.solvers.utils import safe_actions, TabularValueFunctionPolicy, Pla
 from gym_mapf.envs.mapf_env import MapfEnv
 
 
-def extract_policy(v, env, gamma=1.0):
-    """ Extract the policy given a value-function """
-    policy = np.zeros(env.nS)
-    for s in range(env.nS):
-        possible_actions_from_state = safe_actions(env, s)
-        q_sa = np.zeros(len(possible_actions_from_state))
-        for a_idx in range(len(possible_actions_from_state)):
-            a = possible_actions_from_state[a_idx]
-            for next_sr in env.P[s][a]:
-                # next_sr is a tuple of (probability, next state, reward, done)
-                p, s_, r, _ = next_sr
-                q_sa[a_idx] += (p * (r + gamma * v[s_]))
-        policy[s] = possible_actions_from_state[np.argmax(q_sa)]
-    return policy
-
-
 def get_layers(env):
     layers = []
     visited_states = set()
@@ -87,7 +71,7 @@ class ValueIterationPlanner(Planner):
             info['n_iterations'] = i + 1
             if np.sum(np.fabs(prev_v - v)) <= eps:
                 # debug print
-                print('value iteration converged at iteration# %d.' % (i + 1))
+                # print('value iteration converged at iteration# %d.' % (i + 1))
                 info['converged'] = True
                 break
 
@@ -144,12 +128,12 @@ class PrioritizedValueIterationPlanner(Planner):
             # debug print
             # if i % 10 == 0:
             #     print(v)
-            print(f'PVI: iteration {i + 1} took {time.time() - start} seconds')
+            # print(f'PVI: iteration {i + 1} took {time.time() - start} seconds')
 
             info['n_iterations'] = i + 1
             if np.sum(np.fabs(prev_v - v)) <= eps:
                 # debug print
-                print('prioritized value iteration converged at iteration# %d.' % (i + 1))
+                # print('prioritized value iteration converged at iteration# %d.' % (i + 1))
                 info['converged'] = True
                 break
 

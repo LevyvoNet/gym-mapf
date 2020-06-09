@@ -128,14 +128,15 @@ def detect_conflict(env: MapfEnv, joint_policy: Policy, **kwargs):
     info = kwargs.get('info', {})
     start = time.time()
     visited_states = set()
-    states_to_exapnd = [env.s]
+    states_to_expand = [env.s]
     path = {env.s: None}
     aux_local_env = get_local_view(env, [0])
 
-    while len(states_to_exapnd) > 0:
-        curr_expanded_state = states_to_exapnd.pop()
+    while len(states_to_expand) > 0:
+        curr_expanded_state = states_to_expand.pop()
         visited_states.add(curr_expanded_state)
         joint_action = joint_policy.act(curr_expanded_state)
+        # print(f'{len(states_to_expand)} to expand, {len(visited_states)} already expanded, total {env.nS} states')
         for prob, next_state, reward, done in env.P[curr_expanded_state][joint_action]:
             next_state_vector = env.state_to_locations(next_state)
             loc_count = Counter(next_state_vector)
@@ -156,7 +157,7 @@ def detect_conflict(env: MapfEnv, joint_policy: Policy, **kwargs):
                         aux_local_env.locations_to_state((shared_locations[0],)))
 
             if next_state not in visited_states:
-                states_to_exapnd.append(next_state)
+                states_to_expand.append(next_state)
                 path[next_state] = (curr_expanded_state, joint_action)
 
     info['detect_conflict_time'] = time.time() - start

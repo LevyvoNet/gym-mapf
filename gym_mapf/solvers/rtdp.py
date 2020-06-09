@@ -114,7 +114,7 @@ class RtdpPlanner(Planner):
                 'n_moves': n_moves,
             })
             # iteration finished
-            print(f"iteration {i + 1} took {time.time() - start} seconds for {n_moves} moves, final reward: {r}")
+            # print(f"iteration {i + 1} took {time.time() - start} seconds for {n_moves} moves, final reward: {r}")
 
         env.reset()
 

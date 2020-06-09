@@ -3,11 +3,12 @@ import json
 
 from gym_mapf.solvers.utils import CrossedPolicy, detect_conflict, solve_independently_and_cross, Policy
 from gym_mapf.solvers.vi import ValueIterationPlanner
-from gym_mapf.envs.utils import MapfGrid, get_local_view
+from gym_mapf.envs.utils import MapfGrid, get_local_view, create_mapf_env
 from gym_mapf.envs.mapf_env import (MapfEnv,
                                     vector_action_to_integer,
                                     DOWN, RIGHT, LEFT, STAY,
                                     ACTIONS)
+from gym_mapf.solvers.rtdp import RtdpPlanner, prioritized_value_iteration_heuristic
 
 
 class DictPolicy(Policy):
@@ -25,6 +26,24 @@ class DictPolicy(Policy):
     def load_from_str(json_str: str) -> object:
         json_obj = json.loads(json_str)
         return DictPolicy(json_obj['env'], 1.0)
+
+
+def evaluate_policy(policy: Policy, n_episodes: int, max_steps: int):
+    total_reward = 0
+    for i in range(n_episodes):
+        policy.env.reset()
+        done = False
+        steps = 0
+        while not done and steps < max_steps:
+            new_state, reward, done, info = policy.env.step(policy.act(policy.env.s))
+            total_reward += reward
+            steps += 1
+            if reward == policy.env.reward_of_clash and done:
+                print("clash happened, entering debug mode")
+                import ipdb
+                ipdb.set_trace()
+
+    return total_reward / n_episodes
 
 
 class SolversUtilsTests(unittest.TestCase):
@@ -132,6 +151,27 @@ class SolversUtilsTests(unittest.TestCase):
 
         # Assert no conflict
         self.assertEqual(detect_conflict(env, independent_joiont_policy), None)
+
+    def test_conflict_detected_for_room_scenario_with_crossed_policy(self):
+        env = create_mapf_env('room-32-32-4', 1, 2, 0.1, 0.1, -1000, 0, -1)
+
+        planner = RtdpPlanner(prioritized_value_iteration_heuristic, 100, 1.0)
+
+        policy1 = planner.plan(get_local_view(env, [0]), {})
+        policy2 = planner.plan(get_local_view(env, [1]), {})
+        crossed_policy = CrossedPolicy(env, 1.0, [policy1, policy2])
+
+        self.assertIsNot(detect_conflict(env, crossed_policy), None)
+
+    # def test_no_conflict_detected_for_room_scenario_with_joint_policy(self):
+    #     # conflict detection takes forever for this scenario for some reason
+    #     env = create_mapf_env('room-32-32-4', 1, 2, 0.1, 0.1, -1000, 0, -1)
+    #
+    #     planner = RtdpPlanner(prioritized_value_iteration_heuristic, 100, 1.0)
+    #
+    #     joint_policy = planner.plan(env, {})
+    #
+    #     self.assertIs(detect_conflict(env, joint_policy), None)
 
 
 if __name__ == '__main__':
