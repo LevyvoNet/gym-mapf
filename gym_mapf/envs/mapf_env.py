@@ -109,8 +109,7 @@ def function_to_get_item_of_object(func):
 class MapfEnv(DiscreteEnv):
     # TODO: return to call super c'tor
     def __init__(self, grid, n_agents, agents_starts, agents_goals,
-                 right_fail, left_fail, reward_of_clash, reward_of_goal, reward_of_living,
-                 mask=()):
+                 right_fail, left_fail, reward_of_clash, reward_of_goal, reward_of_living):
 
         self.grid = grid
         self.agents_starts, self.agents_goals = agents_starts, agents_goals
@@ -131,12 +130,7 @@ class MapfEnv(DiscreteEnv):
         # self.isd = [1.0] + [0.0] * (self.nS - 1)  # irrelevant.
         self.lastaction = None  # for rendering
 
-        # take care of masks and special states
-        self.mask = mask
-        self.nS += len([s for s in self.mask if s > (self.nS - 1)])  # add special states to the state count
-
         # This is an object which its __get_item__ expects s and returns an object which expects a
-
         self.P = function_to_get_item_of_object(self._partial_get_transitions)
         # self.P = StateGetter(self)
 
@@ -349,18 +343,6 @@ class MapfEnv(DiscreteEnv):
 
         print('')
 
-    def set_mask(self, mask):
-        self.mask = mask
-        self.nS += len([s for s in self.mask if s > (self.nS - 1)])  # add special states to the state count
-        self.observation_space = spaces.Discrete(self.nS)
-        # self.P.mask = mask
-
-        # remove from cache
-        for s in self.mask:
-            del self.s_transitions_cache[s]
-
-        self.reset()
-
     def state_to_locations(self, state):
         if state in self.state_to_locations_cache:
             return self.state_to_locations_cache[state]
@@ -465,9 +447,6 @@ class MapfEnv(DiscreteEnv):
         ret = self.s_transitions_cache.get(s, None)
         if ret is not None:
             return ret
-
-        if s in self.mask:
-            return self.mask[s]
 
         ret = function_to_get_item_of_object(functools.partial(self._get_transitions, s))
         self.s_transitions_cache[s] = ret
