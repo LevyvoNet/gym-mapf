@@ -4,7 +4,7 @@ import os.path
 from gym_mapf.envs.mapf_env import (MapfEnv,
                                     vector_action_to_integer)
 from gym_mapf.envs.grid import MapfGrid
-from gym_mapf.envs.utils import parse_map_file
+from gym_mapf.envs.utils import parse_map_file, create_mapf_env
 from gym_mapf.envs import *
 from gym_mapf.tests.mapf_env_tests import MAPS_DIR
 from copy import copy
@@ -284,6 +284,8 @@ class MapfEnvTest(unittest.TestCase):
 
         a = vector_action_to_integer((STAY, STAY))
         self.assertEqual(env.P[env.s][a], [(1, env.s, REWARD_OF_LIVING, False)])
+
+
 
 
 if __name__ == '__main__':

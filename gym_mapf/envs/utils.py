@@ -68,3 +68,9 @@ def get_local_view(env: MapfEnv, agent_indexes: list, **kwargs):
 
 def mapf_env_load_from_json(json_str: str) -> MapfEnv:
     raise NotImplementedError()
+
+
+def manhattan_distance(env: MapfEnv, s, a1, a2):
+    """Return the manhattan distance between the two given agents in the given state"""
+    locations = env.state_to_locations(s)
+    return abs(locations[a1][0] - locations[a2][0]) + abs(locations[a1][1] - locations[a2][1])

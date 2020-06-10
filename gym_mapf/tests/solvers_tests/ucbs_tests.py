@@ -54,6 +54,8 @@ class UcbsTests(unittest.TestCase):
         # agent 0 must take an action which has no chance to get him to position (0,1).
         # that means he must not move to the right, and also up or down (because up and down might
         # turn out to be right).
+        import ipdb
+        ipdb.set_trace()
         self.assertIn(best_action, [vector_action_to_integer((STAY, LEFT)),
                                     vector_action_to_integer((LEFT, LEFT))])
 

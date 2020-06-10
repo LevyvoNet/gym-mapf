@@ -10,7 +10,7 @@ from gym_mapf.envs import integer_to_vector
 from gym_mapf.envs.mapf_env import (MapfEnv,
                                     integer_action_to_vector,
                                     vector_action_to_integer)
-from gym_mapf.envs.utils import get_local_view
+from gym_mapf.envs.utils import get_local_view, manhattan_distance
 
 
 class Policy(metaclass=ABCMeta):
@@ -51,17 +51,30 @@ class Policy(metaclass=ABCMeta):
 
 
 class CrossedPolicy(Policy):
-    def __init__(self, env, gamma, policies):
-        super().__init__(env, 1.0)
+    def __init__(self, env, policies, agents_groups):
+        super().__init__(env, 1.0)  # This does not matter
         self.policies = policies
         self.envs = [policy.env for policy in self.policies]
+        self.agents_groups = agents_groups
 
     def act(self, s):
-        local_states = integer_to_vector(s, [env.nS for env in self.envs], len(self.envs), lambda x: x)
-        vector_joint_action = sum(
-            [integer_action_to_vector(self.policies[i].act(local_states[i]), self.envs[i].n_agents)
-             for i in range(len(self.envs))], ())
-        joint_action = vector_action_to_integer(vector_joint_action)
+        agent_locations = self.env.state_to_locations(s)
+        agent_to_action = {}
+        for i in range(len(self.agents_groups)):
+            local_env_agent_locations = sum([(agent_locations[agent],)
+                                             for agent in self.agents_groups[i]], ())
+
+            local_env_agent_state = self.envs[i].locations_to_state(local_env_agent_locations)
+
+            local_action = self.policies[i].act(local_env_agent_state)
+
+            local_vector_action = integer_action_to_vector(local_action, self.envs[i].n_agents)
+            for j, agent in enumerate(self.agents_groups[i]):
+                agent_to_action[agent] = local_vector_action[j]
+
+        joint_action_vector = tuple([action for agent, action in sorted(agent_to_action.items())])
+        joint_action = vector_action_to_integer(joint_action_vector)
+
         return joint_action
 
     def dump_to_str(self):
@@ -128,6 +141,7 @@ def detect_conflict(env: MapfEnv, joint_policy: Policy, **kwargs):
     info = kwargs.get('info', {})
     start = time.time()
     visited_states = set()
+    env.reset()
     states_to_expand = [env.s]
     path = {env.s: None}
     aux_local_env = get_local_view(env, [0])
@@ -195,7 +209,7 @@ def solve_independently_and_cross(env, agent_groups, low_level_planner: Planner,
         policy = low_level_planner.plan(local_env, info[f'{group}'])
         policies.append(policy)
 
-    joint_policy = CrossedPolicy(env, 1.0, policies)
+    joint_policy = CrossedPolicy(env, policies, agent_groups)
 
     end = time.time()
     info['best_joint_policy_time'] = end - start

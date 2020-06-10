@@ -131,7 +131,7 @@ def relevant_states_policy_iteration(env, **kwargs):
                 break
             policy_prev = np.copy(policy_curr)
 
-        print(f'better PI: iteration {i + 1} took {time.time() - start} seconds')
+        # print(f'better PI: iteration {i + 1} took {time.time() - start} seconds')
 
     policy = TabularValueFunctionPolicy(env, 1.0)
     policy.v = policy_eval(env, policy_curr, V, gamma)
@@ -166,11 +166,11 @@ class PolicyIterationPlanner(Planner):
             # if policy not changed over 10 iterations it converged.
             if i % 10 == 0:
                 if np.all(np.equal(policy_curr, policy_prev)):
-                    print('policy iteration converged at iteration %d' % (i + 1))
+                    # print('policy iteration converged at iteration %d' % (i + 1))
                     break
                 policy_prev = np.copy(policy_curr)
 
-            print(f'PI: iteration {i + 1} took {time.time() - start} seconds')
+            # print(f'PI: iteration {i + 1} took {time.time() - start} seconds')
 
         policy = TabularValueFunctionPolicy(env, 1.0)
         policy.v = policy_eval(env, policy_curr, V, gamma)

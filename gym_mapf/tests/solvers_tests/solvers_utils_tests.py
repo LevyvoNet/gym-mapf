@@ -6,6 +6,7 @@ from gym_mapf.solvers.vi import ValueIterationPlanner
 from gym_mapf.envs.utils import MapfGrid, get_local_view, create_mapf_env
 from gym_mapf.envs.mapf_env import (MapfEnv,
                                     vector_action_to_integer,
+                                    integer_action_to_vector,
                                     DOWN, RIGHT, LEFT, STAY,
                                     ACTIONS)
 from gym_mapf.solvers.rtdp import RtdpPlanner, prioritized_value_iteration_heuristic
@@ -28,26 +29,7 @@ class DictPolicy(Policy):
         return DictPolicy(json_obj['env'], 1.0)
 
 
-def evaluate_policy(policy: Policy, n_episodes: int, max_steps: int):
-    total_reward = 0
-    for i in range(n_episodes):
-        policy.env.reset()
-        done = False
-        steps = 0
-        while not done and steps < max_steps:
-            new_state, reward, done, info = policy.env.step(policy.act(policy.env.s))
-            total_reward += reward
-            steps += 1
-            if reward == policy.env.reward_of_clash and done:
-                print("clash happened, entering debug mode")
-                import ipdb
-                ipdb.set_trace()
-
-    return total_reward / n_episodes
-
-
 class SolversUtilsTests(unittest.TestCase):
-
     def test_detect_conflict_finds_classical_conflict(self):
         grid = MapfGrid(['...',
                          '@.@',
@@ -78,8 +60,9 @@ class SolversUtilsTests(unittest.TestCase):
             6: ACTIONS.index(STAY),
         }
 
-        joint_policy = CrossedPolicy(env, 1.0, [DictPolicy(get_local_view(env, [0]), 1.0, policy1),
-                                                DictPolicy(get_local_view(env, [1]), 1.0, policy2)])
+        joint_policy = CrossedPolicy(env, [DictPolicy(get_local_view(env, [0]), 1.0, policy1),
+                                           DictPolicy(get_local_view(env, [1]), 1.0, policy2)],
+                                     [[0], [1]])
 
         aux_local_env = get_local_view(env, [0])
 
@@ -126,8 +109,9 @@ class SolversUtilsTests(unittest.TestCase):
             8: ACTIONS.index(DOWN),
         }
 
-        joint_policy = CrossedPolicy(env, 1.0, [DictPolicy(get_local_view(env, [0]), 1.0, policy1),
-                                                DictPolicy(get_local_view(env, [1]), 1.0, policy2)])
+        joint_policy = CrossedPolicy(env, [DictPolicy(get_local_view(env, [0]), 1.0, policy1),
+                                           DictPolicy(get_local_view(env, [1]), 1.0, policy2)],
+                                     [[0], [1]])
 
         self.assertEqual(detect_conflict(env, joint_policy), None)
 
@@ -159,19 +143,61 @@ class SolversUtilsTests(unittest.TestCase):
 
         policy1 = planner.plan(get_local_view(env, [0]), {})
         policy2 = planner.plan(get_local_view(env, [1]), {})
-        crossed_policy = CrossedPolicy(env, 1.0, [policy1, policy2])
+        crossed_policy = CrossedPolicy(env, [policy1, policy2], [[0], [1]])
 
         self.assertIsNot(detect_conflict(env, crossed_policy), None)
 
-    # def test_no_conflict_detected_for_room_scenario_with_joint_policy(self):
-    #     # conflict detection takes forever for this scenario for some reason
-    #     env = create_mapf_env('room-32-32-4', 1, 2, 0.1, 0.1, -1000, 0, -1)
-    #
-    #     planner = RtdpPlanner(prioritized_value_iteration_heuristic, 100, 1.0)
-    #
-    #     joint_policy = planner.plan(env, {})
-    #
-    #     self.assertIs(detect_conflict(env, joint_policy), None)
+    def test_policy_crossing_for_continuous_agent_range(self):
+        """
+        * Solve independently for agent groups [[0, 1]]
+        * Cross the policies
+        * Make sure the crossed policy behaves right
+        """
+        env = create_mapf_env('room-32-32-4', 15, 3, 0, 0, -1000, 0, -1)
+        interesting_locations = ((19, 22), (18, 24), (17, 22))
+
+        planner = RtdpPlanner(prioritized_value_iteration_heuristic, 100, 1.0)
+        crossed_policy = solve_independently_and_cross(env, [[0, 1], [2]], planner, {})
+
+        policy0 = planner.plan(get_local_view(env, [0, 1]), {})
+        policy1 = planner.plan(get_local_view(env, [2]), {})
+
+        action0 = policy0.act(policy0.env.locations_to_state(interesting_locations[0:2]))
+        action1 = policy1.act(policy1.env.locations_to_state((interesting_locations[2],)))
+
+        vector_action_local = integer_action_to_vector(action0, 2) + integer_action_to_vector(action1, 1)
+
+        joint_action = crossed_policy.act(env.locations_to_state(interesting_locations))
+        vector_action_joint = integer_action_to_vector(joint_action, 3)
+
+        self.assertEqual(vector_action_local, vector_action_joint)
+
+    def test_policy_crossing_for_non_continuous_agent_range(self):
+        """
+        * Solve independently for agent groups [[1], [0,2]]
+        * Cross the policies
+        * Make sure the crossed policy behaves right
+        """
+        env = create_mapf_env('room-32-32-4', 15, 3, 0, 0, -1000, 0, -1)
+        interesting_locations = ((19, 22), (18, 24), (17, 22))
+
+        planner = RtdpPlanner(prioritized_value_iteration_heuristic, 100, 1.0)
+        crossed_policy = solve_independently_and_cross(env, [[1], [0, 2]], planner, {})
+
+        policy0 = planner.plan(get_local_view(env, [1]), {})
+        policy1 = planner.plan(get_local_view(env, [0, 2]), {})
+
+        action0 = policy0.act(policy0.env.locations_to_state((interesting_locations[1],)))
+        action1 = policy1.act(policy1.env.locations_to_state((interesting_locations[0],) + (interesting_locations[2],)))
+
+        vector_action0 = integer_action_to_vector(action0, 1)
+        vector_action1 = integer_action_to_vector(action1, 2)
+        vector_action_local = (vector_action1[0], vector_action0[0], vector_action1[1])
+
+        joint_action = crossed_policy.act(env.locations_to_state(interesting_locations))
+        vector_action_joint = integer_action_to_vector(joint_action, 3)
+
+        self.assertEqual(vector_action_local, vector_action_joint)
 
 
 if __name__ == '__main__':

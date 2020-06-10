@@ -1,12 +1,13 @@
 import unittest
 
-from gym_mapf.envs.utils import MapfGrid
+from gym_mapf.envs.utils import MapfGrid, create_mapf_env
 from gym_mapf.envs.mapf_env import (MapfEnv,
                                     vector_action_to_integer,
                                     UP, DOWN, RIGHT, LEFT, STAY)
 
 from gym_mapf.solvers.vi import ValueIterationPlanner
 from gym_mapf.solvers.id import IdPlanner
+from gym_mapf.solvers.rtdp import RtdpPlanner, prioritized_value_iteration_heuristic
 from gym_mapf.solvers.utils import solve_independently_and_cross
 
 

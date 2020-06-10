@@ -66,7 +66,7 @@ class ValueIterationPlanner(Planner):
             # if i % 10 == 0:
             #     print(v)
 
-            print(f'VI: iteration {i + 1} took {time.time() - start} seconds')
+            # print(f'VI: iteration {i + 1} took {time.time() - start} seconds')
 
             info['n_iterations'] = i + 1
             if np.sum(np.fabs(prev_v - v)) <= eps:

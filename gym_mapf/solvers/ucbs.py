@@ -48,7 +48,7 @@ def best_joint_policy_under_constraint(env, constraints, low_level_planner):
 
     possible_states_counts = [local_envs[i].nS for i in range(env.n_agents)]
 
-    joint_policy = CrossedPolicy(env, 1.0, policies)
+    joint_policy = CrossedPolicy(env, policies, [[i] for i in range(env.n_agents)])
     # now set the special states on the joint policy
     synced_joint_policy = sync_joint_policy(joint_policy, env, constraints, possible_states_counts)
     # TODO: fix total_reward, it's inaccurate. Calculate it via policy evaluation.

@@ -158,6 +158,9 @@ class MapfEnv(DiscreteEnv):
         self.seed()
         self.reset()
 
+        # This will throw an exception if the goal coordinates are illegal (an obstacle)
+        self.locations_to_state(self.agents_goals)
+
     def single_agent_movements(self, s, a):
         ret = self.single_agent_movements_cache.get((s, a), None)
         if ret is not None:
@@ -373,7 +376,7 @@ class MapfEnv(DiscreteEnv):
 
         if self.n_agents != len(locs):
             raise AssertionError(
-                '{} locations number is different than the number of agents {}'.format(locs, self.n_agents))
+                f'{locs} locations number is different than the number of agents {self.n_agents}')
 
         local_state_vector = tuple([self.loc_to_int[loc] for loc in locs])
         ret = vector_to_integer(local_state_vector, [len(self.valid_locations)] * len(local_state_vector), lambda x: x)
@@ -391,7 +394,9 @@ class MapfEnv(DiscreteEnv):
         by_left = execute_action(self.grid, loc, (RIGHT,))
         by_stay = execute_action(self.grid, loc, (STAY,))
 
-        ret = [by_up, by_down, by_right, by_left, by_stay]
+        ret = [loc for loc in [by_up, by_down, by_right, by_left, by_stay]
+               if self.grid[loc[0]] is EmptyCell]
+
         self._single_location_predecessors_cache[loc] = ret
         return ret
 
