@@ -67,13 +67,18 @@ class SolversUtilsTests(unittest.TestCase):
         aux_local_env = get_local_view(env, [0])
 
         self.assertEqual(detect_conflict(env, joint_policy),
-                         (0,
-                          aux_local_env.locations_to_state(((0, 0),)),
-                          1,
-                          aux_local_env.locations_to_state(((0, 2),)),
-                          aux_local_env.locations_to_state(((0, 1),)),
-                          )
-                         )
+                         (
+                             (
+                                 0,
+                                 aux_local_env.locations_to_state(((0, 0),)),
+                                 aux_local_env.locations_to_state(((0, 1),))
+                             ),
+                             (
+                                 1,
+                                 aux_local_env.locations_to_state(((0, 2),)),
+                                 aux_local_env.locations_to_state(((0, 1),))
+                             )
+                         ))
 
     def test_detect_conflict_return_none_when_no_conflict(self):
         grid = MapfGrid(['...',
@@ -188,7 +193,8 @@ class SolversUtilsTests(unittest.TestCase):
         policy1 = planner.plan(get_local_view(env, [0, 2]), {})
 
         action0 = policy0.act(policy0.env.locations_to_state((interesting_locations[1],)))
-        action1 = policy1.act(policy1.env.locations_to_state((interesting_locations[0],) + (interesting_locations[2],)))
+        action1 = policy1.act(
+            policy1.env.locations_to_state((interesting_locations[0],) + (interesting_locations[2],)))
 
         vector_action0 = integer_action_to_vector(action0, 1)
         vector_action1 = integer_action_to_vector(action1, 2)
@@ -199,6 +205,32 @@ class SolversUtilsTests(unittest.TestCase):
 
         self.assertEqual(vector_action_local, vector_action_joint)
 
+    def test_detect_conflict_detects_switching(self):
+        """
+        * Create an env which its independent optimal policies cause a SWITCHING conflict
+        * Solve independently
+        * Make sure the conflict is detected
+        """
+        env = create_mapf_env('room-32-32-4', 9, 2, 0, 0, -1000, 0, -1)
+        policy = solve_independently_and_cross(env,
+                                               [[0], [1]],
+                                               RtdpPlanner(prioritized_value_iteration_heuristic, 100, 1.0),
+                                               {})
+        conflict = detect_conflict(env, policy)
+        # Assert a conflict detected
+        self.assertIsNotNone(conflict)
+
+        aux_local_env = get_local_view(env, [0])
+        agent_1_state = aux_local_env.locations_to_state(((21, 20),))
+        agent_0_state = aux_local_env.locations_to_state(((21, 19),))
+
+        possible_conflicts = [
+            ((1, agent_1_state, agent_0_state), (0, agent_0_state, agent_1_state)),
+            ((0, agent_0_state, agent_1_state), (1, agent_1_state, agent_0_state))
+        ]
+
+        # Assert the conflict parameters are right
+        self.assertIn(conflict, possible_conflicts)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

@@ -57,13 +57,20 @@ class IdPlanner(Planner):
 
         conflict = detect_conflict(env, curr_joint_policy, **{'info': curr_iter_info})
         while conflict:
-            i, s_i, j, s_j, s_ij = conflict
+            ((i, s_i, new_s_i), (j, s_j, new_s_j)) = conflict
             local_env_single_agent = get_local_view(env, [i])
-            curr_iter_info['conflict'] = (i,
-                                          local_env_single_agent.state_to_locations(s_i),
-                                          j,
-                                          local_env_single_agent.state_to_locations(s_j),
-                                          local_env_single_agent.state_to_locations(s_ij))
+            curr_iter_info['conflict'] = (
+                (
+                    i,
+                    local_env_single_agent.state_to_locations(s_i),
+                    local_env_single_agent.state_to_locations(new_s_i)
+                ),
+                (
+                    j,
+                    local_env_single_agent.state_to_locations(s_j),
+                    local_env_single_agent.state_to_locations(new_s_j)
+                )
+            )
 
             # merge groups of i and j
             agents_groups = merge_agent_groups(agents_groups,

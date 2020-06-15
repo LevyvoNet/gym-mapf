@@ -130,13 +130,13 @@ def print_path_to_state(path: dict, state: int, env: MapfEnv):
 def detect_conflict(env: MapfEnv, joint_policy: Policy, **kwargs):
     """Find a conflict between agents.
 
-    A conflict is <i, s_i, j, s_j, s_ij> where:
+    A conflict is ((i,,s_i,new_s_i), (j,s_j,new_s_j)) where:
     * i - index of first conflicting agent
     * s_i - local state which agent i was in before the clash
+    * new_s_i = local state which agent i was in after the clash
     * j - index of second conflicting agent
     * s_j - local state which agent j was in before the clash
-    * s_ij - the shared state which both agents were in after their acting.
-            One of the agent should avoid reaching this state when i is in s_i and j is in s_j.
+    * new_s_j - local state which agent j was in after the clash
     """
     info = kwargs.get('info', {})
     start = time.time()
@@ -152,23 +152,59 @@ def detect_conflict(env: MapfEnv, joint_policy: Policy, **kwargs):
         joint_action = joint_policy.act(curr_expanded_state)
         # print(f'{len(states_to_expand)} to expand, {len(visited_states)} already expanded, total {env.nS} states')
         for prob, next_state, reward, done in env.P[curr_expanded_state][joint_action]:
-            next_state_vector = env.state_to_locations(next_state)
-            loc_count = Counter(next_state_vector)
-            shared_locations = [loc for loc, counts in loc_count.items() if counts > 1]
-            if len(shared_locations) != 0:  # clash between two agents
+            # next_state_vector = env.state_to_locations(next_state)
+            # loc_count = Counter(next_state_vector)
+            # shared_locations = [loc for loc, counts in loc_count.items() if counts > 1]
+            if done and reward == env.reward_of_clash:  # clash between two agents
                 # TODO: shouldn't I take care of every shared location instead of just the first one?
-                first_agent = next_state_vector.index(shared_locations[0])
-                second_agent = next_state_vector[first_agent + 1:].index(shared_locations[0]) + (first_agent + 1)
+                next_state_vector = env.state_to_locations(next_state)
+                loc_count = Counter(next_state_vector)
+                shared_locations = [loc for loc, counts in loc_count.items() if counts > 1]
+                if len(shared_locations) > 0:
+                    # classical clash
+                    first_agent = next_state_vector.index(shared_locations[0])
+                    second_agent = next_state_vector[first_agent + 1:].index(shared_locations[0]) + (first_agent + 1)
+                else:
+                    # switch between two agents
+                    curr_state_vector = env.state_to_locations(curr_expanded_state)
+                    shared_locations = [loc for loc in next_state_vector if loc in curr_state_vector]
+                    for shared_loc in shared_locations:
+                        # check if this is just an agent which remained in place
+                        first_agent = curr_state_vector.index(shared_loc)
+                        second_agent = next_state_vector.index(shared_loc)
+                        if first_agent != second_agent:
+                            # these agents made a switch
+                            return (
+                                (
+                                    first_agent,
+                                    aux_local_env.locations_to_state((curr_state_vector[first_agent],)),
+                                    aux_local_env.locations_to_state((next_state_vector[first_agent],))
+                                ),
+                                (
+                                    second_agent,
+                                    aux_local_env.locations_to_state((curr_state_vector[second_agent],)),
+                                    aux_local_env.locations_to_state((next_state_vector[second_agent],))
+                                )
+                            )
+
+                    assert (False, "Something is wrong - MapfEnv had a conflict but there isn't")
 
                 # calculate the local states for each agent that with the current action got them here.
                 vector_curr_expanded_state = env.state_to_locations(curr_expanded_state)
 
                 info['detect_conflict_time'] = time.time() - start
-                return (first_agent,
+                return (
+                    (
+                        first_agent,
                         aux_local_env.locations_to_state((vector_curr_expanded_state[first_agent],)),
+                        aux_local_env.locations_to_state((shared_locations[0],))
+                    ),
+                    (
                         second_agent,
                         aux_local_env.locations_to_state((vector_curr_expanded_state[second_agent],)),
-                        aux_local_env.locations_to_state((shared_locations[0],)))
+                        aux_local_env.locations_to_state((shared_locations[0],))
+                    )
+                )
 
             if next_state not in visited_states:
                 states_to_expand.append(next_state)
