@@ -272,6 +272,7 @@ def evaluate_policy(policy: Policy, n_episodes: int, max_steps: int):
         steps = 0
         while not done and steps < max_steps:
             # # debug print
+            # print(f'steps={steps}')
             # policy.env.render()
             # time.sleep(1)
             new_state, reward, done, info = policy.env.step(policy.act(policy.env.s))

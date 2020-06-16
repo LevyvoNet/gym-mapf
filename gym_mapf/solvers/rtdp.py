@@ -3,7 +3,7 @@ import time
 import math
 from typing import Callable, Dict
 
-from gym_mapf.envs.mapf_env import MapfEnv, function_to_get_item_of_object
+from gym_mapf.envs.mapf_env import MapfEnv, function_to_get_item_of_object, integer_action_to_vector
 from gym_mapf.solvers.vi import PrioritizedValueIterationPlanner
 from gym_mapf.solvers.utils import Planner, Policy, TabularValueFunctionPolicy, get_local_view
 
