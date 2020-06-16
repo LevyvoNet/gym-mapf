@@ -8,7 +8,7 @@ from gym_mapf.envs.mapf_env import (MapfEnv,
 from gym_mapf.solvers.vi import ValueIterationPlanner
 from gym_mapf.solvers.id import IdPlanner
 from gym_mapf.solvers.rtdp import RtdpPlanner, prioritized_value_iteration_heuristic
-from gym_mapf.solvers.utils import solve_independently_and_cross
+from gym_mapf.solvers.utils import solve_independently_and_cross, evaluate_policy
 
 
 class IdTests(unittest.TestCase):
@@ -69,6 +69,16 @@ class IdTests(unittest.TestCase):
         joint_policy = id_planner.plan(env, {})
 
         self.assertEqual(joint_policy.act(env.s), vector_action_to_integer((LEFT, RIGHT)))
+
+    def test_env_with_switch_conflict_solved_properly(self):
+        env = create_mapf_env('room-32-32-4', 9, 2, 0, 0, -1000, 0, -1)
+        planner = IdPlanner(RtdpPlanner(prioritized_value_iteration_heuristic, 100, 1.0))
+        policy = planner.plan(env, {})
+
+        reward, clashed = evaluate_policy(policy, 1, 1000)
+
+        # Assert that the solution is reasonable (actually solving)
+        self.assertGreater(reward, -1000)
 
 
 if __name__ == '__main__':

@@ -20,7 +20,7 @@ def group_of_agent(agents_groups, agent_idx):
 
 def merge_agent_groups(agents_groups, g1, g2):
     return [agents_groups[i] for i in range(len(agents_groups)) if i not in [g1, g2]] + [
-        agents_groups[g1] + agents_groups[g2]]
+        sorted(agents_groups[g1] + agents_groups[g2])]
 
 
 class IdPlanner(Planner):

@@ -60,6 +60,7 @@ class CrossedPolicy(Policy):
     def act(self, s):
         agent_locations = self.env.state_to_locations(s)
         agent_to_action = {}
+
         for i in range(len(self.agents_groups)):
             local_env_agent_locations = sum([(agent_locations[agent],)
                                              for agent in self.agents_groups[i]], ())
@@ -71,7 +72,6 @@ class CrossedPolicy(Policy):
             local_vector_action = integer_action_to_vector(local_action, self.envs[i].n_agents)
             for j, agent in enumerate(self.agents_groups[i]):
                 agent_to_action[agent] = local_vector_action[j]
-
         joint_action_vector = tuple([action for agent, action in sorted(agent_to_action.items())])
         joint_action = vector_action_to_integer(joint_action_vector)
 
@@ -187,7 +187,7 @@ def detect_conflict(env: MapfEnv, joint_policy: Policy, **kwargs):
                                 )
                             )
 
-                    assert (False, "Something is wrong - MapfEnv had a conflict but there isn't")
+                    assert False, "Something is wrong - MapfEnv had a conflict but there isn't"
 
                 # calculate the local states for each agent that with the current action got them here.
                 vector_curr_expanded_state = env.state_to_locations(curr_expanded_state)
@@ -261,6 +261,28 @@ def render_states(env, states):
         env.render()
 
     env.s = s_initial
+
+
+def evaluate_policy(policy: Policy, n_episodes: int, max_steps: int):
+    total_reward = 0
+    clashed = False
+    for i in range(n_episodes):
+        policy.env.reset()
+        done = False
+        steps = 0
+        while not done and steps < max_steps:
+            # # debug print
+            # policy.env.render()
+            # time.sleep(1)
+            new_state, reward, done, info = policy.env.step(policy.act(policy.env.s))
+            total_reward += reward
+            steps += 1
+            if reward == policy.env.reward_of_clash and done:
+                print("clash happened!!!")
+                clashed = True
+
+    policy.env.reset()
+    return total_reward / n_episodes, clashed
 
 
 class TabularValueFunctionPolicy(Policy):
