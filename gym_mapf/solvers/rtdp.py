@@ -96,10 +96,11 @@ class RtdpPlanner(Planner):
             s = env.s
             done = False
             start = time.time()
-            n_moves = 0
+            path = []
             while not done:
                 # env.render()
                 a = greedy_action(env, s, policy.v, self.gamma)
+                path.append((s, a))
                 # print(f'action {integer_action_to_vector(a, env.n_agents)} chosen')
                 # time.sleep(1)
                 new_v_s = sum([prob * (reward + self.gamma * policy.v[next_state])
@@ -108,12 +109,18 @@ class RtdpPlanner(Planner):
 
                 # simulate the step and sample a new state
                 s, r, done, _ = env.step(a)
-                n_moves += 1
 
             info['iterations'].append({
-                'n_moves': n_moves,
+                'n_moves': len(path),
             })
             # iteration finished
+            # update backwards
+            while not path:
+                state, action = path.pop(-1)
+                new_v_s = sum([prob * (reward + self.gamma * policy.v[next_state])
+                               for prob, next_state, reward, done in env.P[state][action]])
+                policy.v_partial_table[s] = new_v_s
+
             # print(f"iteration {i + 1} took {time.time() - start} seconds for {n_moves} moves, final reward: {r}")
 
         env.reset()

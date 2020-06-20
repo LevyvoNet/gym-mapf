@@ -10,6 +10,7 @@ class RtdpPlannerTest(unittest.TestCase):
         env = create_mapf_env('room-32-32-4', 13, 2, 0, 0, -1000, 0, -1)
 
         # 100 iterations are not enough, 1000 are fine tough.
+        # TODO: make it converge faster
         planner = RtdpPlanner(prioritized_value_iteration_heuristic, 1000, 1.0)
         policy = planner.plan(env, {})
 
