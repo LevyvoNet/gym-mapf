@@ -105,28 +105,20 @@ class LrtdpPlanner(Planner):
                     path.append((s, 0))
                     break
 
-            info['iterations'].append({
-                'n_moves': len(path),
-                'time': time.time() - start
-            })
             # iteration finished
             n_moves = len(path)
-            # import ipdb
-            # ipdb.set_trace()
             while path:
                 state, action = path.pop()
                 if not self.check_solved(policy, state):
                     break
 
-            print('')
-            print(
-                f"iteration {n_iterations + 1} took {time.time() - start} seconds for {n_moves} moves, final reward: {r}, {len(policy.solved)} states solved")
-            print(f'sum of values {sum([policy.v[s] for s in policy.v_partial_table])}')
-            # for s in policy.v_partial_table:
-            #     print(f'LRTDP state:{s}, value: {policy.v[s]}')
-            #     # env.s = s
-            #     # env.render()
-            # # time.sleep(0.5)
+            info['iterations'].append({
+                'n_moves': len(path),
+                'time': time.time() - start,
+                'n_states_solved': len(policy.solved),
+                'final_reward': r,
+            })
+
             env.reset()
 
         env.reset()
