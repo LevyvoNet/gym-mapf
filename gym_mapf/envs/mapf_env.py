@@ -272,9 +272,6 @@ class MapfEnv(DiscreteEnv):
         # Perform the step
         new_state, reward, done, info = super().step(a)
 
-        # Update terminated
-        self.is_terminated = done
-
         return new_state, reward, done, info
 
     def reset(self):
@@ -282,7 +279,6 @@ class MapfEnv(DiscreteEnv):
         self.makespan = 0
         self.soc = 0
         self.s = self.locations_to_state(self.agents_starts)
-        self.is_terminated = False
         return self.s
 
     def render(self, mode='human'):
@@ -293,13 +289,18 @@ class MapfEnv(DiscreteEnv):
         for i in range(len(self.grid)):
             for j in range(len(self.grid[0])):
                 # print((i, j))
-                if (i, j) in v_state and (i, j) in v_agent_goals \
-                        and v_agent_goals.index((i, j)) == v_state.index((i, j)):
-                    # print an agent which reached it's goal
-                    print(Fore.GREEN + str(v_state.index((i, j))) + Fore.RESET, end=' ')
-                    continue
                 if (i, j) in v_state:
-                    print(Fore.YELLOW + str(v_state.index((i, j))) + Fore.RESET, end=' ')
+                    first_index = v_state.index((i, j))
+                    if (i, j) in v_state[first_index + 1:]:
+                        # There is another agent in this cell, a collision happened
+                        print(Fore.RED + '*' + Fore.RESET, end=' ')
+                    else:
+                        # This is the only agent in this cell
+                        if (i, j) in v_agent_goals and v_agent_goals.index((i, j)) == v_state.index((i, j)):
+                            # print an agent which reached it's goal
+                            print(Fore.GREEN + str(v_state.index((i, j))) + Fore.RESET, end=' ')
+                            continue
+                        print(Fore.YELLOW + str(first_index) + Fore.RESET, end=' ')
                     continue
                 if (i, j) in v_agent_goals:
                     print(Fore.BLUE + str(v_agent_goals.index((i, j))) + Fore.RESET, end=' ')

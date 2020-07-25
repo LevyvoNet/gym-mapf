@@ -31,6 +31,8 @@ class RtdpPolicy(TabularValueFunctionPolicy):
         pass
 
 
+# TODO: why is it so important to get a random greedy action (instead of just the first index?).
+#  I wish I could delete this function and just use `policy.act(s)` instead
 def greedy_action(env: MapfEnv, s, v, gamma):
     action_values = np.zeros(env.nA)
     for a in range(env.nA):
@@ -100,6 +102,7 @@ class RtdpPlanner(Planner):
             while not done:
                 # env.render()
                 a = greedy_action(env, s, policy.v, self.gamma)
+                # a = policy.act(s)
                 path.append((s, a))
                 # print(f'action {integer_action_to_vector(a, env.n_agents)} chosen')
                 # time.sleep(1)
@@ -112,15 +115,10 @@ class RtdpPlanner(Planner):
 
             info['iterations'].append({
                 'n_moves': len(path),
+                'time': time.time() - start
             })
             # iteration finished
-            # update backwards
-            while not path:
-                state, action = path.pop(-1)
-                new_v_s = sum([prob * (reward + self.gamma * policy.v[next_state])
-                               for prob, next_state, reward, done in env.P[state][action]])
-                policy.v_partial_table[s] = new_v_s
-
+            # n_moves = len(path)
             # print(f"iteration {i + 1} took {time.time() - start} seconds for {n_moves} moves, final reward: {r}")
 
         env.reset()
