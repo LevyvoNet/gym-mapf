@@ -36,8 +36,6 @@ class DifficultEnvsPlannerTest(unittest.TestCase):
     def test_normal_room_scenario_converges(self):
         env = create_mapf_env('room-32-32-4', 12, 2, 0, 0, -1000, 0, -1)
 
-        # 100 iterations are not enough, 1000 are fine tough.
-        # TODO: make it converge faster
         planner = self.get_planner()
         policy = planner.plan(env, {})
 
@@ -45,6 +43,20 @@ class DifficultEnvsPlannerTest(unittest.TestCase):
 
         # Assert that the solution is reasonable (actually solving)
         self.assertEqual(reward, -8.0)
+
+    def test_deterministic_room_scenario_1_2_agents(self):
+        # TODO: make this test pass!!!
+        env = create_mapf_env('room-32-32-4', 1, 2, 0, 0, -1000, 0, -1)
+
+        info = {}
+        planner = self.get_planner()
+        policy = planner.plan(env, info)
+
+        # import ipdb
+        # ipdb.set_trace()
+
+        reward, _ = evaluate_policy(policy, 1, 100)
+        self.assertEqual(reward, -43)
 
     def test_hand_crafted_env_converges(self):
         grid = MapfGrid([
@@ -72,9 +84,9 @@ class RtdpPlannerTest(DifficultEnvsPlannerTest):
         return RtdpPlanner(prioritized_value_iteration_heuristic, 2, 1.0)
 
 
-class LrtdpPlannerTest(DifficultEnvsPlannerTest):
-    def get_planner(self) -> Planner:
-        return LrtdpPlanner(prioritized_value_iteration_heuristic, 1000, 1.0, 0.0001)
+# class LrtdpPlannerTest(DifficultEnvsPlannerTest):
+#     def get_planner(self) -> Planner:
+#         return LrtdpPlanner(prioritized_value_iteration_heuristic, 100, 1.0, 0.01)
 
 
 if __name__ == '__main__':
