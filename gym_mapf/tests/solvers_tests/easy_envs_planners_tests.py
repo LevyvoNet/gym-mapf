@@ -1,21 +1,22 @@
 import unittest
-from abc import ABCMeta, abstractmethod
+from functools import partial
+from typing import Dict, Callable
 
 from gym_mapf.envs.utils import MapfGrid, create_mapf_env
 from gym_mapf.envs.mapf_env import (MapfEnv,
                                     vector_action_to_integer,
                                     UP, DOWN, STAY)
-from gym_mapf.solvers.utils import Planner, evaluate_policy
-from gym_mapf.solvers import (ValueIterationPlanner,
-                              PolicyIterationPlanner,
-                              RtdpPlanner,
-                              IdPlanner)
+from gym_mapf.solvers.utils import Policy, evaluate_policy
+from gym_mapf.solvers import (value_iteration,
+                              policy_iteration,
+                              rtdp,
+                              id,
+                              lrtdp)
 from gym_mapf.solvers.rtdp import manhattan_heuristic, prioritized_value_iteration_heuristic
-from gym_mapf.solvers.lrtdp import LrtdpPlanner
 
 
 class GeneralPlannersTest(unittest.TestCase):
-    def get_planner(self) -> Planner:
+    def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
         """Return the concrete planner"""
         raise unittest.SkipTest("This is an abstract test case")
 
@@ -29,8 +30,8 @@ class GeneralPlannersTest(unittest.TestCase):
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -0.001, -1, -1)
 
         info = {}
-        planner = self.get_planner()
-        policy = planner.plan(env, info)
+        planner = self.get_plan_func()
+        policy = planner(env, info)
 
         interesting_state = env.locations_to_state(((1, 1), (0, 1)))
         expected_possible_actions = [vector_action_to_integer((STAY, UP)),
@@ -40,23 +41,25 @@ class GeneralPlannersTest(unittest.TestCase):
 
 
 class GeneralValueIterationPlannerTest(GeneralPlannersTest):
-    def get_planner(self) -> Planner:
-        return ValueIterationPlanner(gamma=1.0)
+    def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
+        return partial(value_iteration, 1.0)
 
 
 class GeneralPolicyIterationPlannerTest(GeneralPlannersTest):
-    def get_planner(self) -> Planner:
-        return PolicyIterationPlanner(gamma=1.0)
+    def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
+        return partial(policy_iteration, 1.0)
 
 
 class GeneralRtdpPlannerTest(GeneralPlannersTest):
-    def get_planner(self) -> Planner:
-        return RtdpPlanner(prioritized_value_iteration_heuristic, 100, 1.0)
+    def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
+        return partial(rtdp, partial(prioritized_value_iteration_heuristic, 1.0), 1.0, lambda p: False,
+                       100, 100)
 
 
 class GeneralIdPlannerTest(GeneralPlannersTest):
-    def get_planner(self) -> Planner:
-        return IdPlanner(ValueIterationPlanner(gamma=1.0))
+    def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
+        low_level_planner = partial(value_iteration, 1.0)
+        return partial(id, low_level_planner)
 
 
 # class GeneralLrdtpPlannerTest(GeneralPlannersTest):

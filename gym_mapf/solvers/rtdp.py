@@ -4,8 +4,8 @@ import math
 from typing import Callable, Dict
 
 from gym_mapf.envs.mapf_env import MapfEnv, function_to_get_item_of_object, integer_action_to_vector
-from gym_mapf.solvers.vi import PrioritizedValueIterationPlanner
-from gym_mapf.solvers.utils import Planner, Policy, TabularValueFunctionPolicy, get_local_view
+from gym_mapf.solvers.vi import prioritized_value_iteration
+from gym_mapf.solvers.utils import Policy, TabularValueFunctionPolicy, get_local_view, evaluate_policy
 
 
 class RtdpPolicy(TabularValueFunctionPolicy):
@@ -31,7 +31,7 @@ class RtdpPolicy(TabularValueFunctionPolicy):
         pass
 
 
-# TODO: why is it so important to get a random greedy action (instead of just the first index?).
+# TODO: Is really important to get a random greedy action (instead of just the first index?).
 #  I wish I could delete this function and just use `policy.act(s)` instead
 def greedy_action(env: MapfEnv, s, v, gamma):
     action_values = np.zeros(env.nA)
@@ -64,10 +64,9 @@ def manhattan_heuristic(env: MapfEnv):
     return heuristic_function
 
 
-def prioritized_value_iteration_heuristic(env: MapfEnv) -> Callable[[int], float]:
+def prioritized_value_iteration_heuristic(gamma: float, env: MapfEnv) -> Callable[[int], float]:
     local_envs = [get_local_view(env, [i]) for i in range(env.n_agents)]
-    pvi_planner = PrioritizedValueIterationPlanner(1.0)
-    local_v = [(pvi_planner.plan(local_env, {})).v for local_env in local_envs]
+    local_v = [(prioritized_value_iteration(gamma, local_env, {})).v for local_env in local_envs]
 
     def heuristic_function(s):
         locations = env.state_to_locations(s)
@@ -78,56 +77,70 @@ def prioritized_value_iteration_heuristic(env: MapfEnv) -> Callable[[int], float
     return heuristic_function
 
 
-class RtdpPlanner(Planner):
-    def __init__(self, heuristic_function: Callable[[MapfEnv], Callable[[int], float]], n_iterations: int,
-                 gamma: float):
-        super().__init__()
-        self.heuristic_function = heuristic_function
-        self.n_iterations = n_iterations
-        self.gamma = gamma
+def bellman_update(policy: RtdpPolicy, s: int, a: int):
+    new_v_s = sum([prob * (reward + policy.gamma * policy.v[next_state])
+                   for prob, next_state, reward, done in policy.env.P[s][a]])
+    policy.v_partial_table[s] = new_v_s
 
-    def plan(self, env: MapfEnv, info: Dict, **kwargs) -> Policy:
-        info['iterations'] = []
 
-        # initialize V to an upper bound
-        policy = RtdpPolicy(env, self.gamma, self.heuristic_function(env))
+def rtdp_single_iteration(policy: RtdpPolicy, info: Dict):
+    s = policy.env.reset()
+    done = False
+    start = time.time()
+    path = []
 
-        # follow the greedy policy, for each transition do a bellman update on V
-        for i in range(self.n_iterations):
-            env.reset()
-            s = env.s
-            done = False
-            start = time.time()
-            path = []
-            while not done:
-                # env.render()
-                a = greedy_action(env, s, policy.v, self.gamma)
-                # a = policy.act(s)
-                path.append((s, a))
-                # print(f'action {integer_action_to_vector(a, env.n_agents)} chosen')
-                # time.sleep(1)
-                new_v_s = sum([prob * (reward + self.gamma * policy.v[next_state])
-                               for prob, next_state, reward, done in env.P[s][a]])
-                policy.v_partial_table[s] = new_v_s
+    while not done:
+        # Choose greedy action (if there are several choose uniformly random)
+        a = greedy_action(policy.env, s, policy.v, policy.gamma)
+        path.append((s, a))
 
-                # simulate the step and sample a new state
-                s, r, done, _ = env.step(a)
+        # Do a bellman update
+        bellman_update(policy, s, a)
 
-            info['iterations'].append({
-                'n_moves': len(path),
-                'time': time.time() - start
-            })
-            # iteration finished
-            # n_moves = len(path)
-            # print(f"iteration {i + 1} took {time.time() - start} seconds for {n_moves} moves, final reward: {r}")
+        # Simulate the step and sample a new state
+        s, r, done, _ = policy.env.step(a)
 
-        env.reset()
+    # TODO: update backwards here using path variable
 
-        return policy
+    # Write measures about that information
+    info['time'] = time.time() - start
+    info['n_moves'] = len(path)
 
-    def dump_to_str(self):
-        pass
+    # Reset again just for safety
+    policy.env.reset()
 
-    @staticmethod
-    def load_from_str(json_str: str) -> object:
-        pass
+
+def run_iterations_batch(policy: RtdpPolicy, iterations_batch_size: int, info: Dict):
+    info['batch_iterations'] = []
+    for _ in range(iterations_batch_size):
+        iter_info = {}
+        info['batch_iterations'].append(iter_info)
+        rtdp_single_iteration(policy, iter_info)
+
+
+def rtdp(heuristic_function: Callable[[MapfEnv], Callable[[int], float]],
+         gamma: float,
+         should_stop: Callable[[Policy], bool],
+         iterations_batch_size: int,
+         max_iterations: int,
+         env: MapfEnv,
+         info: Dict):
+    info['batches'] = []
+    iterations_count = 0
+
+    # initialize V to an upper bound
+    policy = RtdpPolicy(env, gamma, heuristic_function(env))
+
+    # Run a batch of iterations for the first time
+    batch_info = {}
+    info['batches'].append(batch_info)
+    run_iterations_batch(policy, iterations_batch_size, batch_info)
+    iterations_count += iterations_batch_size
+
+    while not should_stop(policy) and iterations_count < max_iterations:
+        batch_info = {}
+        info['batches'].append(batch_info)
+        run_iterations_batch(policy, iterations_batch_size, batch_info)
+        iterations_count += iterations_batch_size
+
+    return policy

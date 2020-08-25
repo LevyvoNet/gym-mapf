@@ -1,11 +1,10 @@
 import time
 import numpy as np
 import math
-import json
 from typing import Dict
 
 from gym_mapf.envs.mapf_env import MapfEnv
-from gym_mapf.solvers.utils import Planner, Policy, TabularValueFunctionPolicy
+from gym_mapf.solvers.utils import Policy, TabularValueFunctionPolicy
 
 
 def one_step_lookahead(env, state, V, discount_factor=1.0):
@@ -139,48 +138,35 @@ def relevant_states_policy_iteration(env, **kwargs):
     return policy
 
 
-class PolicyIterationPlanner(Planner):
-    def __init__(self, gamma):
-        super().__init__()
-        self.gamma = gamma
+def policy_iteration(gamma: float, env: MapfEnv, info: Dict, **kwargs) -> Policy:
+    gamma = kwargs.get('gamma', 1.0)
+    max_iteration = 1000
 
-    def plan(self, env: MapfEnv,info:Dict, **kwargs) -> Policy:
-        gamma = kwargs.get('gamma', 1.0)
-        max_iteration = 1000
+    # intialize the state-Value function
+    V = np.zeros(env.nS)
 
-        # intialize the state-Value function
-        V = np.zeros(env.nS)
+    # intialize a random policy
+    policy_curr = np.random.randint(0, env.nA, env.nS)
+    policy_prev = np.copy(policy_curr)
 
-        # intialize a random policy
-        policy_curr = np.random.randint(0, env.nA, env.nS)
-        policy_prev = np.copy(policy_curr)
+    for i in range(max_iteration):
+        # evaluate given policy
+        start = time.time()
+        V = policy_eval(env, policy_curr, V, gamma)
 
-        for i in range(max_iteration):
-            # evaluate given policy
-            start = time.time()
-            V = policy_eval(env, policy_curr, V, gamma)
+        # improve policy
+        policy_curr = update_policy(env, policy_curr, V, gamma)
 
-            # improve policy
-            policy_curr = update_policy(env, policy_curr, V, gamma)
+        # if policy not changed over 10 iterations it converged.
+        if i % 10 == 0:
+            if np.all(np.equal(policy_curr, policy_prev)):
+                # print('policy iteration converged at iteration %d' % (i + 1))
+                break
+            policy_prev = np.copy(policy_curr)
 
-            # if policy not changed over 10 iterations it converged.
-            if i % 10 == 0:
-                if np.all(np.equal(policy_curr, policy_prev)):
-                    # print('policy iteration converged at iteration %d' % (i + 1))
-                    break
-                policy_prev = np.copy(policy_curr)
+        # print(f'PI: iteration {i + 1} took {time.time() - start} seconds')
 
-            # print(f'PI: iteration {i + 1} took {time.time() - start} seconds')
+    policy = TabularValueFunctionPolicy(env, 1.0)
+    policy.v = policy_eval(env, policy_curr, V, gamma)
 
-        policy = TabularValueFunctionPolicy(env, 1.0)
-        policy.v = policy_eval(env, policy_curr, V, gamma)
-
-        return policy
-
-    def dump_to_str(self):
-        return json.dumps({'gamma': self.gamma})
-
-    @staticmethod
-    def load_from_str(json_str: str) -> object:
-        json_obj = json.loads(json_str)
-        return PolicyIterationPlanner(json_obj['gamma'])
+    return policy

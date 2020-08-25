@@ -2,7 +2,7 @@ import time
 import json
 from abc import ABCMeta, abstractmethod
 from collections import Counter
-from typing import Dict
+from typing import Dict, Callable
 
 import numpy as np
 
@@ -15,6 +15,7 @@ from gym_mapf.envs.utils import get_local_view, manhattan_distance
 
 class Policy(metaclass=ABCMeta):
     def __init__(self, env: MapfEnv, gamma: float):
+        # TODO: deep copy env, don't just copy the reference
         self.env = env
         self.gamma = gamma
 
@@ -82,40 +83,6 @@ class CrossedPolicy(Policy):
 
     def load_from_str(json_str: str) -> object:
         raise NotImplementedError()
-
-
-class Planner(metaclass=ABCMeta):
-    def __init__(self):
-        pass
-
-    @abstractmethod
-    def plan(self, env: MapfEnv, info: Dict, **kwargs) -> Policy:
-        """Return a policy for a given MAPF env
-
-        Args:
-            env (MapfEnv): the environment to solve
-            info (dict): a JSON representation to update with information during the run
-        """
-
-    @abstractmethod
-    def dump_to_str(self):
-        """Dump planner parameters to a string in a reproducible way
-
-        Returns:
-            str. string representation of the planner.
-        """
-
-    @staticmethod
-    @abstractmethod
-    def load_from_str(json_str: str) -> object:
-        """Load planner from string
-
-        Args:
-            json_str (str): a string with a string representation dumped by the policy dump_to_json method.
-
-        Returns:
-            Planner. The policy represented by the given string.
-        """
 
 
 def print_path_to_state(path: dict, state: int, env: MapfEnv):
@@ -228,12 +195,12 @@ def safe_actions(env: MapfEnv, s):
             if not might_conflict(env.reward_of_clash, env.P[s][a])]
 
 
-def solve_independently_and_cross(env, agent_groups, low_level_planner: Planner, info: Dict):
+def solve_independently_and_cross(env, agent_groups, low_level_planner: Callable[[MapfEnv, Dict], Policy], info: Dict):
     """Solve the MDP MAPF for the local views of the given agent groups
 
     Args:
         agent_groups (list): a list of lists, each list is a group of agents.
-        low_level_planner (Planner): a low level planner to solve the local envs with.
+        low_level_planner ((MapfEnv)->Policy): a low level planner to solve the local envs with.
         info (dict): information to update during the solving
     """
     start = time.time()  # TODO: use a decorator for updating info with time measurement
@@ -242,7 +209,7 @@ def solve_independently_and_cross(env, agent_groups, low_level_planner: Planner,
     policies = []
     for group, local_env in zip(agent_groups, local_envs):
         info[f'{group}'] = {}
-        policy = low_level_planner.plan(local_env, info[f'{group}'])
+        policy = low_level_planner(local_env, info[f'{group}'])
         policies.append(policy)
 
     joint_policy = CrossedPolicy(env, policies, agent_groups)

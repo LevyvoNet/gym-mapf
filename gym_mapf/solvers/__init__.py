@@ -1,5 +1,5 @@
-from gym_mapf.solvers.id import IdPlanner
-from gym_mapf.solvers.vi import ValueIterationPlanner, PrioritizedValueIterationPlanner
-from gym_mapf.solvers.pi import PolicyIterationPlanner
-from gym_mapf.solvers.rtdp import RtdpPlanner
-from gym_mapf.solvers.lrtdp import LrtdpPlanner
+from gym_mapf.solvers.id import id
+from gym_mapf.solvers.vi import value_iteration, prioritized_value_iteration
+from gym_mapf.solvers.pi import policy_iteration
+from gym_mapf.solvers.rtdp import rtdp
+from gym_mapf.solvers.lrtdp import lrtdp

@@ -1,15 +1,16 @@
 import unittest
 import json
+from functools import partial
 
 from gym_mapf.solvers.utils import CrossedPolicy, detect_conflict, solve_independently_and_cross, Policy
-from gym_mapf.solvers.vi import ValueIterationPlanner
+from gym_mapf.solvers.vi import value_iteration
 from gym_mapf.envs.utils import MapfGrid, get_local_view, create_mapf_env
 from gym_mapf.envs.mapf_env import (MapfEnv,
                                     vector_action_to_integer,
                                     integer_action_to_vector,
                                     DOWN, RIGHT, LEFT, STAY,
                                     ACTIONS)
-from gym_mapf.solvers.rtdp import RtdpPlanner, prioritized_value_iteration_heuristic
+from gym_mapf.solvers.rtdp import rtdp, prioritized_value_iteration_heuristic
 
 
 class DictPolicy(Policy):
@@ -131,7 +132,7 @@ class SolversUtilsTests(unittest.TestCase):
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.01, -1, 1, -0.1)
 
-        independent_joiont_policy = solve_independently_and_cross(env, [[0], [1]], ValueIterationPlanner(1.0), {})
+        independent_joiont_policy = solve_independently_and_cross(env, [[0], [1]], partial(value_iteration, 1.0), {})
 
         interesting_state = env.locations_to_state(((0, 0), (0, 2)))
 
@@ -144,10 +145,10 @@ class SolversUtilsTests(unittest.TestCase):
     def test_conflict_detected_for_room_scenario_with_crossed_policy(self):
         env = create_mapf_env('room-32-32-4', 1, 2, 0.1, 0.1, -1000, 0, -1)
 
-        planner = RtdpPlanner(prioritized_value_iteration_heuristic, 100, 1.0)
-
-        policy1 = planner.plan(get_local_view(env, [0]), {})
-        policy2 = planner.plan(get_local_view(env, [1]), {})
+        policy1 = rtdp(partial(prioritized_value_iteration_heuristic, 1.0), 1.0, lambda p: False, 100, 100,
+                       get_local_view(env, [0]), {})
+        policy2 = rtdp(partial(prioritized_value_iteration_heuristic, 1.0), 1.0, lambda p: False, 100, 100,
+                       get_local_view(env, [1]), {})
         crossed_policy = CrossedPolicy(env, [policy1, policy2], [[0], [1]])
 
         self.assertIsNot(detect_conflict(env, crossed_policy), None)
@@ -161,11 +162,12 @@ class SolversUtilsTests(unittest.TestCase):
         env = create_mapf_env('room-32-32-4', 15, 3, 0, 0, -1000, 0, -1)
         interesting_locations = ((19, 22), (18, 24), (17, 22))
 
-        planner = RtdpPlanner(prioritized_value_iteration_heuristic, 100, 1.0)
-        crossed_policy = solve_independently_and_cross(env, [[0, 1], [2]], planner, {})
+        plan_func = partial(rtdp, partial(prioritized_value_iteration_heuristic, 1.0), 1.0, lambda p: False, 100, 100)
 
-        policy0 = planner.plan(get_local_view(env, [0, 1]), {})
-        policy1 = planner.plan(get_local_view(env, [2]), {})
+        crossed_policy = solve_independently_and_cross(env, [[0, 1], [2]], plan_func, {})
+
+        policy0 = plan_func(get_local_view(env, [0, 1]), {})
+        policy1 = plan_func(get_local_view(env, [2]), {})
 
         action0 = policy0.act(policy0.env.locations_to_state(interesting_locations[0:2]))
         action1 = policy1.act(policy1.env.locations_to_state((interesting_locations[2],)))
@@ -186,11 +188,11 @@ class SolversUtilsTests(unittest.TestCase):
         env = create_mapf_env('room-32-32-4', 15, 3, 0, 0, -1000, 0, -1)
         interesting_locations = ((19, 22), (18, 24), (17, 22))
 
-        planner = RtdpPlanner(prioritized_value_iteration_heuristic, 100, 1.0)
-        crossed_policy = solve_independently_and_cross(env, [[1], [0, 2]], planner, {})
+        plan_func = partial(rtdp, partial(prioritized_value_iteration_heuristic, 1.0), 1.0, lambda p: False, 100, 100)
+        crossed_policy = solve_independently_and_cross(env, [[1], [0, 2]], plan_func, {})
 
-        policy0 = planner.plan(get_local_view(env, [1]), {})
-        policy1 = planner.plan(get_local_view(env, [0, 2]), {})
+        policy0 = plan_func(get_local_view(env, [1]), {})
+        policy1 = plan_func(get_local_view(env, [0, 2]), {})
 
         action0 = policy0.act(policy0.env.locations_to_state((interesting_locations[1],)))
         action1 = policy1.act(
@@ -212,9 +214,13 @@ class SolversUtilsTests(unittest.TestCase):
         * Make sure the conflict is detected
         """
         env = create_mapf_env('room-32-32-4', 9, 2, 0, 0, -1000, 0, -1)
+
+        low_level_plan_func = partial(rtdp, partial(prioritized_value_iteration_heuristic, 1.0), 1.0, lambda p: False,
+                                      100, 100)
+
         policy = solve_independently_and_cross(env,
                                                [[0], [1]],
-                                               RtdpPlanner(prioritized_value_iteration_heuristic, 100, 1.0),
+                                               low_level_plan_func,
                                                {})
         conflict = detect_conflict(env, policy)
         # Assert a conflict detected
@@ -231,6 +237,7 @@ class SolversUtilsTests(unittest.TestCase):
 
         # Assert the conflict parameters are right
         self.assertIn(conflict, possible_conflicts)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

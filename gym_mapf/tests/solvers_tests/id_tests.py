@@ -1,13 +1,15 @@
 import unittest
+from functools import partial
 
 from gym_mapf.envs.utils import MapfGrid, create_mapf_env
 from gym_mapf.envs.mapf_env import (MapfEnv,
                                     vector_action_to_integer,
                                     UP, DOWN, RIGHT, LEFT, STAY)
 
-from gym_mapf.solvers.vi import ValueIterationPlanner
-from gym_mapf.solvers.id import IdPlanner
-from gym_mapf.solvers.rtdp import RtdpPlanner, prioritized_value_iteration_heuristic
+from gym_mapf.solvers import (value_iteration,
+                              id,
+                              rtdp)
+from gym_mapf.solvers.rtdp import prioritized_value_iteration_heuristic
 from gym_mapf.solvers.utils import solve_independently_and_cross, evaluate_policy
 
 
@@ -20,8 +22,9 @@ class IdTests(unittest.TestCase):
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -1, 1, -0.01)
 
-        independent_joiont_policy = solve_independently_and_cross(env, [[0], [1]], ValueIterationPlanner(1.0), {})
-        merged_joint_policy = solve_independently_and_cross(env, [[0, 1]], ValueIterationPlanner(1.0), {})
+        vi_plan_func = partial(value_iteration, 1.0)
+        independent_joiont_policy = solve_independently_and_cross(env, [[0], [1]], vi_plan_func, {})
+        merged_joint_policy = solve_independently_and_cross(env, [[0, 1]], vi_plan_func, {})
 
         interesting_state = env.locations_to_state(((1, 1), (0, 1)))
 
@@ -43,8 +46,9 @@ class IdTests(unittest.TestCase):
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.01, -1, 1, -0.1)
 
-        independent_joiont_policy = solve_independently_and_cross(env, [[0], [1]], ValueIterationPlanner(1.0), {})
-        merged_joint_policy = solve_independently_and_cross(env, [[0, 1]], ValueIterationPlanner(1.0), {})
+        vi_plan_func = partial(value_iteration, 1.0)
+        independent_joiont_policy = solve_independently_and_cross(env, [[0], [1]], vi_plan_func, {})
+        merged_joint_policy = solve_independently_and_cross(env, [[0, 1]], vi_plan_func, {})
 
         interesting_state = env.locations_to_state(((0, 0), (0, 1)))
 
@@ -64,16 +68,16 @@ class IdTests(unittest.TestCase):
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -1, 1, -0.01)
 
-        vi_planner = ValueIterationPlanner(gamma=1.0)
-        id_planner = IdPlanner(vi_planner)
-        joint_policy = id_planner.plan(env, {})
+        vi_plan_func = partial(value_iteration, 1.0)
+        joint_policy = id(vi_plan_func, env, {})
 
         self.assertEqual(joint_policy.act(env.s), vector_action_to_integer((LEFT, RIGHT)))
 
     def test_env_with_switch_conflict_solved_properly(self):
         env = create_mapf_env('room-32-32-4', 9, 2, 0, 0, -1000, 0, -1)
-        planner = IdPlanner(RtdpPlanner(prioritized_value_iteration_heuristic, 100, 1.0))
-        policy = planner.plan(env, {})
+        rtdp_plan_func = partial(rtdp, partial(prioritized_value_iteration_heuristic, 1.0), 1.0, lambda p: False,
+                                 100, 100)
+        policy = id(rtdp_plan_func, env, {})
 
         reward, clashed = evaluate_policy(policy, 1, 1000)
 
