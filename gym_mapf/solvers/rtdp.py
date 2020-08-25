@@ -124,7 +124,7 @@ def rtdp(heuristic_function: Callable[[MapfEnv], Callable[[int], float]],
          iterations_batch_size: int,
          max_iterations: int,
          env: MapfEnv,
-         info: Dict):
+         info: Dict) -> Policy:
     info['batches'] = []
     iterations_count = 0
 
@@ -144,3 +144,17 @@ def rtdp(heuristic_function: Callable[[MapfEnv], Callable[[int], float]],
         iterations_count += iterations_batch_size
 
     return policy
+
+
+def fixed_iterations_count_rtdp(heuristic_function: Callable[[MapfEnv], Callable[[int], float]],
+                                gamma: float,
+                                n_iterations: int,
+                                env: MapfEnv,
+                                info: Dict) -> Policy:
+    return rtdp(heuristic_function,
+                gamma,
+                lambda _: False,
+                n_iterations,
+                n_iterations,
+                env,
+                info)

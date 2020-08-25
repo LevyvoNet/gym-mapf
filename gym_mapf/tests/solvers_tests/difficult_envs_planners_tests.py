@@ -2,7 +2,9 @@ import unittest
 from typing import Dict, Callable
 from functools import partial
 
-from gym_mapf.solvers.rtdp import rtdp, prioritized_value_iteration_heuristic
+from gym_mapf.solvers.rtdp import (rtdp,
+                                   prioritized_value_iteration_heuristic,
+                                   fixed_iterations_count_rtdp)
 from gym_mapf.solvers.lrtdp import lrtdp
 from gym_mapf.envs.utils import create_mapf_env, MapfEnv, MapfGrid
 from gym_mapf.solvers.utils import evaluate_policy, Policy
@@ -54,7 +56,6 @@ class DifficultEnvsPlannerTest(unittest.TestCase):
         planner = self.get_plan_func()
         policy = planner(env, info)
 
-
         reward, _ = evaluate_policy(policy, 1, 100)
         self.assertEqual(reward, -43)
 
@@ -81,8 +82,9 @@ class DifficultEnvsPlannerTest(unittest.TestCase):
 
 class RtdpPlannerTest(DifficultEnvsPlannerTest):
     def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
-        return partial(rtdp, partial(prioritized_value_iteration_heuristic, 1.0), 1.0, lambda p: False,
-                       2, 2)
+        return partial(fixed_iterations_count_rtdp,
+                            partial(prioritized_value_iteration_heuristic, 1.0), 1.0,
+                            2)
 
 
 # class LrtdpPlannerTest(DifficultEnvsPlannerTest):

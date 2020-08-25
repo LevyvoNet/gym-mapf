@@ -11,7 +11,8 @@ from gym_mapf.solvers import (value_iteration,
                               policy_iteration,
                               rtdp,
                               id,
-                              lrtdp)
+                              lrtdp,
+                              fixed_iterations_count_rtdp)
 from gym_mapf.solvers.rtdp import manhattan_heuristic, prioritized_value_iteration_heuristic
 
 
@@ -52,8 +53,9 @@ class GeneralPolicyIterationPlannerTest(GeneralPlannersTest):
 
 class GeneralRtdpPlannerTest(GeneralPlannersTest):
     def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
-        return partial(rtdp, partial(prioritized_value_iteration_heuristic, 1.0), 1.0, lambda p: False,
-                       100, 100)
+        return partial(fixed_iterations_count_rtdp,
+                            partial(prioritized_value_iteration_heuristic, 1.0), 1.0,
+                            100)
 
 
 class GeneralIdPlannerTest(GeneralPlannersTest):

@@ -10,7 +10,9 @@ from gym_mapf.envs.mapf_env import (MapfEnv,
                                     integer_action_to_vector,
                                     DOWN, RIGHT, LEFT, STAY,
                                     ACTIONS)
-from gym_mapf.solvers.rtdp import rtdp, prioritized_value_iteration_heuristic
+from gym_mapf.solvers.rtdp import (rtdp,
+                                   prioritized_value_iteration_heuristic,
+                                   fixed_iterations_count_rtdp)
 
 
 class DictPolicy(Policy):
@@ -162,7 +164,9 @@ class SolversUtilsTests(unittest.TestCase):
         env = create_mapf_env('room-32-32-4', 15, 3, 0, 0, -1000, 0, -1)
         interesting_locations = ((19, 22), (18, 24), (17, 22))
 
-        plan_func = partial(rtdp, partial(prioritized_value_iteration_heuristic, 1.0), 1.0, lambda p: False, 100, 100)
+        plan_func = partial(fixed_iterations_count_rtdp,
+                            partial(prioritized_value_iteration_heuristic, 1.0), 1.0,
+                            100)
 
         crossed_policy = solve_independently_and_cross(env, [[0, 1], [2]], plan_func, {})
 
@@ -188,7 +192,9 @@ class SolversUtilsTests(unittest.TestCase):
         env = create_mapf_env('room-32-32-4', 15, 3, 0, 0, -1000, 0, -1)
         interesting_locations = ((19, 22), (18, 24), (17, 22))
 
-        plan_func = partial(rtdp, partial(prioritized_value_iteration_heuristic, 1.0), 1.0, lambda p: False, 100, 100)
+        plan_func = partial(fixed_iterations_count_rtdp,
+                            partial(prioritized_value_iteration_heuristic, 1.0), 1.0,
+                            100)
         crossed_policy = solve_independently_and_cross(env, [[1], [0, 2]], plan_func, {})
 
         policy0 = plan_func(get_local_view(env, [1]), {})
@@ -215,8 +221,9 @@ class SolversUtilsTests(unittest.TestCase):
         """
         env = create_mapf_env('room-32-32-4', 9, 2, 0, 0, -1000, 0, -1)
 
-        low_level_plan_func = partial(rtdp, partial(prioritized_value_iteration_heuristic, 1.0), 1.0, lambda p: False,
-                                      100, 100)
+        low_level_plan_func = partial(fixed_iterations_count_rtdp,
+                                      partial(prioritized_value_iteration_heuristic, 1.0), 1.0,
+                                      100)
 
         policy = solve_independently_and_cross(env,
                                                [[0], [1]],
