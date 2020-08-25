@@ -158,3 +158,31 @@ def fixed_iterations_count_rtdp(heuristic_function: Callable[[MapfEnv], Callable
                 n_iterations,
                 env,
                 info)
+
+
+def stop_when_no_improvement_rtdp(heuristic_function: Callable[[MapfEnv], Callable[[int], float]],
+                                  gamma: float,
+                                  iterations_batch_size: int,
+                                  max_iterations: int,
+                                  env: MapfEnv,
+                                  info: Dict):
+    def should_stop(policy: Policy):
+        reward, _ = evaluate_policy(policy, 10, 1000)
+        if reward == policy.env.reward_of_living * 1000:
+            return False
+
+        if not hasattr(policy, 'last_eval'):
+            policy.last_eval = reward
+            return False
+        else:
+            prev_eval = policy.last_eval
+            policy.last_eval = reward
+            return abs(policy.last_eval - prev_eval) / prev_eval >= 0.99
+
+    return rtdp(heuristic_function,
+                gamma,
+                should_stop,
+                iterations_batch_size,
+                max_iterations,
+                env,
+                info)

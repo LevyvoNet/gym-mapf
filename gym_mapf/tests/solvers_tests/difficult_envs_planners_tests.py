@@ -4,7 +4,8 @@ from functools import partial
 
 from gym_mapf.solvers.rtdp import (rtdp,
                                    prioritized_value_iteration_heuristic,
-                                   fixed_iterations_count_rtdp)
+                                   fixed_iterations_count_rtdp,
+                                   stop_when_no_improvement_rtdp)
 from gym_mapf.solvers.lrtdp import lrtdp
 from gym_mapf.envs.utils import create_mapf_env, MapfEnv, MapfGrid
 from gym_mapf.solvers.utils import evaluate_policy, Policy
@@ -80,11 +81,20 @@ class DifficultEnvsPlannerTest(unittest.TestCase):
         self.assertEqual(reward, -5.0)
 
 
-class RtdpPlannerTest(DifficultEnvsPlannerTest):
+class FixedIterationsCountRtdpPlannerTest(DifficultEnvsPlannerTest):
     def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
         return partial(fixed_iterations_count_rtdp,
-                            partial(prioritized_value_iteration_heuristic, 1.0), 1.0,
-                            2)
+                       partial(prioritized_value_iteration_heuristic, 1.0), 1.0,
+                       2)
+
+
+class StopWhenNoImprovementRtdpPlannerTest(DifficultEnvsPlannerTest):
+    def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
+        return partial(stop_when_no_improvement_rtdp,
+                       partial(prioritized_value_iteration_heuristic, 1.0),
+                       1.0,
+                       20,
+                       100)
 
 
 # class LrtdpPlannerTest(DifficultEnvsPlannerTest):

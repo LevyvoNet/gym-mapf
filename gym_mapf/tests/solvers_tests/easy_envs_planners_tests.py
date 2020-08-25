@@ -12,7 +12,8 @@ from gym_mapf.solvers import (value_iteration,
                               rtdp,
                               id,
                               lrtdp,
-                              fixed_iterations_count_rtdp)
+                              fixed_iterations_count_rtdp,
+                              stop_when_no_improvement_rtdp)
 from gym_mapf.solvers.rtdp import manhattan_heuristic, prioritized_value_iteration_heuristic
 
 
@@ -51,11 +52,34 @@ class GeneralPolicyIterationPlannerTest(GeneralPlannersTest):
         return partial(policy_iteration, 1.0)
 
 
-class GeneralRtdpPlannerTest(GeneralPlannersTest):
+class GeneralFixedIterationsCountRtdpPlannerTest(GeneralPlannersTest):
     def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
         return partial(fixed_iterations_count_rtdp,
-                            partial(prioritized_value_iteration_heuristic, 1.0), 1.0,
-                            100)
+                       partial(prioritized_value_iteration_heuristic, 1.0),
+                       1.0,
+                       100)
+
+
+class GeneralRtdpPlannerTest(GeneralPlannersTest):
+    def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
+        def should_stop(policy: Policy):
+            reward, _ = evaluate_policy(policy, 10, 1000)
+            if reward == policy.env.reward_of_living * 1000:
+                return False
+
+            if not hasattr(policy, 'last_eval'):
+                policy.last_eval = reward
+                return False
+            else:
+                prev_eval = policy.last_eval
+                policy.last_eval = reward
+                return abs(policy.last_eval - prev_eval) / prev_eval >= 0.99
+
+        return partial(stop_when_no_improvement_rtdp,
+                       partial(prioritized_value_iteration_heuristic, 1.0),
+                       1.0,
+                       20,
+                       100)
 
 
 class GeneralIdPlannerTest(GeneralPlannersTest):
