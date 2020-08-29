@@ -84,10 +84,20 @@ def bellman_update(policy: RtdpPolicy, s: int, a: int):
 
 
 def rtdp_single_iteration(policy: RtdpPolicy, info: Dict):
+    """Run a single iteration of RTDP.
+
+    Args:
+        policy (RtdpPolicy): the current policy (RTDP is an on-policy algorithm)
+        info (Dict): optional for gathering information about the iteration - time, reward, special events, etc.
+
+    Returns:
+        float. The total reward of the episode.
+    """
     s = policy.env.reset()
     done = False
     start = time.time()
     path = []
+    total_reward = 0
 
     while not done:
         # time.sleep(0.1)
@@ -102,6 +112,7 @@ def rtdp_single_iteration(policy: RtdpPolicy, info: Dict):
 
         # Simulate the step and sample a new state
         s, r, done, _ = policy.env.step(a)
+        total_reward += r
 
     # TODO: update backwards here using path variable
 
@@ -112,6 +123,8 @@ def rtdp_single_iteration(policy: RtdpPolicy, info: Dict):
     # Reset again just for safety
     policy.env.reset()
 
+    return total_reward
+
 
 def run_iterations_batch(policy: RtdpPolicy, iterations_batch_size: int, info: Dict):
     info['batch_iterations'] = []
@@ -121,32 +134,17 @@ def run_iterations_batch(policy: RtdpPolicy, iterations_batch_size: int, info: D
         rtdp_single_iteration(policy, iter_info)
 
 
-def rtdp(heuristic_function: Callable[[MapfEnv], Callable[[int], float]],
-         gamma: float,
-         should_stop: Callable[[Policy], bool],
-         iterations_batch_size: int,
-         max_iterations: int,
-         env: MapfEnv,
-         info: Dict) -> Policy:
-    info['batches'] = []
-    iterations_count = 0
+def rtdp_iterations_generator(heuristic_function: Callable[[MapfEnv], Callable[[int], float]],
+                              gamma: float,
+                              policy: RtdpPolicy,
+                              env: MapfEnv,
+                              info: Dict) -> Policy:
+    info['iterations'] = []
 
-    # initialize V to an upper bound
-    policy = RtdpPolicy(env, gamma, heuristic_function(env))
-
-    # Run a batch of iterations for the first time
-    batch_info = {}
-    info['batches'].append(batch_info)
-    run_iterations_batch(policy, iterations_batch_size, batch_info)
-    iterations_count += iterations_batch_size
-
-    while not should_stop(policy) and iterations_count < max_iterations:
-        batch_info = {}
-        info['batches'].append(batch_info)
-        run_iterations_batch(policy, iterations_batch_size, batch_info)
-        iterations_count += iterations_batch_size
-
-    return policy
+    while True:
+        info['iterations'].append({})
+        iter_reward = rtdp_single_iteration(policy, info['iterations'][-1])
+        yield iter_reward
 
 
 def fixed_iterations_count_rtdp(heuristic_function: Callable[[MapfEnv], Callable[[int], float]],
@@ -154,13 +152,15 @@ def fixed_iterations_count_rtdp(heuristic_function: Callable[[MapfEnv], Callable
                                 n_iterations: int,
                                 env: MapfEnv,
                                 info: Dict) -> Policy:
-    return rtdp(heuristic_function,
-                gamma,
-                lambda _: False,
-                n_iterations,
-                n_iterations,
-                env,
-                info)
+    # initialize V to an upper bound
+    policy = RtdpPolicy(env, gamma, heuristic_function(env))
+
+    for iter_count, reward in enumerate(rtdp_iterations_generator(heuristic_function, gamma, policy, env, info),
+                                        start=1):
+        if iter_count >= n_iterations:
+            break
+
+    return policy
 
 
 def stop_when_no_improvement_rtdp(heuristic_function: Callable[[MapfEnv], Callable[[int], float]],
@@ -169,7 +169,10 @@ def stop_when_no_improvement_rtdp(heuristic_function: Callable[[MapfEnv], Callab
                                   max_iterations: int,
                                   env: MapfEnv,
                                   info: Dict):
-    def should_stop(policy: RtdpPolicy):
+    def should_stop(policy: RtdpPolicy, iter_count: int):
+        if iter_count % iterations_batch_size != 0:
+            return False
+
         policy.policy_cache.clear()
         reward, _ = evaluate_policy(policy, 100, 1000)
         if reward == policy.env.reward_of_living * 1000:
@@ -183,10 +186,12 @@ def stop_when_no_improvement_rtdp(heuristic_function: Callable[[MapfEnv], Callab
             policy.last_eval = reward
             return abs(policy.last_eval - prev_eval) / prev_eval <= 0.01
 
-    return rtdp(heuristic_function,
-                gamma,
-                should_stop,
-                iterations_batch_size,
-                max_iterations,
-                env,
-                info)
+    # initialize V to an upper bound
+    policy = RtdpPolicy(env, gamma, heuristic_function(env))
+
+    for iter_count, reward in enumerate(rtdp_iterations_generator(heuristic_function, gamma, policy, env, info),
+                                        start=1):
+        if should_stop(policy, iter_count) or iter_count >= max_iterations:
+            break
+
+    return policy

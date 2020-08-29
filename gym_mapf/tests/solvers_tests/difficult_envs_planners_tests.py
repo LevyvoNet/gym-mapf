@@ -2,7 +2,7 @@ import unittest
 from typing import Dict, Callable
 from functools import partial
 
-from gym_mapf.solvers.rtdp import (rtdp,
+from gym_mapf.solvers.rtdp import (rtdp_iterations_generator,
                                    prioritized_value_iteration_heuristic,
                                    fixed_iterations_count_rtdp,
                                    stop_when_no_improvement_rtdp)
@@ -126,9 +126,7 @@ class StopWhenNoImprovementRtdpPlannerTest(DifficultEnvsPlannerTest):
                        self.max_iterations)
 
     def print_white_box_data(self, policy: Policy, info: Dict):
-        n_batches = len(info['batches'])
-        n_iterations = n_batches * self.iter_in_batches
-        print(f'performed {n_iterations}/{self.max_iterations} iterations (in {n_batches} batches)')
+        print(f"performed {len(info['iterations'])}/{self.max_iterations} iterations")
 
 
 # class LrtdpPlannerTest(DifficultEnvsPlannerTest):

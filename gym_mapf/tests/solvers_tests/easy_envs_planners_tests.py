@@ -9,7 +9,7 @@ from gym_mapf.envs.mapf_env import (MapfEnv,
 from gym_mapf.solvers.utils import Policy, evaluate_policy
 from gym_mapf.solvers import (value_iteration,
                               policy_iteration,
-                              rtdp,
+                              rtdp_iterations_generator,
                               id,
                               lrtdp,
                               fixed_iterations_count_rtdp,
