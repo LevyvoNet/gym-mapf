@@ -10,8 +10,7 @@ from gym_mapf.envs.mapf_env import (MapfEnv,
                                     integer_action_to_vector,
                                     DOWN, RIGHT, LEFT, STAY,
                                     ACTIONS)
-from gym_mapf.solvers.rtdp import (rtdp_iterations_generator,
-                                   prioritized_value_iteration_heuristic,
+from gym_mapf.solvers.rtdp import (prioritized_value_iteration_heuristic,
                                    fixed_iterations_count_rtdp)
 
 
@@ -147,10 +146,10 @@ class SolversUtilsTests(unittest.TestCase):
     def test_conflict_detected_for_room_scenario_with_crossed_policy(self):
         env = create_mapf_env('room-32-32-4', 1, 2, 0.1, 0.1, -1000, 0, -1)
 
-        policy1 = rtdp_iterations_generator(partial(prioritized_value_iteration_heuristic, 1.0), 1.0, lambda p: False, 100, 100,
-                                            get_local_view(env, [0]), {})
-        policy2 = rtdp_iterations_generator(partial(prioritized_value_iteration_heuristic, 1.0), 1.0, lambda p: False, 100, 100,
-                                            get_local_view(env, [1]), {})
+        policy1 = fixed_iterations_count_rtdp(partial(prioritized_value_iteration_heuristic, 1.0), 1.0, 100,
+                                              get_local_view(env, [0]), {})
+        policy2 = fixed_iterations_count_rtdp(partial(prioritized_value_iteration_heuristic, 1.0), 1.0, 100,
+                                              get_local_view(env, [1]), {})
         crossed_policy = CrossedPolicy(env, [policy1, policy2], [[0], [1]])
 
         self.assertIsNot(detect_conflict(env, crossed_policy), None)
