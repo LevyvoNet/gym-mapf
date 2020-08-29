@@ -1,6 +1,7 @@
 import numpy as np
 import time
 import math
+import collections
 from typing import Callable, Dict
 
 from gym_mapf.envs.mapf_env import MapfEnv, function_to_get_item_of_object, integer_action_to_vector
@@ -163,13 +164,13 @@ def fixed_iterations_count_rtdp(heuristic_function: Callable[[MapfEnv], Callable
     return policy
 
 
-def stop_when_no_improvement_rtdp(heuristic_function: Callable[[MapfEnv], Callable[[int], float]],
-                                  gamma: float,
-                                  iterations_batch_size: int,
-                                  max_iterations: int,
-                                  env: MapfEnv,
-                                  info: Dict):
-    def should_stop(policy: RtdpPolicy, iter_count: int):
+def stop_when_no_improvement_between_batches_rtdp(heuristic_function: Callable[[MapfEnv], Callable[[int], float]],
+                                                  gamma: float,
+                                                  iterations_batch_size: int,
+                                                  max_iterations: int,
+                                                  env: MapfEnv,
+                                                  info: Dict):
+    def no_improvement_from_last_batch(policy: RtdpPolicy, iter_count: int):
         if iter_count % iterations_batch_size != 0:
             return False
 
@@ -189,9 +190,11 @@ def stop_when_no_improvement_rtdp(heuristic_function: Callable[[MapfEnv], Callab
     # initialize V to an upper bound
     policy = RtdpPolicy(env, gamma, heuristic_function(env))
 
+    # Run RTDP iterations
     for iter_count, reward in enumerate(rtdp_iterations_generator(heuristic_function, gamma, policy, env, info),
                                         start=1):
-        if should_stop(policy, iter_count) or iter_count >= max_iterations:
+        # Stop when no improvement or when we have exceeded maximum number of iterations
+        if no_improvement_from_last_batch(policy, iter_count) or iter_count >= max_iterations:
             break
 
     return policy

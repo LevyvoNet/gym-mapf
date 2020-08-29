@@ -5,7 +5,7 @@ from functools import partial
 from gym_mapf.solvers.rtdp import (rtdp_iterations_generator,
                                    prioritized_value_iteration_heuristic,
                                    fixed_iterations_count_rtdp,
-                                   stop_when_no_improvement_rtdp)
+                                   stop_when_no_improvement_between_batches_rtdp)
 from gym_mapf.solvers.lrtdp import lrtdp
 from gym_mapf.envs.utils import create_mapf_env, MapfEnv, MapfGrid
 from gym_mapf.solvers.utils import evaluate_policy, Policy
@@ -119,7 +119,7 @@ class StopWhenNoImprovementRtdpPlannerTest(DifficultEnvsPlannerTest):
         self.iter_in_batches = 100
         self.max_iterations = 1000
 
-        return partial(stop_when_no_improvement_rtdp,
+        return partial(stop_when_no_improvement_between_batches_rtdp,
                        partial(prioritized_value_iteration_heuristic, 1.0),
                        1.0,
                        self.iter_in_batches,
