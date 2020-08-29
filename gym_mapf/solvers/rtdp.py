@@ -90,8 +90,11 @@ def rtdp_single_iteration(policy: RtdpPolicy, info: Dict):
     path = []
 
     while not done:
+        # time.sleep(0.1)
+        # policy.env.render()
         # Choose greedy action (if there are several choose uniformly random)
         a = greedy_action(policy.env, s, policy.v, policy.gamma)
+        # a = policy.act(s)
         path.append((s, a))
 
         # Do a bellman update
@@ -112,7 +115,7 @@ def rtdp_single_iteration(policy: RtdpPolicy, info: Dict):
 
 def run_iterations_batch(policy: RtdpPolicy, iterations_batch_size: int, info: Dict):
     info['batch_iterations'] = []
-    for _ in range(iterations_batch_size):
+    for i in range(iterations_batch_size):
         iter_info = {}
         info['batch_iterations'].append(iter_info)
         rtdp_single_iteration(policy, iter_info)
@@ -166,7 +169,8 @@ def stop_when_no_improvement_rtdp(heuristic_function: Callable[[MapfEnv], Callab
                                   max_iterations: int,
                                   env: MapfEnv,
                                   info: Dict):
-    def should_stop(policy: Policy):
+    def should_stop(policy: RtdpPolicy):
+        policy.policy_cache.clear()
         reward, _ = evaluate_policy(policy, 100, 1000)
         if reward == policy.env.reward_of_living * 1000:
             return False
