@@ -167,7 +167,7 @@ def stop_when_no_improvement_rtdp(heuristic_function: Callable[[MapfEnv], Callab
                                   env: MapfEnv,
                                   info: Dict):
     def should_stop(policy: Policy):
-        reward, _ = evaluate_policy(policy, 10, 1000)
+        reward, _ = evaluate_policy(policy, 100, 1000)
         if reward == policy.env.reward_of_living * 1000:
             return False
 
@@ -177,7 +177,7 @@ def stop_when_no_improvement_rtdp(heuristic_function: Callable[[MapfEnv], Callab
         else:
             prev_eval = policy.last_eval
             policy.last_eval = reward
-            return abs(policy.last_eval - prev_eval) / prev_eval >= 0.99
+            return abs(policy.last_eval - prev_eval) / prev_eval <= 0.01
 
     return rtdp(heuristic_function,
                 gamma,

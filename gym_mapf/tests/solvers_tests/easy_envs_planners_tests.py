@@ -17,7 +17,7 @@ from gym_mapf.solvers import (value_iteration,
 from gym_mapf.solvers.rtdp import manhattan_heuristic, prioritized_value_iteration_heuristic
 
 
-class GeneralPlannersTest(unittest.TestCase):
+class EasyEnvironmentsPlannersTest(unittest.TestCase):
     def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
         """Return the concrete planner"""
         raise unittest.SkipTest("This is an abstract test case")
@@ -32,8 +32,8 @@ class GeneralPlannersTest(unittest.TestCase):
         env = MapfEnv(grid, 2, agents_starts, agents_goals, 0.1, 0.1, -0.001, -1, -1)
 
         info = {}
-        planner = self.get_plan_func()
-        policy = planner(env, info)
+        plan_func = self.get_plan_func()
+        policy = plan_func(env, info)
 
         interesting_state = env.locations_to_state(((1, 1), (0, 1)))
         expected_possible_actions = [vector_action_to_integer((STAY, UP)),
@@ -42,17 +42,17 @@ class GeneralPlannersTest(unittest.TestCase):
         self.assertIn(policy.act(interesting_state), expected_possible_actions)
 
 
-class GeneralValueIterationPlannerTest(GeneralPlannersTest):
+class EasyEnvironmentsValueIterationPlannerTest(EasyEnvironmentsPlannersTest):
     def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
         return partial(value_iteration, 1.0)
 
 
-class GeneralPolicyIterationPlannerTest(GeneralPlannersTest):
+class EasyEnvironmentsPolicyIterationPlannerTest(EasyEnvironmentsPlannersTest):
     def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
         return partial(policy_iteration, 1.0)
 
 
-class GeneralFixedIterationsCountRtdpPlannerTest(GeneralPlannersTest):
+class EasyEnvironmentsFixedIterationsCountRtdpPlannerTest(EasyEnvironmentsPlannersTest):
     def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
         return partial(fixed_iterations_count_rtdp,
                        partial(prioritized_value_iteration_heuristic, 1.0),
@@ -60,35 +60,22 @@ class GeneralFixedIterationsCountRtdpPlannerTest(GeneralPlannersTest):
                        100)
 
 
-class GeneralRtdpPlannerTest(GeneralPlannersTest):
+class EasyEnvironmentsStopWhenNoImprovementRtdpPlannerTest(EasyEnvironmentsPlannersTest):
     def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
-        def should_stop(policy: Policy):
-            reward, _ = evaluate_policy(policy, 10, 1000)
-            if reward == policy.env.reward_of_living * 1000:
-                return False
-
-            if not hasattr(policy, 'last_eval'):
-                policy.last_eval = reward
-                return False
-            else:
-                prev_eval = policy.last_eval
-                policy.last_eval = reward
-                return abs(policy.last_eval - prev_eval) / prev_eval >= 0.99
-
         return partial(stop_when_no_improvement_rtdp,
                        partial(prioritized_value_iteration_heuristic, 1.0),
                        1.0,
-                       20,
-                       100)
+                       10,
+                       20)
 
 
-class GeneralIdPlannerTest(GeneralPlannersTest):
+class GeneralIdPlannerTest(EasyEnvironmentsPlannersTest):
     def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
         low_level_planner = partial(value_iteration, 1.0)
         return partial(id, low_level_planner)
 
 
-# class GeneralLrdtpPlannerTest(GeneralPlannersTest):
+# class GeneralLrdtpPlannerTest(EasyEnvironmentsPlannersTest):
 #     def get_planner(self) -> Planner:
 #         return LrtdpPlanner(prioritized_value_iteration_heuristic, 1000, 1.0, 0.00001)
 
