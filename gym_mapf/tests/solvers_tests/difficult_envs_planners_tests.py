@@ -91,6 +91,21 @@ class DifficultEnvsPlannerTest(unittest.TestCase):
         # Make sure this policy is optimal
         self.assertEqual(reward, -6.0)
 
+    def test_stochastic_room_env(self):
+        """Easy room scenario with fail probabilities"""
+        env = create_mapf_env('room-32-32-4', 12, 2, 0.1, 0.1, -1000, -1, -1)
+
+        plan_func = self.get_plan_func()
+        info = {}
+        policy = plan_func(env, info)
+
+        reward, clashed = evaluate_policy(policy, 1, 1000)
+
+        self.print_white_box_data(policy, info)
+
+        # Assert that the solution is reasonable (actually solving)
+        self.assertGreater(reward, -20)
+
 
 class FixedIterationsCountRtdpPlannerTest(DifficultEnvsPlannerTest):
     def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
