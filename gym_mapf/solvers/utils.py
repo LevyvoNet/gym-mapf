@@ -253,10 +253,10 @@ def evaluate_policy(policy: Policy, n_episodes: int, max_steps: int):
     return total_reward / n_episodes, clashed
 
 
-class TabularValueFunctionPolicy(Policy):
+class ValueFunctionPolicy(Policy):
     def __init__(self, env, gamma):
         super().__init__(env, gamma)
-        self.v = np.zeros(env.nS)
+        self.v = []
         self.policy_cache = {}
 
     def act(self, s):

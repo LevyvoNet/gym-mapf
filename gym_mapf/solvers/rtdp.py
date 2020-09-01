@@ -6,10 +6,10 @@ from typing import Callable, Dict
 
 from gym_mapf.envs.mapf_env import MapfEnv, function_to_get_item_of_object, integer_action_to_vector
 from gym_mapf.solvers.vi import prioritized_value_iteration
-from gym_mapf.solvers.utils import Policy, TabularValueFunctionPolicy, get_local_view, evaluate_policy
+from gym_mapf.solvers.utils import Policy, ValueFunctionPolicy, get_local_view, evaluate_policy
 
 
-class RtdpPolicy(TabularValueFunctionPolicy):
+class RtdpPolicy(ValueFunctionPolicy):
     def __init__(self, env, gamma, heuristic):
         super().__init__(env, gamma)
         self.v_partial_table = {}

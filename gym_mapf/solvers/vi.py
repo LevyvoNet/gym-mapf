@@ -3,7 +3,8 @@ import numpy as np
 import math
 from typing import Dict
 
-from gym_mapf.solvers.utils import safe_actions, TabularValueFunctionPolicy, Policy
+from gym_mapf.solvers import V_TYPE, V_TYPE_SIZE, MAXIMUM_RAM
+from gym_mapf.solvers.utils import safe_actions, ValueFunctionPolicy, Policy
 from gym_mapf.envs.mapf_env import MapfEnv
 
 
@@ -26,13 +27,17 @@ def get_layers(env):
     return layers
 
 
-def value_iteration(gamma: float, env: MapfEnv, info: Dict, **kwargs) -> TabularValueFunctionPolicy:
+def value_iteration(gamma: float, env: MapfEnv, info: Dict, **kwargs) -> ValueFunctionPolicy:
     """ Value-iteration algorithm"""
     info['converged'] = False
     info['n_iterations'] = 0
     start = time.time()  # TODO: use a decorator for updating info with time measurement
     gamma = kwargs.get('gamma', 1.0)
-    v = np.zeros(env.nS)  # initialize value-function
+    if V_TYPE_SIZE * env.nS > MAXIMUM_RAM:
+        info['end_reason'] == "out_of_memory"
+        return None
+
+    v = np.zeros(env.nS, dtype=V_TYPE)  # initialize value-function
     max_iterations = 1000
     eps = 1e-2
     s_count = 0
@@ -69,7 +74,7 @@ def value_iteration(gamma: float, env: MapfEnv, info: Dict, **kwargs) -> Tabular
             info['converged'] = True
             break
 
-    policy = TabularValueFunctionPolicy(env, gamma)
+    policy = ValueFunctionPolicy(env, gamma)
     policy.v = v
 
     end = time.time()
@@ -78,11 +83,17 @@ def value_iteration(gamma: float, env: MapfEnv, info: Dict, **kwargs) -> Tabular
     return policy
 
 
-def prioritized_value_iteration(gamma: float, env: MapfEnv, info: Dict, **kwargs) -> TabularValueFunctionPolicy:
+def prioritized_value_iteration(gamma: float, env: MapfEnv, info: Dict, **kwargs) -> ValueFunctionPolicy:
     info['converged'] = False
     info['n_iterations'] = 0
     start = time.time()  # TODO: use a decorator for updating info with time measurement
-    v = np.zeros(env.nS)  # initialize value-function
+
+    if V_TYPE_SIZE * env.nS > MAXIMUM_RAM:
+        info['end_reason'] == "out_of_memory"
+        return None
+
+    v = np.zeros(env.nS, dtype=V_TYPE)  # initialize value-function
+
     max_iterations = 100000
     eps = 1e-2
     q_sa_a = 0
@@ -118,7 +129,7 @@ def prioritized_value_iteration(gamma: float, env: MapfEnv, info: Dict, **kwargs
             info['converged'] = True
             break
 
-    policy = TabularValueFunctionPolicy(env, gamma)
+    policy = ValueFunctionPolicy(env, gamma)
     policy.v = v
 
     end = time.time()
