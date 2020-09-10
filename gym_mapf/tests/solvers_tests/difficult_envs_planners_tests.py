@@ -2,8 +2,10 @@ import unittest
 from typing import Dict, Callable
 from functools import partial
 
+from gym_mapf.tests.utils import measure_time
 from gym_mapf.solvers.rtdp import (rtdp_iterations_generator,
-                                   prioritized_value_iteration_heuristic,
+                                   local_views_prioritized_value_iteration_heuristic,
+                                   deterministic_relaxation_prioritized_value_iteration_heuristic,
                                    fixed_iterations_count_rtdp,
                                    stop_when_no_improvement_between_batches_rtdp)
 from gym_mapf.solvers.lrtdp import lrtdp
@@ -25,6 +27,7 @@ class DifficultEnvsPlannerTest(unittest.TestCase):
     def print_white_box_data(self, policy: Policy, info: Dict):
         pass
 
+    @measure_time
     def test_room_scen_13_converges(self):
         """This is a pretty hard scenario (maybe because of the potential conflict).
 
@@ -45,6 +48,7 @@ class DifficultEnvsPlannerTest(unittest.TestCase):
         # Assert that the solution is reasonable (actually solving)
         self.assertGreaterEqual(reward, -48.0)
 
+    @measure_time
     def test_normal_room_scenario_converges(self):
         env = create_mapf_env('room-32-32-4', 12, 2, 0, 0, -1000, -1, -1)
 
@@ -59,6 +63,7 @@ class DifficultEnvsPlannerTest(unittest.TestCase):
         # Assert that the solution is reasonable (actually solving)
         self.assertEqual(reward, -9.0)
 
+    @measure_time
     def test_deterministic_room_scenario_1_2_agents(self):
         env = create_mapf_env('room-32-32-4', 1, 2, 0, 0, -1000, 0, -1)
 
@@ -71,6 +76,7 @@ class DifficultEnvsPlannerTest(unittest.TestCase):
         reward, _ = evaluate_policy(policy, 1, 1000)
         self.assertEqual(reward, -43)
 
+    @measure_time
     def test_hand_crafted_env_converges(self):
         grid = MapfGrid([
             '...',
@@ -91,6 +97,7 @@ class DifficultEnvsPlannerTest(unittest.TestCase):
         # Make sure this policy is optimal
         self.assertEqual(reward, -6.0)
 
+    @measure_time
     def test_stochastic_room_env(self):
         """Easy room scenario with fail probabilities"""
         env = create_mapf_env('room-32-32-4', 12, 2, 0.1, 0.1, -1000, -1, -1)
@@ -107,26 +114,41 @@ class DifficultEnvsPlannerTest(unittest.TestCase):
         self.assertGreater(reward, -20)
 
 
-class FixedIterationsCountRtdpPlannerTest(DifficultEnvsPlannerTest):
-    def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
-        return partial(fixed_iterations_count_rtdp,
-                       partial(prioritized_value_iteration_heuristic, 1.0), 1.0,
-                       400)
+# class FixedIterationsCountRtdpPlannerTest(DifficultEnvsPlannerTest):
+#     def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
+#         return partial(fixed_iterations_count_rtdp,
+#                        partial(local_views_prioritized_value_iteration_heuristic, 1.0), 1.0,
+#                        400)
+#
+#
+# class StopWhenNoImprovementRtdpLocalHeuristicPlannerTest(DifficultEnvsPlannerTest):
+#     def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
+#         self.iter_in_batches = 100
+#         self.max_iterations = 1000
+#
+#         return partial(stop_when_no_improvement_between_batches_rtdp,
+#                        partial(local_views_prioritized_value_iteration_heuristic, 1.0),
+#                        1.0,
+#                        self.iter_in_batches,
+#                        self.max_iterations)
+#
+#     def print_white_box_data(self, policy: Policy, info: Dict):
+#         print(f"performed {len(info['iterations'])}/{self.max_iterations} iterations")
 
 
-class StopWhenNoImprovementRtdpPlannerTest(DifficultEnvsPlannerTest):
-    def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
-        self.iter_in_batches = 100
-        self.max_iterations = 1000
-
-        return partial(stop_when_no_improvement_between_batches_rtdp,
-                       partial(prioritized_value_iteration_heuristic, 1.0),
-                       1.0,
-                       self.iter_in_batches,
-                       self.max_iterations)
-
-    def print_white_box_data(self, policy: Policy, info: Dict):
-        print(f"performed {len(info['iterations'])}/{self.max_iterations} iterations")
+# class StopWhenNoImprovementRtdpDeterminsticHeuristicPlannerTest(DifficultEnvsPlannerTest):
+#     def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
+#         self.iter_in_batches = 100
+#         self.max_iterations = 1000
+#
+#         return partial(stop_when_no_improvement_between_batches_rtdp,
+#                        partial(deterministic_relaxation_prioritized_value_iteration_heuristic, 1.0),
+#                        1.0,
+#                        self.iter_in_batches,
+#                        self.max_iterations)
+#
+#     def print_white_box_data(self, policy: Policy, info: Dict):
+#         print(f"performed {len(info['iterations'])}/{self.max_iterations} iterations")
 
 
 # class LrtdpPlannerTest(DifficultEnvsPlannerTest):

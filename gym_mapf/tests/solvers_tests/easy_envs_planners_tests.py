@@ -14,7 +14,7 @@ from gym_mapf.solvers import (value_iteration,
                               lrtdp,
                               fixed_iterations_count_rtdp,
                               stop_when_no_improvement_between_batches_rtdp)
-from gym_mapf.solvers.rtdp import manhattan_heuristic, prioritized_value_iteration_heuristic
+from gym_mapf.solvers.rtdp import manhattan_heuristic, local_views_prioritized_value_iteration_heuristic
 
 
 class EasyEnvironmentsPlannersTest(unittest.TestCase):
@@ -55,7 +55,7 @@ class EasyEnvironmentsPolicyIterationPlannerTest(EasyEnvironmentsPlannersTest):
 class EasyEnvironmentsFixedIterationsCountRtdpPlannerTest(EasyEnvironmentsPlannersTest):
     def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
         return partial(fixed_iterations_count_rtdp,
-                       partial(prioritized_value_iteration_heuristic, 1.0),
+                       partial(local_views_prioritized_value_iteration_heuristic, 1.0),
                        1.0,
                        100)
 
@@ -63,7 +63,7 @@ class EasyEnvironmentsFixedIterationsCountRtdpPlannerTest(EasyEnvironmentsPlanne
 class EasyEnvironmentsStopWhenNoImprovementRtdpPlannerTest(EasyEnvironmentsPlannersTest):
     def get_plan_func(self) -> Callable[[MapfEnv, Dict], Policy]:
         return partial(stop_when_no_improvement_between_batches_rtdp,
-                       partial(prioritized_value_iteration_heuristic, 1.0),
+                       partial(local_views_prioritized_value_iteration_heuristic, 1.0),
                        1.0,
                        10,
                        20)

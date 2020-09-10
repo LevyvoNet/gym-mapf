@@ -65,7 +65,7 @@ def manhattan_heuristic(env: MapfEnv):
     return heuristic_function
 
 
-def prioritized_value_iteration_heuristic(gamma: float, env: MapfEnv) -> Callable[[int], float]:
+def local_views_prioritized_value_iteration_heuristic(gamma: float, env: MapfEnv) -> Callable[[int], float]:
     local_envs = [get_local_view(env, [i]) for i in range(env.n_agents)]
     local_v = [(prioritized_value_iteration(gamma, local_env, {})).v for local_env in local_envs]
 
@@ -74,6 +74,26 @@ def prioritized_value_iteration_heuristic(gamma: float, env: MapfEnv) -> Callabl
         local_states = [local_envs[i].locations_to_state((locations[i],)) for i in range(env.n_agents)]
         # at the current, the MapfEnv reward is makespan oriented
         return min([local_v[i][local_states[i]] for i in range(env.n_agents)])
+
+    return heuristic_function
+
+
+def deterministic_relaxation_prioritized_value_iteration_heuristic(gamma: float, env: MapfEnv) -> Callable[
+    [int], float]:
+    deterministic_env = MapfEnv(env.grid,
+                                env.n_agents,
+                                env.agents_starts,
+                                env.agents_goals,
+                                0,
+                                0,
+                                env.reward_of_clash,
+                                env.reward_of_goal,
+                                env.reward_of_living)
+    # TODO: consider using RTDP instead of PVI here, this is theoretically bad but practically may give better results
+    policy = prioritized_value_iteration(gamma, deterministic_env, {})
+
+    def heuristic_function(s):
+        return policy.v[s]
 
     return heuristic_function
 
