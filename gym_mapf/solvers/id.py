@@ -67,7 +67,7 @@ def id(low_level_planner: Callable[[MapfEnv], Policy], env: MapfEnv, info: Dict,
                                            group_of_agent(agents_groups, i),
                                            group_of_agent(agents_groups, j))
 
-        print(f'ID merged groups of agent {i} and {j}, groups are {agents_groups}')
+        # print(f'ID merged groups of agent {i} and {j}, groups are {agents_groups}')
 
         # solve again with the new agent groups
         curr_iter_info = {}  # TODO: maybe a do while to avoid this code duplication?
@@ -83,10 +83,10 @@ def id(low_level_planner: Callable[[MapfEnv], Policy], env: MapfEnv, info: Dict,
             # we have merged all of the agents and conflict is not possible
             break
 
-        print(f'ID found joint policy for groups {agents_groups}, looking for conflicts...')
+        # print(f'ID found joint policy for groups {agents_groups}, looking for conflicts...')
         # find a new conflict
         conflict = detect_conflict(env, curr_joint_policy, **{'info': curr_iter_info})
-        print(f'ID detected conflict for groups {agents_groups}')
+        # print(f'ID detected conflict for groups {agents_groups}')
 
     end = time.time()
     info['ID_time'] = end - start
