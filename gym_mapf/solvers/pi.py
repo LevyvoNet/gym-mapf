@@ -87,7 +87,7 @@ def policy_iteration(gamma: float, env: MapfEnv, info: Dict, **kwargs) -> Policy
 
     # intialize the state-Value function
     if V_TYPE_SIZE * env.nS > MAXIMUM_RAM:
-        info['end_reason'] == "out_of_memory"
+        info['end_reason'] = "out_of_memory"
         return None
 
     V = np.zeros(env.nS, dtype=V_TYPE)

@@ -34,7 +34,7 @@ def value_iteration(gamma: float, env: MapfEnv, info: Dict, **kwargs) -> ValueFu
     start = time.time()  # TODO: use a decorator for updating info with time measurement
     gamma = kwargs.get('gamma', 1.0)
     if V_TYPE_SIZE * env.nS > MAXIMUM_RAM:
-        info['end_reason'] == "out_of_memory"
+        info['end_reason'] = "out_of_memory"
         return None
 
     v = np.zeros(env.nS, dtype=V_TYPE)  # initialize value-function
@@ -89,7 +89,7 @@ def prioritized_value_iteration(gamma: float, env: MapfEnv, info: Dict, **kwargs
     start = time.time()  # TODO: use a decorator for updating info with time measurement
 
     if V_TYPE_SIZE * env.nS > MAXIMUM_RAM:
-        info['end_reason'] == "out_of_memory"
+        info['end_reason'] = "out_of_memory"
         return None
 
     v = np.zeros(env.nS, dtype=V_TYPE)  # initialize value-function
