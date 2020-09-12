@@ -89,5 +89,5 @@ def id(low_level_planner: Callable[[MapfEnv], Policy], env: MapfEnv, info: Dict,
         # print(f'ID detected conflict for groups {agents_groups}')
 
     end = time.time()
-    info['ID_time'] = end - start
+    info['ID_time'] = round(end - start, 2)
     return curr_joint_policy

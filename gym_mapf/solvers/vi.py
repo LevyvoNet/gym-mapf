@@ -78,7 +78,7 @@ def value_iteration(gamma: float, env: MapfEnv, info: Dict, **kwargs) -> ValueFu
     policy.v = v
 
     end = time.time()
-    info['VI_time'] = end - start
+    info['VI_time'] = round(end - start, 2)
 
     return policy
 
@@ -133,5 +133,5 @@ def prioritized_value_iteration(gamma: float, env: MapfEnv, info: Dict, **kwargs
     policy.v = v
 
     end = time.time()
-    info['prioritized_VI_time'] = end - start
+    info['prioritized_VI_time'] = round(end - start, 2)
     return policy

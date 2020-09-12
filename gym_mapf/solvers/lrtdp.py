@@ -97,7 +97,7 @@ def lrtdp(heuristic_function: Callable[[MapfEnv], Callable[[int], float]], max_i
 
         info['iterations'].append({
             'n_moves': len(path),
-            'time': time.time() - start,
+            'time': round(time.time() - start, 2),
             'n_states_solved': len(policy.solved),
             'final_reward': r,
         })

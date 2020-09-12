@@ -138,7 +138,7 @@ def rtdp_single_iteration(policy: RtdpPolicy, info: Dict):
     # TODO: update backwards here using path variable
 
     # Write measures about that information
-    info['time'] = time.time() - start
+    info['time'] = round(time.time() - start, 2)
     info['n_moves'] = len(path)
 
     # Reset again just for safety

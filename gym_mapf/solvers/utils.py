@@ -159,7 +159,7 @@ def detect_conflict(env: MapfEnv, joint_policy: Policy, **kwargs):
                 # calculate the local states for each agent that with the current action got them here.
                 vector_curr_expanded_state = env.state_to_locations(curr_expanded_state)
 
-                info['detect_conflict_time'] = time.time() - start
+                info['detect_conflict_time'] = round(time.time() - start, 2)
                 return (
                     (
                         first_agent,
@@ -177,7 +177,7 @@ def detect_conflict(env: MapfEnv, joint_policy: Policy, **kwargs):
                 states_to_expand.append(next_state)
                 path[next_state] = (curr_expanded_state, joint_action)
 
-    info['detect_conflict_time'] = time.time() - start
+    info['detect_conflict_time'] = round(time.time() - start, 2)
     return None
 
 
@@ -215,7 +215,7 @@ def solve_independently_and_cross(env, agent_groups, low_level_planner: Callable
     joint_policy = CrossedPolicy(env, policies, agent_groups)
 
     end = time.time()
-    info['best_joint_policy_time'] = end - start
+    info['best_joint_policy_time'] = round(end - start, 2)
 
     return joint_policy
 
