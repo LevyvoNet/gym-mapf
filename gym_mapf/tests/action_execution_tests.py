@@ -5,7 +5,7 @@ from gym_mapf.envs.grid import MapfGrid
 from gym_mapf.envs import UP, DOWN, LEFT, RIGHT, STAY
 from gym_mapf.envs.mapf_env import execute_action
 from gym_mapf.envs.utils import parse_map_file
-from gym_mapf.tests.mapf_env_tests import MAPS_DIR
+from gym_mapf.tests import MAPS_DIR
 
 
 # TODO: Make this test not depend on the file system.

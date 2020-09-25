@@ -6,7 +6,7 @@ from gym_mapf.envs.mapf_env import (MapfEnv,
 from gym_mapf.envs.grid import MapfGrid
 from gym_mapf.envs.utils import parse_map_file, create_mapf_env
 from gym_mapf.envs import *
-from gym_mapf.tests.mapf_env_tests import MAPS_DIR
+from gym_mapf.tests import MAPS_DIR
 from copy import copy
 
 RIGHT_FAIL = 0.1

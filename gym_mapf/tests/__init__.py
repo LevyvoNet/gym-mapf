@@ -1,0 +1,1 @@
+MAPS_DIR = '../../maps'

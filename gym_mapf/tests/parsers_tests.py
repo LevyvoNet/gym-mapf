@@ -2,7 +2,7 @@ import unittest
 import os
 
 from gym_mapf.envs.utils import parse_scen_file
-from gym_mapf.tests.mapf_env_tests import MAPS_DIR
+from gym_mapf.tests import MAPS_DIR
 
 
 class ParsersTest(unittest.TestCase):
