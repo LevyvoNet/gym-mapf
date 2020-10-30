@@ -37,6 +37,43 @@ def parse_map_file(map_file):
     return lines[4:]
 
 
+def create_sanity_mapf_env(n_agents, right_fail, left_fail, reward_of_clash, reward_of_goal, reward_of_living):
+    single_room = [
+        '....',
+        '....',
+        '....',
+        '....',
+    ]
+    grid_lines = single_room[:]
+    start = (len(single_room) - 1, 0)
+    goal = (0, len(single_room[0]) - 1)
+
+    agents_starts = (start,)
+    agents_goals = (goal,)
+
+    # concatenate n-1 rooms to a single room
+    for i in range(n_agents - 1):
+        for line_idx, line in enumerate(grid_lines):
+            grid_lines[line_idx] = line + '@' + single_room[line_idx]
+
+        new_start = (start[0], start[1] + (i + 1) * (len(single_room[0]) + 1))
+        new_goal = (goal[0], goal[1] + (i + 1) * (len(single_room[0]) + 1))
+        agents_starts += (new_start,)
+        agents_goals += (new_goal,)
+
+    grid = MapfGrid(grid_lines)
+
+    return MapfEnv(grid,
+                   n_agents,
+                   agents_starts,
+                   agents_goals,
+                   right_fail,
+                   left_fail,
+                   reward_of_clash,
+                   reward_of_goal,
+                   reward_of_living)
+
+
 def create_mapf_env(map_name, scen_id, n_agents, right_fail, left_fail, reward_of_clash, reward_of_goal,
                     reward_of_living):
     map_file, scen_file = map_name_to_files(map_name, scen_id)
