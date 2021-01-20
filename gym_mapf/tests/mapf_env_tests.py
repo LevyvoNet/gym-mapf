@@ -285,7 +285,14 @@ class MapfEnvTest(unittest.TestCase):
         a = vector_action_to_integer((STAY, STAY))
         self.assertEqual(env.P[env.s][a], [(1, env.s, REWARD_OF_LIVING, False)])
 
+    def test_single_agent_action_transitions(self):
+        env = create_mapf_env('empty-8-8', 1, 2, 0.1, 0.1, -1000, -1, -1)
 
+        local_action = ACTIONS.index('RIGHT')
+
+        eq_joint_action = vector_action_to_integer(('STAY', 'RIGHT'))
+
+        self.assertEqual(env.P[env.s][eq_joint_action], env.get_single_agent_transitions(env.s, 1, local_action))
 
 
 if __name__ == '__main__':

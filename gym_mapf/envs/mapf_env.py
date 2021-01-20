@@ -6,7 +6,7 @@ import functools
 import numpy as np
 from colorama import Fore
 from gym import spaces
-from gym.envs.toy_text.discrete import DiscreteEnv
+from gym.envs.toy_text.discrete import DiscreteEnv, categorical_sample
 
 from gym_mapf.envs import *
 from gym_mapf.envs.grid import EmptyCell, ObstacleCell
@@ -127,17 +127,12 @@ class MapfEnv(DiscreteEnv):
         self.nS = len(self.valid_locations) ** self.n_agents  # each agent may be in each of the cells.
         self.nA = len(ACTIONS) ** self.n_agents
 
-        # self.isd = [1.0] + [0.0] * (self.nS - 1)  # irrelevant.
-        self.lastaction = None  # for rendering
-
         # This is an object which its __get_item__ expects s and returns an object which expects a
         self.P = function_to_get_item_of_object(self._partial_get_transitions)
         # self.P = StateGetter(self)
 
         self.action_space = spaces.Discrete(self.nA)
         self.observation_space = spaces.Discrete(self.nS)
-        self.makespan = 0
-        self.soc = 0
 
         self.state_to_locations_cache = {}
         self.locations_to_state_cache = {}
@@ -155,12 +150,17 @@ class MapfEnv(DiscreteEnv):
         # This will throw an exception if the goal coordinates are illegal (an obstacle)
         self.locations_to_state(self.agents_goals)
 
-    def single_agent_movements(self, s, a):
-        ret = self.single_agent_movements_cache.get((s, a), None)
+        # State of the env (all of these values shall be reset during the reset method)
+        self.makespan = 0
+        self.soc = 0
+        self.lastaction = None  # for rendering
+
+    def single_agent_movements(self, local_state, a):
+        ret = self.single_agent_movements_cache.get((local_state, a), None)
         if ret is not None:
             return ret
 
-        location = self.valid_locations[s]
+        location = self.valid_locations[local_state]
         right_a, left_a = POSSIBILITIES[ACTIONS[a]]
         noised_actions_and_probability = [
             (1 - self.right_fail - self.left_fail, ACTIONS[a]),
@@ -174,15 +174,12 @@ class MapfEnv(DiscreteEnv):
             next_state = self.loc_to_int[execute_action(self.grid, (location,), (noised_action,))[0]]
             if next_state in movements_next_state:
                 movement_index = movements_next_state.index(next_state)
-                movements[movement_index] = (s, next_state, movements[movement_index][2] + prob)
+                movements[movement_index] = (local_state, next_state, movements[movement_index][2] + prob)
             else:
-                movements.append((s, next_state, prob))
+                movements.append((local_state, next_state, prob))
                 movements_next_state.append(next_state)
 
-        # movements = [(s, self.loc_to_int[execute_action(self.grid, (location,), (noised_action,))[0]], prob)
-        #              for prob, noised_action in noised_actions_and_probability]
-
-        self.single_agent_movements_cache[(s, a)] = movements
+        self.single_agent_movements_cache[(local_state, a)] = movements
         return movements
 
     def get_possible_actions(self, a):
@@ -265,14 +262,61 @@ class MapfEnv(DiscreteEnv):
         vector_a = integer_action_to_vector(a, self.n_agents)
         n_agents_stayed_in_goals = len([i for i in range(self.n_agents)
                                         if curr_location[i] == self.agents_goals[i] and vector_a[i] == STAY])
+        state_locations = self.state_to_locations(self.s)
+        if self.is_terminal(state_locations):
+            return self.s, 0, True, {"prob": 0}
 
         self.soc += self.n_agents - n_agents_stayed_in_goals
         self.makespan += 1
 
-        # Perform the step
-        new_state, reward, done, info = super().step(a)
+        single_agent_actions = [ACTIONS_TO_INT[single_agent_action]
+                                for single_agent_action in integer_action_to_vector(a, self.n_agents)]
+        single_agent_states = [self.loc_to_int[single_agent_loc]
+                               for single_agent_loc in state_locations]
+        single_agent_movements = [self.single_agent_movements(single_agent_states[i], single_agent_actions[i])
+                                  for i in range(self.n_agents)]
 
-        return new_state, reward, done, info
+        next_local_states = []
+        total_prob = 1
+        # single_agent_movements is a list of [[(s1,s'1,p), (s1,s''1,p),...], [(s2,s'2,p), (s2,s''2,p),...]], ...]
+        # We want to first choose the transition for agent1, then for agent2, etc.
+        for agent_movements in single_agent_movements:
+            probs = [t[2] for t in agent_movements]
+            chosen_movement_idx = categorical_sample(probs, self.np_random)
+            next_local_states.append(agent_movements[chosen_movement_idx][1])
+            total_prob *= agent_movements[chosen_movement_idx][2]
+
+        # next_local_states holds a list of the local states of the agents
+        next_locations = tuple([self.valid_locations[local_state] for local_state in next_local_states])
+        new_state = self.locations_to_state(next_locations)
+        reward, done = self.calc_transition_reward_from_local_states(single_agent_states, None, next_local_states)
+        # Perform the step
+        # new_state, reward, done, info = super().step(a)
+
+        self.s = new_state
+        return new_state, reward, done, {"prob": total_prob}
+
+    def get_single_agent_transitions(self, joint_state, agent_idx, a):
+        agents_locations = self.state_to_locations(joint_state)
+        local_states = [self.loc_to_int[loc] for loc in agents_locations]
+        transitions = []
+        for (_, next_state, prob) in self.single_agent_movements(local_states[agent_idx], a):
+            next_location = self.valid_locations[next_state]
+            next_agents_locations = agents_locations[:agent_idx] + (next_location,) + agents_locations[agent_idx + 1:]
+            next_joint_state = self.locations_to_state(next_agents_locations)
+            reward, done = self.calc_transition_reward_from_local_states(
+                local_states,
+                None,
+                local_states[:agent_idx] + [next_state] + local_states[agent_idx + 1:])
+            transitions.append((prob, next_joint_state, reward, done))
+
+        return transitions
+
+    def step_single_agent(self, agent_idx, a):
+        transitions = self.get_single_agent_transitions(self.s, agent_idx, a)
+        i = categorical_sample([t[0] for t in transitions], self.np_random)
+        p, new_state, r, d = transitions[i]
+        return new_state, r, d, {"prob": p}
 
     def reset(self):
         self.lastaction = None

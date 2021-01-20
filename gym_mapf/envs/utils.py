@@ -53,11 +53,13 @@ def create_sanity_mapf_env(n_agents, right_fail, left_fail, reward_of_clash, rew
 
     # concatenate n-1 rooms to a single room
     for i in range(n_agents - 1):
-        for line_idx, line in enumerate(grid_lines):
-            grid_lines[line_idx] = line + '@' + single_room[line_idx]
+        for line_idx, line in enumerate(grid_lines[:-1]):
+            grid_lines[line_idx] = line + '@@' + single_room[line_idx]
 
-        new_start = (start[0], start[1] + (i + 1) * (len(single_room[0]) + 1))
-        new_goal = (goal[0], goal[1] + (i + 1) * (len(single_room[0]) + 1))
+        grid_lines[-1] = grid_lines[-1] + '..' + single_room[-1]
+
+        new_start = (start[0], start[1] + (i + 1) * (len(single_room[0]) + 2))
+        new_goal = (goal[0], goal[1] + (i + 1) * (len(single_room[0]) + 2))
         agents_starts += (new_start,)
         agents_goals += (new_goal,)
 
