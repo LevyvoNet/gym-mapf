@@ -154,6 +154,49 @@ class MapfEnv(DiscreteEnv):
         self.makespan = 0
         self.soc = 0
         self.lastaction = None  # for rendering
+        self.grid = grid
+        self.agents_starts, self.agents_goals = agents_starts, agents_goals
+        self.n_agents = n_agents
+        self.right_fail = right_fail
+        self.left_fail = left_fail
+        self.reward_of_clash = reward_of_clash
+        self.reward_of_goal = reward_of_goal
+        self.reward_of_living = reward_of_living
+
+        # Initialize the match between state numbers and locations on grid
+        self.valid_locations = [loc for loc in self.grid if self.grid[loc] is EmptyCell]
+        self.loc_to_int = {loc: i for i, loc in enumerate(self.valid_locations)}
+
+        self.nS = len(self.valid_locations) ** self.n_agents  # each agent may be in each of the cells.
+        self.nA = len(ACTIONS) ** self.n_agents
+
+        # This is an object which its __get_item__ expects s and returns an object which expects a
+        self.P = function_to_get_item_of_object(self._partial_get_transitions)
+        # self.P = StateGetter(self)
+
+        self.action_space = spaces.Discrete(self.nA)
+        self.observation_space = spaces.Discrete(self.nS)
+
+        self.state_to_locations_cache = {}
+        self.locations_to_state_cache = {}
+        self.predecessors_cache = {}
+        self._single_location_predecessors_cache = {}
+        self.get_possible_actions_cache = {}
+        self.single_agent_movements_cache = {}
+        self.is_terminal_cache = {}
+        self.transitions_cache = {}
+        self.s_transitions_cache = {}
+
+        self.seed()
+        self.reset()
+
+        # This will throw an exception if the goal coordinates are illegal (an obstacle)
+        self.locations_to_state(self.agents_goals)
+
+        # State of the env (all of these values shall be reset during the reset method)
+        self.makespan = 0
+        self.soc = 0
+        self.lastaction = None  # for rendering
 
     def single_agent_movements(self, local_state, a):
         ret = self.single_agent_movements_cache.get((local_state, a), None)
@@ -470,6 +513,7 @@ class MapfEnv(DiscreteEnv):
                                   for i in range(self.n_agents)]
 
         transitions = []
+        # TODO: check single_agent_movements when the action is all stay
         for comb in itertools.product(*single_agent_movements):
             prob = functools.reduce(lambda x, y: x * y, [x[2] for x in comb])
             multiagent_next_locations = tuple([self.valid_locations[int(s)] for s in

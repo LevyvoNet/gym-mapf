@@ -37,31 +37,53 @@ def parse_map_file(map_file):
     return lines[4:]
 
 
-def create_sanity_mapf_env(n_agents, right_fail, left_fail, reward_of_clash, reward_of_goal, reward_of_living):
-    single_room = [
-        '....',
-        '....',
-        '....',
-        '....',
-    ]
+def create_sanity_mapf_env(n_rooms,
+                           room_size,
+                           n_agents,
+                           right_fail,
+                           left_fail,
+                           reward_of_clash,
+                           reward_of_goal,
+                           reward_of_living):
+    single_room = ['.' * room_size] * room_size
     grid_lines = single_room[:]
-    start = (len(single_room) - 1, 0)
-    goal = (0, len(single_room[0]) - 1)
+    n_agents_per_room = int(n_agents / n_rooms)
+    n_agents_last_room = n_agents - (n_agents_per_room * (n_rooms - 1))
+    agents_starts = tuple()
+    agents_goals = tuple()
 
-    agents_starts = (start,)
-    agents_goals = (goal,)
+    if n_agents_last_room == 0 or n_agents_per_room == 0:
+        raise ValueError(
+            f"asked for a sanity env with {n_rooms} rooms  and {n_agents} agents, There are redundant rooms")
 
     # concatenate n-1 rooms to a single room
-    for i in range(n_agents - 1):
+    for i in range(n_rooms - 1):
+        # Add the extra room to the map
         for line_idx, line in enumerate(grid_lines[:-1]):
             grid_lines[line_idx] = line + '@@' + single_room[line_idx]
 
         grid_lines[-1] = grid_lines[-1] + '..' + single_room[-1]
 
-        new_start = (start[0], start[1] + (i + 1) * (len(single_room[0]) + 2))
-        new_goal = (goal[0], goal[1] + (i + 1) * (len(single_room[0]) + 2))
-        agents_starts += (new_start,)
-        agents_goals += (new_goal,)
+    for i in range(n_rooms):
+        # Set the new start and goal locations according to current offset
+        map_file, scen_file = map_name_to_files(f'empty-{room_size}-{room_size}', (i + 1) % 26)
+        if i != n_rooms - 1:
+            orig_agents_starts, orig_agents_goals = parse_scen_file(scen_file, n_agents_per_room)
+        else:
+            orig_agents_starts, orig_agents_goals = parse_scen_file(scen_file, n_agents_last_room)
+
+        new_agents_starts = tuple()
+        for start in orig_agents_starts:
+            new_start = (start[0], start[1] + (i) * (len(single_room[0]) + 2))
+            new_agents_starts += (new_start,)
+
+        new_agents_goals = tuple()
+        for goal in orig_agents_goals:
+            new_goal = (goal[0], goal[1] + (i) * (len(single_room[0]) + 2))
+            new_agents_goals += (new_goal,)
+
+        agents_starts += new_agents_starts
+        agents_goals += new_agents_goals
 
     grid = MapfGrid(grid_lines)
 
@@ -78,8 +100,15 @@ def create_sanity_mapf_env(n_agents, right_fail, left_fail, reward_of_clash, rew
 
 def create_mapf_env(map_name, scen_id, n_agents, right_fail, left_fail, reward_of_clash, reward_of_goal,
                     reward_of_living):
-    if map_name == 'sanity':
-        return create_sanity_mapf_env(n_agents, right_fail, left_fail, reward_of_clash, reward_of_goal,
+    if map_name.startswith('sanity'):
+        [n_rooms, room_size] = [int(n) for n in map_name.split('-')[1:]]
+        return create_sanity_mapf_env(n_rooms,
+                                      room_size,
+                                      n_agents,
+                                      right_fail,
+                                      left_fail,
+                                      reward_of_clash,
+                                      reward_of_goal,
                                       reward_of_living)
 
     map_file, scen_file = map_name_to_files(map_name, scen_id)
