@@ -296,7 +296,7 @@ class MapfEnv(DiscreteEnv):
 
         if all([self.loc_to_int[self.agents_goals[i]] == next_local_states[i] for i in range(self.n_agents)]):
             # goal state
-            return self.reward_of_goal, True
+            return self.reward_of_goal + self.reward_of_living, True
 
         return self.reward_of_living, False
 
