@@ -1,12 +1,9 @@
 import unittest
 
-from gym_mapf.envs.mapf_env import (integer_action_to_vector,
-                                    vector_action_to_integer,
-                                    integer_to_vector_multiple_numbers,
-                                    vector_to_integer_multiple_numbers)
 from gym_mapf.envs.utils import create_mapf_env
 from gym_mapf.envs import integer_to_vector, vector_to_integer
-from gym_mapf.envs.mapf_env import ACTIONS, UP, RIGHT, DOWN, LEFT, STAY
+from gym_mapf.envs.grid import SingleAgentAction, MultiAgentAction, SingleAgentState, MultiAgentState
+from gym_mapf.envs.mapf_env import ACTIONS, OptimizationCriteria
 
 
 class UtilsTest(unittest.TestCase):
@@ -14,31 +11,41 @@ class UtilsTest(unittest.TestCase):
         empty_8_8_1 = create_mapf_env(map_name='empty-8-8',
                                       scen_id=1,
                                       n_agents=2,
-                                      right_fail=0.1,
-                                      left_fail=0.1,
-                                      reward_of_clash=-1000.0,
+                                      fail_prob=0.2,
+                                      reward_of_collision=-1000.0,
                                       reward_of_goal=100.0,
-                                      reward_of_living=0.0)
+                                      reward_of_living=0.0,
+                                      optimization_criteria=OptimizationCriteria.Makespan)
 
-        self.assertEqual(empty_8_8_1.s, empty_8_8_1.locations_to_state(((0, 0), (5, 3))))
+        expected_start_state = MultiAgentState({
+            0: SingleAgentState(0, 0),
+            1: SingleAgentState(5, 3)
+        })
+        self.assertEqual(empty_8_8_1.s, expected_start_state)
 
         empty_48_48_16 = create_mapf_env(map_name='empty-48-48',
                                          scen_id=16,
                                          n_agents=2,
-                                         right_fail=0.1,
-                                         left_fail=0.1,
-                                         reward_of_clash=-1000.0,
+                                         fail_prob=0.2,
+                                         reward_of_collision=-1000.0,
                                          reward_of_goal=100.0,
-                                         reward_of_living=0.0)
+                                         reward_of_living=0.0,
+                                         optimization_criteria=OptimizationCriteria.Makespan)
 
-        self.assertEqual(empty_48_48_16.s, empty_48_48_16.locations_to_state(((40, 42), (17, 2))))
+        expected_start_state = MultiAgentState({
+            0: SingleAgentState(40, 42),
+            1: SingleAgentState(17, 2)
+        })
+
+        self.assertEqual(empty_48_48_16.s, expected_start_state)
 
     def test_integer_to_vector(self):
         # state in a 4x4 grid for a single agent.
         self.assertEqual(integer_to_vector(10, [4] * 2, 2, lambda n: n), (2, 2))
 
         # action for 3 agents
-        self.assertEqual(integer_to_vector(28, [len(ACTIONS)] * 3, 3, lambda n: ACTIONS[n]), (DOWN, STAY, UP))
+        self.assertEqual(integer_to_vector(28, [len(ACTIONS)] * 3, 3, lambda n: ACTIONS[n]),
+                         (DOWN, STAY, UP))
 
         # state in a 4x3 grid for two agents.
         self.assertEqual(integer_to_vector(10, [4 * 3] * 2, 2, lambda n: (int(n / 3), n % 3)),

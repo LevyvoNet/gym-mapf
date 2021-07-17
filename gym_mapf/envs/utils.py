@@ -1,7 +1,7 @@
 import itertools
 
 from gym_mapf.envs import map_name_to_files
-from gym_mapf.envs.grid import MapfGrid
+from gym_mapf.envs.grid import MapfGrid, MultiAgentState, MultiAgentAction, SingleAgentState, SingleAgentAction
 from gym_mapf.envs.mapf_env import MapfEnv
 
 
@@ -40,11 +40,11 @@ def parse_map_file(map_file):
 def create_sanity_mapf_env(n_rooms,
                            room_size,
                            n_agents,
-                           right_fail,
-                           left_fail,
-                           reward_of_clash,
+                           fail_prob,
+                           reward_of_collision,
                            reward_of_goal,
-                           reward_of_living):
+                           reward_of_living,
+                           optimization_criteria):
     single_room = ['.' * room_size] * room_size
     grid_lines = single_room[:]
     n_agents_per_room = int(n_agents / n_rooms)
@@ -85,64 +85,92 @@ def create_sanity_mapf_env(n_rooms,
         agents_starts += new_agents_starts
         agents_goals += new_agents_goals
 
+    start_state = MultiAgentState({
+        i: SingleAgentState(agents_starts[i][0], agents_starts[i][1])
+        for i in range(n_agents)
+    })
+    goal_state = MultiAgentState({
+        i: SingleAgentState(agents_goals[i][0], agents_goals[i][1])
+        for i in range(n_agents)
+    })
+
     grid = MapfGrid(grid_lines)
 
     return MapfEnv(grid,
                    n_agents,
-                   agents_starts,
-                   agents_goals,
-                   right_fail,
-                   left_fail,
-                   reward_of_clash,
+                   start_state,
+                   goal_state,
+                   fail_prob,
+                   reward_of_collision,
                    reward_of_goal,
-                   reward_of_living)
+                   reward_of_living,
+                   optimization_criteria)
 
 
-def create_mapf_env(map_name, scen_id, n_agents, right_fail, left_fail, reward_of_clash, reward_of_goal,
-                    reward_of_living):
+def create_mapf_env(map_name,
+                    scen_id,
+                    n_agents,
+                    fail_prob,
+                    reward_of_collision,
+                    reward_of_goal,
+                    reward_of_living,
+                    optimization_criteria):
     if map_name.startswith('sanity'):
         [n_rooms, room_size] = [int(n) for n in map_name.split('-')[1:]]
         return create_sanity_mapf_env(n_rooms,
                                       room_size,
                                       n_agents,
-                                      right_fail,
-                                      left_fail,
-                                      reward_of_clash,
+                                      fail_prob,
+                                      reward_of_collision,
                                       reward_of_goal,
-                                      reward_of_living)
+                                      reward_of_living,
+                                      optimization_criteria)
 
     map_file, scen_file = map_name_to_files(map_name, scen_id)
     grid = MapfGrid(parse_map_file(map_file))
     agents_starts, agents_goals = parse_scen_file(scen_file, n_agents)
-    n_agents = len(agents_goals)
+    start_state = MultiAgentState({
+        i: SingleAgentState(agents_starts[i][0], agents_starts[i][1])
+        for i in range(n_agents)
+    })
+    goal_state = MultiAgentState({
+        i: SingleAgentState(agents_goals[i][0], agents_goals[i][1])
+        for i in range(n_agents)
+    })
 
-    env = MapfEnv(grid, n_agents, agents_starts, agents_goals,
-                  right_fail, left_fail, reward_of_clash, reward_of_goal, reward_of_living)
+    env = MapfEnv(grid,
+                  n_agents,
+                  start_state,
+                  goal_state,
+                  fail_prob,
+                  reward_of_collision,
+                  reward_of_goal,
+                  reward_of_living,
+                  optimization_criteria)
 
     return env
 
 
 def get_local_view(env: MapfEnv, agent_indexes: list, **kwargs):
-    right_fail = kwargs.get('right_fail', env.right_fail)
-    left_fail = kwargs.get('left_fail', env.left_fail)
+    fail_prob = kwargs.get('fail_prob', env.fail_prob)
 
-    vector_local_agents_starts = tuple(itertools.compress(env.agents_starts,
-                                                          [1 if x in agent_indexes else 0
-                                                           for x in range(env.n_agents)]))
+    start_state = MultiAgentState({agent: SingleAgentState(env.start_state[agent].x, env.start_state[agent].y)
+                                   for agent in agent_indexes})
 
-    vector_local_agents_goals = tuple(itertools.compress(env.agents_goals,
-                                                         [1 if x in agent_indexes else 0
-                                                          for x in range(env.n_agents)]))
+    goal_state = MultiAgentState({agent: SingleAgentState(env.goal_state[agent].x, env.goal_state[agent].y)
+                                  for agent in agent_indexes})
 
-    return MapfEnv(env.grid, len(agent_indexes), vector_local_agents_starts, vector_local_agents_goals,
-                   right_fail, left_fail, env.reward_of_clash, env.reward_of_goal, env.reward_of_living)
-
-
-def mapf_env_load_from_json(json_str: str) -> MapfEnv:
-    raise NotImplementedError()
+    return MapfEnv(env.grid,
+                   len(agent_indexes),
+                   start_state,
+                   goal_state,
+                   fail_prob,
+                   env.reward_of_collision,
+                   env.reward_of_goal,
+                   env.reward_of_living,
+                   env.optimization_criteria)
 
 
 def manhattan_distance(env: MapfEnv, s, a1, a2):
     """Return the manhattan distance between the two given agents in the given state"""
-    locations = env.state_to_locations(s)
-    return abs(locations[a1][0] - locations[a2][0]) + abs(locations[a1][1] - locations[a2][1])
+    return abs(s[a1].x - s[a2].x) + abs(s[a1].y - s[a2].y)
