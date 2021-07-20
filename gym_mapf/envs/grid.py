@@ -15,7 +15,7 @@ class SingleAgentAction(enum.Enum):
 
 ACTIONS = list(SingleAgentAction)
 
-SingleAgentState = collections.namedtuple('SingleAgentState', ['x', 'y'])
+SingleAgentState = collections.namedtuple('SingleAgentState', ['row', 'col'])
 
 
 class SingleAgentStateSpace(gym.Space):
@@ -36,7 +36,7 @@ class SingleAgentStateSpace(gym.Space):
         return loc in self
 
     def __contains__(self, loc: SingleAgentState):
-        return loc.x < len(self.grid.map) and loc.y < len(self.grid.map[0])
+        return loc.row < len(self.grid.map) and loc.col < len(self.grid.map[0])
 
     def to_jsonable(self, sample_n):
         raise NotImplementedError()
@@ -78,6 +78,9 @@ class MultiAgentAction:
     def __getitem__(self, agent):
         return self.agent_to_action[agent]
 
+    def __repr__(self):
+        return f'{self.__class__.__name__}({repr(self.agent_to_action)})'
+
 
 class MultiAgentState:
     """A mapping between an agent and its state"""
@@ -97,13 +100,16 @@ class MultiAgentState:
                 if self.agent_to_state[agent] == state]
 
     def __iter__(self):
-        return self.agent_to_state.items()
+        return iter(self.agent_to_state.items())
 
     def agents(self):
-        return self.agent_to_state.values()
+        return self.agent_to_state.keys()
 
     def __eq__(self, other):
         return self.agent_to_state == other.agent_to_state
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({repr(self.agent_to_state)})'
 
 
 class MultiAgentStateSpace(gym.Space):
@@ -159,8 +165,8 @@ class MapfGrid:
             new_line = [CHAR_TO_CELL[char] for char in line]
             self.map.append(new_line)
 
-        self.max_x = len(self.map[0]) - 1
-        self.max_y = len(self.map) - 1
+        self.max_row = len(self.map) - 1
+        self.max_col = len(self.map[0]) - 1
         self.valid_locations = [(x, y)
                                 for x in range(len(self.map[0]))
                                 for y in range(len(self.map[1]))
@@ -175,7 +181,7 @@ class MapfGrid:
         }
 
     def __getitem__(self, state: SingleAgentState):
-        return self.map[state.x][state.y]
+        return self.map[state.row][state.col]
 
     def __iter__(self):
         for col_idx in range(len(self.map[0])):
@@ -190,23 +196,23 @@ class MapfGrid:
 
     @stay_if_hit_obstacle
     def _up(self, state):
-        return SingleAgentState(state.x, max(0, state.y - 1))
+        return SingleAgentState(max(0, state.row-1), state.col)
 
     @stay_if_hit_obstacle
     def _right(self, state):
-        return SingleAgentState(min(self.max_x, state.x + 1), state.y)
+        return SingleAgentState(state.row, min(self.max_col, state.col+1))
 
     @stay_if_hit_obstacle
     def _down(self, state):
-        return SingleAgentState(state.x, min(self.max_y, state.y + 1))
+        return SingleAgentState(min(self.max_row, state.row + 1), state.col)
 
     @stay_if_hit_obstacle
     def _left(self, state):
-        return SingleAgentState(max(0, state.x - 1), state.y)
+        return SingleAgentState(state.row, max(0, state.col - 1))
 
     @stay_if_hit_obstacle
     def _stay(self, state):
-        return SingleAgentState(state.x, state.y)
+        return SingleAgentState(state.row, state.col)
 
     def next_state(self, state: SingleAgentState, action: SingleAgentAction):
-        return self.action_to_func[action](self, state)
+        return self.action_to_func[action](state)

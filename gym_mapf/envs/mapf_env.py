@@ -37,7 +37,7 @@ def sample_noised_action(action: SingleAgentAction, fail_prob: float):
     ]
     p = [x[0] for x in noised_actions_and_probability]
 
-    prob, new_action = np.random.choice(noised_actions_and_probability, p=p)
+    prob, new_action = noised_actions_and_probability[np.random.choice(range(len(noised_actions_and_probability)), p=p)]
 
     return new_action, prob
 
@@ -63,7 +63,7 @@ class MapfEnv(gym.Env):
                  n_agents: int,
                  start_state: MultiAgentState,
                  goal_state: MultiAgentState,
-                 fail_prob: int,
+                 fail_prob: float,
                  reward_of_clash: int,
                  reward_of_goal: int,
                  reward_of_living: int,
@@ -99,7 +99,7 @@ class MapfEnv(gym.Env):
     def _reward_done_calculation(self, prev_state: MultiAgentState, next_state: MultiAgentState):
         # Check for a regular collision
         for _, state in next_state:
-            if len(next_state.who_is_here(state) >= 2):
+            if len(next_state.who_is_here(state)) >= 2:
                 return self.reward_of_collision, True
 
         # Check for a switch (also considered as a collision)
@@ -151,8 +151,8 @@ class MapfEnv(gym.Env):
         # v_state = self.state_to_locations(self.s)
         # v_agent_goals = self.agents_goals
 
-        for i in range(len(self.grid)):
-            for j in range(len(self.grid[0])):
+        for i in range(len(self.grid.map)):
+            for j in range(len(self.grid.map[0])):
                 curr_state = SingleAgentState(i, j)
                 if curr_state in self.s:
                     agents_in_state = self.s.who_is_here(curr_state)
@@ -162,14 +162,17 @@ class MapfEnv(gym.Env):
                         print(Fore.RED + '*' + Fore.RESET, end=' ')
                     else:
                         # This is the only agent in this cell
-                        if curr_state in self.goal_state and agents_in_state[0] == self.goal_state[agents_in_state[0]]:
+                        if all([
+                            curr_state in self.goal_state,
+                            agents_in_state[0] in self.goal_state.who_is_here(curr_state)
+                        ]):
                             # print an agent which reached it's goal
                             print(Fore.GREEN + str(agents_in_state[0]) + Fore.RESET, end=' ')
                             continue
                         print(Fore.YELLOW + str(agents_in_state[0]) + Fore.RESET, end=' ')
                     continue
                 if curr_state in self.goal_state:
-                    print(Fore.BLUE + str(self.goal_state.who_is_here(curr_state)) + Fore.RESET, end=' ')
+                    print(Fore.BLUE + str(self.goal_state.who_is_here(curr_state)[0]) + Fore.RESET, end=' ')
                     continue
 
                 print(CELL_TO_CHAR[self.grid[curr_state]], end=' ')

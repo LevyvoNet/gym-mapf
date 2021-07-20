@@ -154,10 +154,10 @@ def create_mapf_env(map_name,
 def get_local_view(env: MapfEnv, agent_indexes: list, **kwargs):
     fail_prob = kwargs.get('fail_prob', env.fail_prob)
 
-    start_state = MultiAgentState({agent: SingleAgentState(env.start_state[agent].x, env.start_state[agent].y)
+    start_state = MultiAgentState({agent: SingleAgentState(env.start_state[agent].row, env.start_state[agent].col)
                                    for agent in agent_indexes})
 
-    goal_state = MultiAgentState({agent: SingleAgentState(env.goal_state[agent].x, env.goal_state[agent].y)
+    goal_state = MultiAgentState({agent: SingleAgentState(env.goal_state[agent].row, env.goal_state[agent].col)
                                   for agent in agent_indexes})
 
     return MapfEnv(env.grid,
@@ -173,4 +173,4 @@ def get_local_view(env: MapfEnv, agent_indexes: list, **kwargs):
 
 def manhattan_distance(env: MapfEnv, s, a1, a2):
     """Return the manhattan distance between the two given agents in the given state"""
-    return abs(s[a1].x - s[a2].x) + abs(s[a1].y - s[a2].y)
+    return abs(s[a1].row - s[a2].row) + abs(s[a1].col - s[a2].col)

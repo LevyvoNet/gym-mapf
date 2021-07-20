@@ -1,10 +1,13 @@
 import unittest
 import os
 
-from gym_mapf.envs.grid import MapfGrid
-from gym_mapf.envs import UP, DOWN, LEFT, RIGHT, STAY
-from gym_mapf.envs.mapf_env import execute_action
+from gym_mapf.envs.grid import (MapfGrid,
+                                MultiAgentState,
+                                MultiAgentAction,
+                                SingleAgentState,
+                                SingleAgentAction)
 from gym_mapf.envs.utils import parse_map_file
+from gym_mapf.envs.mapf_env import MapfEnv, OptimizationCriteria
 from gym_mapf.tests import MAPS_DIR
 
 
@@ -14,22 +17,60 @@ class ExecutorTest(unittest.TestCase):
         map_file_path = os.path.abspath(os.path.join(__file__, MAPS_DIR, 'empty-8-8/empty-8-8.map'))
         grid = MapfGrid(parse_map_file(map_file_path))
 
-        s = ((0, 0), (7, 7))
+        start_state = MultiAgentState({
+            0: SingleAgentState(0, 0),
+            1: SingleAgentState(7, 7)
+        })
 
-        new_state = execute_action(grid, s, (RIGHT, UP))
-        self.assertEqual(new_state, ((0, 1), (6, 7)))
+        goal_state = MultiAgentState({
+            1: SingleAgentState(0, 0),
+            0: SingleAgentState(7, 7)
+        })
 
-        new_state = execute_action(grid, s, (DOWN, LEFT))
-        self.assertEqual(new_state, ((1, 0), (7, 6)))
+        env = MapfEnv(grid, 2, start_state, goal_state, 0, 0, 0, 0, OptimizationCriteria.Makespan)
+        new_state, _, _, _ = env.step(MultiAgentAction({
+            0: SingleAgentAction.RIGHT,
+            1: SingleAgentAction.UP
+        }))
+
+        self.assertEqual(new_state,
+                         MultiAgentState({
+                             0: SingleAgentState(0, 1),
+                             1: SingleAgentState(6, 7)
+                         }))
+
+        env.reset()
+        new_state, _, _, _ = env.step(MultiAgentAction({
+            0: SingleAgentAction.DOWN,
+            1: SingleAgentAction.LEFT
+        }))
+        self.assertEqual(new_state,
+                         MultiAgentState({
+                             0: SingleAgentState(1, 0),
+                             1: SingleAgentState(7, 6)
+                         }))
 
     def test_against_the_wall(self):
         map_file_path = os.path.abspath(os.path.join(__file__, MAPS_DIR, 'empty-8-8/empty-8-8.map'))
         grid = MapfGrid(parse_map_file(map_file_path))
 
-        s = ((0, 0), (7, 7))
+        start_state = MultiAgentState({
+            0: SingleAgentState(0, 0),
+            1: SingleAgentState(7, 7)
+        })
 
-        new_state = execute_action(grid, s, (LEFT, RIGHT))
-        self.assertEqual(new_state, ((0, 0), (7, 7)))
+        goal_state = MultiAgentState({
+            1: SingleAgentState(0, 0),
+            0: SingleAgentState(7, 7)
+        })
+
+        env = MapfEnv(grid, 2, start_state, goal_state, 0, 0, 0, 0, OptimizationCriteria.Makespan)
+
+        new_state, _, _, _ = env.step(MultiAgentAction({
+            0: SingleAgentAction.LEFT,
+            1: SingleAgentAction.RIGHT
+        }))
+        self.assertEqual(new_state, start_state)
 
     def test_against_obstacle_stays_in_place(self):
         grid = MapfGrid([
@@ -39,19 +80,44 @@ class ExecutorTest(unittest.TestCase):
             '..@..',
             '..@..'])
 
-        s = ((0, 1),)  # start near an obstacle.
+        # start near an obstacle.
+        start_state = MultiAgentState({
+            0: SingleAgentState(0, 1),
+        })
 
-        new_state = execute_action(grid, s, (RIGHT,))
-        self.assertEqual(new_state, ((0, 1),))  # The agent hits an obstacle and should stay in place.
+        # don't really care
+        goal_state = MultiAgentState({
+            0: SingleAgentState(1, 0),
+        })
+
+        env = MapfEnv(grid, 2, start_state, goal_state, 0, 0, 0, 0, OptimizationCriteria.Makespan)
+        new_state, _, _, _ = env.step(MultiAgentAction({
+            0: SingleAgentAction.RIGHT
+        }))
+
+        self.assertEqual(new_state, start_state)  # The agent hits an obstacle and should stay in place.
 
     def test_stay_action(self):
         map_file_path = os.path.abspath(os.path.join(__file__, MAPS_DIR, 'empty-8-8/empty-8-8.map'))
         grid = MapfGrid(parse_map_file(map_file_path))
 
-        s = ((0, 0), (7, 7))
+        start_state = MultiAgentState({
+            0: SingleAgentState(0, 0),
+            1: SingleAgentState(7, 7)
+        })
 
-        new_state = execute_action(grid, s, (STAY, STAY))
-        self.assertEqual(new_state, ((0, 0), (7, 7)))
+        goal_state = MultiAgentState({
+            1: SingleAgentState(0, 0),
+            0: SingleAgentState(7, 7)
+        })
+
+        env = MapfEnv(grid, 2, start_state, goal_state, 0, 0, 0, 0, OptimizationCriteria.Makespan)
+
+        new_state, _, _, _ = env.step(MultiAgentAction({
+            0: SingleAgentAction.STAY,
+            1: SingleAgentAction.STAY
+        }))
+        self.assertEqual(new_state, start_state)
 
 
 if __name__ == '__main__':
