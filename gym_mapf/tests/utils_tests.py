@@ -2,7 +2,7 @@ import unittest
 
 from gym_mapf.envs.utils import create_mapf_env
 from gym_mapf.envs.grid import SingleAgentAction, MultiAgentAction, SingleAgentState, MultiAgentState
-from gym_mapf.envs.mapf_env import ACTIONS, OptimizationCriteria
+from gym_mapf.envs.mapf_env import OptimizationCriteria
 
 
 class UtilsTest(unittest.TestCase):

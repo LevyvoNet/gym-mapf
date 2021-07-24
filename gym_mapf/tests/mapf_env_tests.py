@@ -13,7 +13,7 @@ from copy import copy
 
 FAIL_PROB = 0.2
 REWARD_OF_CLASH = -1000
-REWARD_OF_LIVING = 0
+REWARD_OF_LIVING = -1
 REWARD_OF_GOAL = 100
 
 
@@ -36,14 +36,13 @@ class MapfEnvTest(unittest.TestCase):
         })
 
         goal_state = MultiAgentState({
-            1: SingleAgentState(0, 2),
-            0: SingleAgentState(5, 7)
+            0: SingleAgentState(0, 2),
+            1: SingleAgentState(5, 7)
         })
 
-        env = MapfEnv(grid, 2, start_state, goal_state, 0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING,
+        env = MapfEnv(grid, 2, start_state, goal_state, 0.2, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING,
                       OptimizationCriteria.Makespan)
         right_up_action = MultiAgentAction({0: SingleAgentAction.RIGHT, 1: SingleAgentAction.UP})
-
         first_step_transitions = [(round(prob, 2), next_state, reward, done)
                                   for (prob, next_state, reward, done) in
                                   env.P[env.s][right_up_action]]
@@ -70,7 +69,7 @@ class MapfEnvTest(unittest.TestCase):
              REWARD_OF_LIVING,
              False),  # (RIGHT, LEFT)
             (0.01,
-             MultiAgentState({0: SingleAgentState(0, 1), 1: SingleAgentState(7, 7)}),
+             MultiAgentState({0: SingleAgentState(1, 0), 1: SingleAgentState(7, 7)}),
              REWARD_OF_LIVING,
              False),  # (DOWN, RIGHT)
             (0.01,
@@ -96,7 +95,7 @@ class MapfEnvTest(unittest.TestCase):
         self.assertEqual(set(second_step_transitions), {
             (0.64,
              MultiAgentState({0: SingleAgentState(0, 2), 1: SingleAgentState(5, 7)}),
-             REWARD_OF_GOAL,
+             REWARD_OF_LIVING + REWARD_OF_GOAL,
              True),  # (RIGHT, UP)
             (0.08,
              MultiAgentState({0: SingleAgentState(1, 1), 1: SingleAgentState(5, 7)}),
@@ -143,16 +142,16 @@ class MapfEnvTest(unittest.TestCase):
 
         env = MapfEnv(grid, 2, start_state, goal_state, FAIL_PROB, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING,
                       OptimizationCriteria.Makespan)
-        right_left_action = MultiAgentAction({0: SingleAgentAction.RIGHT, 1: SingleAgentState.LEFT})
+        right_left_action = MultiAgentAction({0: SingleAgentAction.RIGHT, 1: SingleAgentAction.LEFT})
         transitions = [(round(prob, 2), next_state, reward, done)
                        for (prob, next_state, reward, done)
                        in env.P[env.s][right_left_action]]
 
         self.assertIn((0.64,
                        MultiAgentState({0: SingleAgentState(0, 1), 1: SingleAgentState(0, 1)}),
-                       REWARD_OF_CLASH,
+                       REWARD_OF_LIVING + REWARD_OF_CLASH,
                        True),
-                      set(transitions))
+                      transitions)
 
     def test_reward_multiagent_soc(self):
         grid = MapfGrid([
@@ -171,7 +170,6 @@ class MapfEnvTest(unittest.TestCase):
         determinstic_env = MapfEnv(grid, 3, start_state, goal_state, 0, REWARD_OF_CLASH, REWARD_OF_GOAL,
                                    REWARD_OF_LIVING,
                                    OptimizationCriteria.SoC)
-
         total_reward = 0
         s, r, done, _ = determinstic_env.step(MultiAgentAction({
             0: SingleAgentAction.RIGHT,
@@ -247,17 +245,17 @@ class MapfEnvTest(unittest.TestCase):
                                    REWARD_OF_LIVING, OptimizationCriteria.SoC)
         total_reward = 0
         down_action = MultiAgentAction({0: SingleAgentAction.DOWN})
-        _, _, r, _ = determinstic_env.step(down_action)
+        _, r, _, _ = determinstic_env.step(down_action)
         total_reward += r
-        _, _, r, _ = determinstic_env.step(down_action)
+        _, r, _, _ = determinstic_env.step(down_action)
         total_reward += r
-        _, _, r, _ = determinstic_env.step(down_action)
+        _, r, _, _ = determinstic_env.step(down_action)
         total_reward += r
         s, r, done, _ = determinstic_env.step(down_action)
         total_reward += r
 
         self.assertEqual(s, goal_state)
-        self.assertEqual(r, REWARD_OF_GOAL)
+        self.assertEqual(r, REWARD_OF_LIVING + REWARD_OF_GOAL)
         self.assertEqual(total_reward, REWARD_OF_GOAL + 4 * REWARD_OF_LIVING)
 
     def test_reward_single_agent_makespan(self):
@@ -279,17 +277,18 @@ class MapfEnvTest(unittest.TestCase):
                                    REWARD_OF_LIVING, OptimizationCriteria.Makespan)
         total_reward = 0
         down_action = MultiAgentAction({0: SingleAgentAction.DOWN})
-        _, _, r, _ = determinstic_env.step(down_action)
+        _, r, _, _ = determinstic_env.step(down_action)
         total_reward += r
-        _, _, r, _ = determinstic_env.step(down_action)
+        _, r, _, _ = determinstic_env.step(down_action)
         total_reward += r
-        _, _, r, _ = determinstic_env.step(down_action)
+        _, r, _, _ = determinstic_env.step(down_action)
         total_reward += r
         s, r, done, _ = determinstic_env.step(down_action)
         total_reward += r
 
         self.assertEqual(s, goal_state)
-        self.assertEqual(r, REWARD_OF_GOAL)
+        self.assertEqual(r, REWARD_OF_LIVING + REWARD_OF_GOAL)
+
         self.assertEqual(total_reward, REWARD_OF_GOAL + 4 * REWARD_OF_LIVING)
 
     def test_copy_mapf_env(self):
@@ -330,10 +329,10 @@ class MapfEnvTest(unittest.TestCase):
                       OptimizationCriteria.Makespan)
 
         state, reward, done, _ = env.step(MultiAgentAction({0: SingleAgentAction.RIGHT}))
-        self.assertEqual(reward, 0)
+        self.assertEqual(reward, REWARD_OF_LIVING)
         self.assertEqual(done, False)
         state, reward, done, _ = env.step(MultiAgentAction({0: SingleAgentAction.DOWN}))
-        self.assertEqual(reward, REWARD_OF_GOAL)
+        self.assertEqual(reward, REWARD_OF_LIVING + REWARD_OF_GOAL)
         self.assertEqual(done, True)
 
         # now, after the game is finished - do another step and make sure it has not effect.
@@ -364,7 +363,7 @@ class MapfEnvTest(unittest.TestCase):
 
         # Assert the game terminated in a collision
         self.assertEqual(done, True)
-        self.assertEqual(r, REWARD_OF_CLASH)
+        self.assertEqual(r, REWARD_OF_LIVING + REWARD_OF_CLASH)
 
     def test_predecessors(self):
         """Assert the predecessors function works correctly.
@@ -448,8 +447,8 @@ class MapfEnvTest(unittest.TestCase):
         expected_states = [MultiAgentState({0: SingleAgentState(*loc[0]), 1: SingleAgentState(*loc[1])})
                            for loc in expected_locations]
 
-        self.assertSetEqual(set(expected_states),
-                            set(env.predecessors(env.s)))
+        self.assertEqual(set(expected_states),
+                         set(env.predecessors(env.s)))
 
     def test_similar_transitions_probability_summed(self):
         grid = MapfGrid(['..',
@@ -459,17 +458,8 @@ class MapfEnvTest(unittest.TestCase):
         env = MapfEnv(grid, 1, start_state, goal_state, 0.1, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING,
                       OptimizationCriteria.Makespan)
 
-        self.assertEqual(env.P[env.s][MultiAgentAction({0: SingleAgentAction.STAY})],
-                         [(1, env.s, REWARD_OF_LIVING, False)])
-
-    def test_single_agent_action_transitions(self):
-        env = create_mapf_env('empty-8-8', 1, 2, 0.2, -1000, -1, -1, OptimizationCriteria.Makespan)
-
-        local_action = SingleAgentAction.RIGHT
-
-        eq_joint_action = MultiAgentAction({0: SingleAgentAction.STAY, 1: SingleAgentAction.RIGHT})
-
-        self.assertEqual(env.P[env.s][eq_joint_action], env.get_single_agent_transitions(env.s, 1, local_action))
+        self.assertEqual([*env.P[env.s][MultiAgentAction({0: SingleAgentAction.STAY})]],
+                         [(1.0, env.s, REWARD_OF_LIVING, False)])
 
 
 if __name__ == '__main__':

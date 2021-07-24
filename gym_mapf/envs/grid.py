@@ -81,6 +81,9 @@ class MultiAgentAction:
     def __repr__(self):
         return f'{self.__class__.__name__}({repr(self.agent_to_action)})'
 
+    def __eq__(self, other):
+        return self.agent_to_action == other.agent_to_action
+
 
 class MultiAgentState:
     """A mapping between an agent and its state"""
@@ -110,6 +113,9 @@ class MultiAgentState:
 
     def __repr__(self):
         return f'{self.__class__.__name__}({repr(self.agent_to_state)})'
+
+    def __hash__(self):
+        return hash(tuple(self.agent_to_state.values()))
 
 
 class MultiAgentStateSpace(gym.Space):
@@ -168,8 +174,8 @@ class MapfGrid:
         self.max_row = len(self.map) - 1
         self.max_col = len(self.map[0]) - 1
         self.valid_locations = [(x, y)
-                                for x in range(len(self.map[0]))
-                                for y in range(len(self.map[1]))
+                                for x in range(len(self.map))
+                                for y in range(len(self.map[0]))
                                 if self.map[x][y] is EmptyCell]
 
         self.action_to_func = {
@@ -196,11 +202,11 @@ class MapfGrid:
 
     @stay_if_hit_obstacle
     def _up(self, state):
-        return SingleAgentState(max(0, state.row-1), state.col)
+        return SingleAgentState(max(0, state.row - 1), state.col)
 
     @stay_if_hit_obstacle
     def _right(self, state):
-        return SingleAgentState(state.row, min(self.max_col, state.col+1))
+        return SingleAgentState(state.row, min(self.max_col, state.col + 1))
 
     @stay_if_hit_obstacle
     def _down(self, state):
