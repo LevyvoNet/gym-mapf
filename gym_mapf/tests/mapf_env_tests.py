@@ -1,10 +1,8 @@
 import unittest
 import os.path
 
-from gym_mapf.envs.mapf_env import MapfEnv, OptimizationCriteria
+from gym_mapf.envs.mapf_env import MapfEnv, OptimizationCriteria, MultiAgentAction, MultiAgentState
 from gym_mapf.envs.grid import (MapfGrid,
-                                MultiAgentState,
-                                MultiAgentAction,
                                 SingleAgentState,
                                 SingleAgentAction)
 from gym_mapf.envs.utils import parse_map_file, create_mapf_env
@@ -33,12 +31,12 @@ class MapfEnvTest(unittest.TestCase):
         start_state = MultiAgentState({
             0: SingleAgentState(0, 0),
             1: SingleAgentState(7, 7)
-        })
+        }, grid)
 
         goal_state = MultiAgentState({
             0: SingleAgentState(0, 2),
             1: SingleAgentState(5, 7)
-        })
+        }, grid)
 
         env = MapfEnv(grid, 2, start_state, goal_state, 0.2, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING,
                       OptimizationCriteria.Makespan)
@@ -49,44 +47,44 @@ class MapfEnvTest(unittest.TestCase):
 
         self.assertEqual(set(first_step_transitions), {
             (0.64,
-             MultiAgentState({0: SingleAgentState(0, 1), 1: SingleAgentState(6, 7)}),
+             MultiAgentState({0: SingleAgentState(0, 1), 1: SingleAgentState(6, 7)}, grid),
              REWARD_OF_LIVING,
              False),  # (RIGHT, UP)
             (0.08,
-             MultiAgentState({0: SingleAgentState(1, 0), 1: SingleAgentState(6, 7)}),
+             MultiAgentState({0: SingleAgentState(1, 0), 1: SingleAgentState(6, 7)}, grid),
              REWARD_OF_LIVING,
              False),  # (DOWN, UP)
             (0.08,
-             MultiAgentState({0: SingleAgentState(0, 0), 1: SingleAgentState(6, 7)}),
+             MultiAgentState({0: SingleAgentState(0, 0), 1: SingleAgentState(6, 7)}, grid),
              REWARD_OF_LIVING,
              False),  # (UP, UP)
             (0.08,
-             MultiAgentState({0: SingleAgentState(0, 1), 1: SingleAgentState(7, 7)}),
+             MultiAgentState({0: SingleAgentState(0, 1), 1: SingleAgentState(7, 7)}, grid),
              REWARD_OF_LIVING,
              False),  # (RIGHT, RIGHT)
             (0.08,
-             MultiAgentState({0: SingleAgentState(0, 1), 1: SingleAgentState(7, 6)}),
+             MultiAgentState({0: SingleAgentState(0, 1), 1: SingleAgentState(7, 6)}, grid),
              REWARD_OF_LIVING,
              False),  # (RIGHT, LEFT)
             (0.01,
-             MultiAgentState({0: SingleAgentState(1, 0), 1: SingleAgentState(7, 7)}),
+             MultiAgentState({0: SingleAgentState(1, 0), 1: SingleAgentState(7, 7)}, grid),
              REWARD_OF_LIVING,
              False),  # (DOWN, RIGHT)
             (0.01,
-             MultiAgentState({0: SingleAgentState(1, 0), 1: SingleAgentState(7, 6)}),
+             MultiAgentState({0: SingleAgentState(1, 0), 1: SingleAgentState(7, 6)}, grid),
              REWARD_OF_LIVING,
              False),  # (DOWN, LEFT)
             (0.01,
-             MultiAgentState({0: SingleAgentState(0, 0), 1: SingleAgentState(7, 7)}),
+             MultiAgentState({0: SingleAgentState(0, 0), 1: SingleAgentState(7, 7)}, grid),
              REWARD_OF_LIVING,
              False),  # (UP, RIGHT)
             (0.01,
-             MultiAgentState({0: SingleAgentState(0, 0), 1: SingleAgentState(7, 6)}),
+             MultiAgentState({0: SingleAgentState(0, 0), 1: SingleAgentState(7, 6)}, grid),
              REWARD_OF_LIVING,
              False)  # (UP, LEFT)
         })
 
-        wish_state = MultiAgentState({0: SingleAgentState(0, 1), 1: SingleAgentState(6, 7)})
+        wish_state = MultiAgentState({0: SingleAgentState(0, 1), 1: SingleAgentState(6, 7)}, grid)
         second_step_transitions = [(round(prob, 2), next_state, reward, done)
                                    for (prob, next_state, reward, done) in
                                    env.P[wish_state][right_up_action]]
@@ -94,39 +92,39 @@ class MapfEnvTest(unittest.TestCase):
         # [(0,0), (7,7)]
         self.assertEqual(set(second_step_transitions), {
             (0.64,
-             MultiAgentState({0: SingleAgentState(0, 2), 1: SingleAgentState(5, 7)}),
+             MultiAgentState({0: SingleAgentState(0, 2), 1: SingleAgentState(5, 7)}, grid),
              REWARD_OF_LIVING + REWARD_OF_GOAL,
              True),  # (RIGHT, UP)
             (0.08,
-             MultiAgentState({0: SingleAgentState(1, 1), 1: SingleAgentState(5, 7)}),
+             MultiAgentState({0: SingleAgentState(1, 1), 1: SingleAgentState(5, 7)}, grid),
              REWARD_OF_LIVING,
              False),  # (DOWN, UP)
             (0.08,
-             MultiAgentState({0: SingleAgentState(0, 1), 1: SingleAgentState(5, 7)}),
+             MultiAgentState({0: SingleAgentState(0, 1), 1: SingleAgentState(5, 7)}, grid),
              REWARD_OF_LIVING,
              False),  # (UP, UP)
             (0.08,
-             MultiAgentState({0: SingleAgentState(0, 2), 1: SingleAgentState(6, 7)}),
+             MultiAgentState({0: SingleAgentState(0, 2), 1: SingleAgentState(6, 7)}, grid),
              REWARD_OF_LIVING,
              False),  # (RIGHT, RIGHT)
             (0.08,
-             MultiAgentState({0: SingleAgentState(0, 2), 1: SingleAgentState(6, 6)}),
+             MultiAgentState({0: SingleAgentState(0, 2), 1: SingleAgentState(6, 6)}, grid),
              REWARD_OF_LIVING,
              False),  # (RIGHT, LEFT)
             (0.01,
-             MultiAgentState({0: SingleAgentState(1, 1), 1: SingleAgentState(6, 7)}),
+             MultiAgentState({0: SingleAgentState(1, 1), 1: SingleAgentState(6, 7)}, grid),
              REWARD_OF_LIVING,
              False),  # (DOWN, RIGHT)
             (0.01,
-             MultiAgentState({0: SingleAgentState(1, 1), 1: SingleAgentState(6, 6)}),
+             MultiAgentState({0: SingleAgentState(1, 1), 1: SingleAgentState(6, 6)}, grid),
              REWARD_OF_LIVING,
              False),  # (DOWN, LEFT)
             (0.01,
-             MultiAgentState({0: SingleAgentState(0, 1), 1: SingleAgentState(6, 7)}),
+             MultiAgentState({0: SingleAgentState(0, 1), 1: SingleAgentState(6, 7)}, grid),
              REWARD_OF_LIVING,
              False),  # (UP, RIGHT)
             (0.01,
-             MultiAgentState({0: SingleAgentState(0, 1), 1: SingleAgentState(6, 6)}),
+             MultiAgentState({0: SingleAgentState(0, 1), 1: SingleAgentState(6, 6)}, grid),
              REWARD_OF_LIVING,
              False)  # (UP, LEFT)
         })
@@ -137,8 +135,8 @@ class MapfEnvTest(unittest.TestCase):
         grid = MapfGrid(parse_map_file(map_file_path))
 
         # agents are starting a
-        start_state = MultiAgentState({0: SingleAgentState(0, 0), 1: SingleAgentState(0, 2)})
-        goal_state = MultiAgentState({0: SingleAgentState(7, 7), 1: SingleAgentState(5, 5)})
+        start_state = MultiAgentState({0: SingleAgentState(0, 0), 1: SingleAgentState(0, 2)}, grid)
+        goal_state = MultiAgentState({0: SingleAgentState(7, 7), 1: SingleAgentState(5, 5)}, grid)
 
         env = MapfEnv(grid, 2, start_state, goal_state, FAIL_PROB, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING,
                       OptimizationCriteria.Makespan)
@@ -148,7 +146,7 @@ class MapfEnvTest(unittest.TestCase):
                        in env.P[env.s][right_left_action]]
 
         self.assertIn((0.64,
-                       MultiAgentState({0: SingleAgentState(0, 1), 1: SingleAgentState(0, 1)}),
+                       MultiAgentState({0: SingleAgentState(0, 1), 1: SingleAgentState(0, 1)}, grid),
                        REWARD_OF_LIVING + REWARD_OF_CLASH,
                        True),
                       transitions)
@@ -162,10 +160,10 @@ class MapfEnvTest(unittest.TestCase):
 
         start_state = MultiAgentState({0: SingleAgentState(0, 0),
                                        1: SingleAgentState(3, 3),
-                                       2: SingleAgentState(1, 1)})
+                                       2: SingleAgentState(1, 1)}, grid)
         goal_state = MultiAgentState({0: SingleAgentState(0, 1),
                                       1: SingleAgentState(1, 3),
-                                      2: SingleAgentState(1, 2)})
+                                      2: SingleAgentState(1, 2)}, grid)
 
         determinstic_env = MapfEnv(grid, 3, start_state, goal_state, 0, REWARD_OF_CLASH, REWARD_OF_GOAL,
                                    REWARD_OF_LIVING,
@@ -198,10 +196,10 @@ class MapfEnvTest(unittest.TestCase):
 
         start_state = MultiAgentState({0: SingleAgentState(0, 0),
                                        1: SingleAgentState(3, 3),
-                                       2: SingleAgentState(1, 1)})
+                                       2: SingleAgentState(1, 1)}, grid)
         goal_state = MultiAgentState({0: SingleAgentState(0, 1),
                                       1: SingleAgentState(1, 3),
-                                      2: SingleAgentState(1, 2)})
+                                      2: SingleAgentState(1, 2)}, grid)
 
         determinstic_env = MapfEnv(grid, 3, start_state, goal_state, 0, REWARD_OF_CLASH, REWARD_OF_GOAL,
                                    REWARD_OF_LIVING,
@@ -236,10 +234,10 @@ class MapfEnvTest(unittest.TestCase):
 
         start_state = MultiAgentState({
             0: SingleAgentState(0, 0),
-        })
+        }, grid)
         goal_state = MultiAgentState({
             0: SingleAgentState(4, 0),
-        })
+        }, grid)
 
         determinstic_env = MapfEnv(grid, 1, start_state, goal_state, 0, REWARD_OF_CLASH, REWARD_OF_GOAL,
                                    REWARD_OF_LIVING, OptimizationCriteria.SoC)
@@ -268,10 +266,10 @@ class MapfEnvTest(unittest.TestCase):
 
         start_state = MultiAgentState({
             0: SingleAgentState(0, 0),
-        })
+        }, grid)
         goal_state = MultiAgentState({
             0: SingleAgentState(4, 0),
-        })
+        }, grid)
 
         determinstic_env = MapfEnv(grid, 1, start_state, goal_state, 0, REWARD_OF_CLASH, REWARD_OF_GOAL,
                                    REWARD_OF_LIVING, OptimizationCriteria.Makespan)
@@ -299,21 +297,21 @@ class MapfEnvTest(unittest.TestCase):
             '....',
             '....'])
 
-        start_state = MultiAgentState({0: SingleAgentState(0, 0)})
-        goal_state = MultiAgentState({0: SingleAgentState(4, 0)})
+        start_state = MultiAgentState({0: SingleAgentState(0, 0)}, grid)
+        goal_state = MultiAgentState({0: SingleAgentState(4, 0)}, grid)
 
         env = MapfEnv(grid, 1, start_state, goal_state, 0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING,
                       OptimizationCriteria.Makespan)
 
         right_action = MultiAgentAction({0: SingleAgentAction.RIGHT})
         env.step(right_action)
-        state_after_single_right = MultiAgentState({0: SingleAgentState(0, 1)})
+        state_after_single_right = MultiAgentState({0: SingleAgentState(0, 1)}, grid)
         self.assertEqual(env.s, state_after_single_right)
 
         env_copy = copy(env)
         self.assertEqual(env_copy.s, state_after_single_right)
         env_copy.step(right_action)
-        state_after_two_rights = MultiAgentState({0: SingleAgentState(0, 2)})
+        state_after_two_rights = MultiAgentState({0: SingleAgentState(0, 2)}, grid)
         self.assertEqual(env_copy.s, state_after_two_rights)
 
         # Make sure the original env did not change
@@ -322,8 +320,8 @@ class MapfEnvTest(unittest.TestCase):
     def test_action_from_terminal_state_has_no_effect(self):
         grid = MapfGrid(['..',
                          '..'])
-        start_state = MultiAgentState({0: SingleAgentState(0, 0)})
-        goal_state = MultiAgentState({0: SingleAgentState(1, 1)})
+        start_state = MultiAgentState({0: SingleAgentState(0, 0)}, grid)
+        goal_state = MultiAgentState({0: SingleAgentState(1, 1)}, grid)
 
         env = MapfEnv(grid, 1, start_state, goal_state, 0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING,
                       OptimizationCriteria.Makespan)
@@ -351,8 +349,8 @@ class MapfEnvTest(unittest.TestCase):
     def test_switch_spots_is_a_collision(self):
         grid = MapfGrid(['..'])
 
-        start_state = MultiAgentState({0: SingleAgentState(0, 0), 1: SingleAgentState(0, 1)})
-        goal_state = MultiAgentState({0: SingleAgentState(0, 1), 1: SingleAgentState(0, 0)})
+        start_state = MultiAgentState({0: SingleAgentState(0, 0), 1: SingleAgentState(0, 1)}, grid)
+        goal_state = MultiAgentState({0: SingleAgentState(0, 1), 1: SingleAgentState(0, 0)}, grid)
 
         deterministic_env = MapfEnv(grid, 2, start_state, goal_state, 0, REWARD_OF_CLASH, REWARD_OF_GOAL,
                                     REWARD_OF_LIVING,
@@ -414,9 +412,9 @@ class MapfEnvTest(unittest.TestCase):
                          '....',
                          '....'])
 
-        start_state = MultiAgentState({0: SingleAgentState(1, 2), 1: SingleAgentState(2, 1)})
+        start_state = MultiAgentState({0: SingleAgentState(1, 2), 1: SingleAgentState(2, 1)}, grid)
         # don't care
-        goal_state = MultiAgentState({0: SingleAgentState(0, 0), 1: SingleAgentState(2, 3)})
+        goal_state = MultiAgentState({0: SingleAgentState(0, 0), 1: SingleAgentState(2, 3)}, grid)
 
         env = MapfEnv(grid, 2, start_state, goal_state, 0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING,
                       OptimizationCriteria.Makespan)
@@ -424,27 +422,31 @@ class MapfEnvTest(unittest.TestCase):
         expected_locations = [
             ((0, 2), (2, 2)),
             ((0, 2), (2, 0)),
-            ((0, 2), (1, 1)),
+            ((0, 2), (1, 1)),  # bug
             ((0, 2), (2, 1)),
+
             ((1, 1), (2, 2)),
-            ((1, 1), (2, 0)),
+            ((1, 1), (2, 0)),  # bug
             ((1, 1), (1, 1)),
             ((1, 1), (2, 1)),
-            ((1, 3), (2, 2)),
+
+            ((1, 3), (2, 2)),  # bug
             ((1, 3), (2, 0)),
             ((1, 3), (1, 1)),
             ((1, 3), (2, 1)),
+
             ((2, 2), (2, 2)),
             ((2, 2), (2, 0)),
             ((2, 2), (1, 1)),
             ((2, 2), (2, 1)),
+
             ((1, 2), (2, 2)),
             ((1, 2), (2, 0)),
             ((1, 2), (1, 1)),
             ((1, 2), (2, 1))
         ]
 
-        expected_states = [MultiAgentState({0: SingleAgentState(*loc[0]), 1: SingleAgentState(*loc[1])})
+        expected_states = [MultiAgentState({0: SingleAgentState(*loc[0]), 1: SingleAgentState(*loc[1])}, grid)
                            for loc in expected_locations]
 
         self.assertEqual(set(expected_states),
@@ -453,8 +455,8 @@ class MapfEnvTest(unittest.TestCase):
     def test_similar_transitions_probability_summed(self):
         grid = MapfGrid(['..',
                          '..'])
-        start_state = MultiAgentState({0: SingleAgentState(0, 0)})
-        goal_state = MultiAgentState({0: SingleAgentState(1, 1)})
+        start_state = MultiAgentState({0: SingleAgentState(0, 0)}, grid)
+        goal_state = MultiAgentState({0: SingleAgentState(1, 1)}, grid)
         env = MapfEnv(grid, 1, start_state, goal_state, 0.1, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING,
                       OptimizationCriteria.Makespan)
 

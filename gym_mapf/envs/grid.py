@@ -2,18 +2,18 @@ import collections
 import enum
 import random
 import gym
-from typing import Dict, Callable
+from typing import Callable
 
 
 class SingleAgentAction(enum.Enum):
-    UP = 'UP'
-    RIGHT = 'RIGHT'
-    DOWN = 'DOWN'
-    LEFT = 'LEFT'
-    STAY = 'STAY'
+    STAY = 0
+    UP = 1
+    RIGHT = 2
+    DOWN = 3
+    LEFT = 4
 
 
-ACTIONS = list(SingleAgentAction)
+ACTIONS = [a for a in SingleAgentAction]
 
 SingleAgentState = collections.namedtuple('SingleAgentState', ['row', 'col'])
 
@@ -71,64 +71,62 @@ class SingleAgentActionSpace(gym.Space):
         return
 
 
-class MultiAgentAction:
-    def __init__(self, actions: Dict[int, SingleAgentAction]):
-        self.agent_to_action = actions
+def integer_to_vector(x, options_per_element, n_elements, index_to_element):
+    """Return a vector representing an action/state from a given integer.
 
-    def __getitem__(self, agent):
-        return self.agent_to_action[agent]
-
-    def __repr__(self):
-        return f'{self.__class__.__name__}({repr(self.agent_to_action)})'
-
-    def __eq__(self, other):
-        return self.agent_to_action == other.agent_to_action
-
-
-class MultiAgentState:
-    """A mapping between an agent and its state"""
-
-    def __init__(self, states: Dict[int, SingleAgentState]):
-        self.agent_to_state = states
-
-    def __contains__(self, item: SingleAgentState):
-        return item in self.agent_to_state.values()
-
-    def __getitem__(self, agent):
-        return self.agent_to_state[agent]
-
-    def who_is_here(self, state: SingleAgentState):
-        """Return the agents which are in the given state"""
-        return [agent for agent in self.agent_to_state
-                if self.agent_to_state[agent] == state]
-
-    def __iter__(self):
-        return iter(self.agent_to_state.items())
-
-    def agents(self):
-        return self.agent_to_state.keys()
-
-    def __eq__(self, other):
-        return self.agent_to_state == other.agent_to_state
-
-    def __repr__(self):
-        return f'{self.__class__.__name__}({repr(self.agent_to_state)})'
-
-    def __hash__(self):
-        return hash(tuple(self.agent_to_state.values()))
+    Args:
+        x (int): the integer to convert.
+        n_options_per_element(int): number of options for each element in the vector.
+        n_elements (int): the number of elements in the vector to return.
+        index_to_element(int=>any): function which converts an integer represents a single option in one of the
+            vector elements and return anything that vector contains. For example, a function which returns 'UP' for 0,
+            1 for 'RIGHT',etc. Or a function which returns (2,2) given 10 for a 4x4 grid ((2,2) is the 10-th cell of that grid).
+    """
+    return integer_to_vector_multiple_numbers(x, options_per_element, n_elements, index_to_element)
 
 
-class MultiAgentStateSpace(gym.Space):
-    def __init__(self, n_agents: int, grid):
-        super().__init__()
-        self.n_agents = n_agents
-        self.grid = grid
+def vector_to_integer(v, options_per_element, element_to_index):
+    return vector_to_integer_multiple_numbers(v, options_per_element, element_to_index)
 
 
-class MultiAgentActionSpace(gym.Space):
-    def __init__(self, n_agents: int):
-        super().__init__()
-        self.n_agents = n_agents
+def integer_to_vector_multiple_numbers(x, n_options_per_element, n_elements, index_to_element):
+    """Return a vector representing an action/state from a given integer.
+
+    Args:
+        x (int): the integer to convert.
+        n_options_per_element(list): number of options for each element in the vector.
+        n_elements (int): the number of elements in the vector to return.
+        index_to_element(int=>any): function which converts an integer represents a single option in one of the
+            vector elements and return anything that vector contains. For example, a function which returns 'UP' for 0,
+            1 for 'RIGHT',etc. Or a function which returns (2,2) given 10 for a 4x4 grid ((2,2) is the 10-th cell of that grid).
+    """
+    ret = tuple()
+    for i in range(0, n_elements):
+        option_index = x % n_options_per_element[i]
+        ret = ret + (index_to_element(option_index),)
+        x //= n_options_per_element[i]
+
+    return ret
+
+
+def vector_to_integer_multiple_numbers(v, n_options_per_element, element_to_index):
+    sum = 0
+    mul = 1
+    for i in range(len(v)):
+        if i != 0:
+            mul *= n_options_per_element[i - 1]
+
+        sum += element_to_index(v[i]) * mul
+
+    return sum
+
+
+def vector_action_to_integer(a):
+    return vector_to_integer(a, [len(ACTIONS)] * len(a), lambda x: ACTIONS.index(x))
+
+
+def integer_action_to_vector(a, n_agents):
+    return integer_to_vector(a, [len(ACTIONS)] * n_agents, n_agents, lambda n: ACTIONS[n])
 
 
 class ObstacleCell:
@@ -177,6 +175,7 @@ class MapfGrid:
                                 for x in range(len(self.map))
                                 for y in range(len(self.map[0]))
                                 if self.map[x][y] is EmptyCell]
+        self.loc_to_int = {loc: i for i, loc in enumerate(self.valid_locations)}
 
         self.action_to_func = {
             SingleAgentAction.UP: self._up,
@@ -199,6 +198,10 @@ class MapfGrid:
 
     def __eq__(self, other):
         return self.map == other.map
+
+    def locations_to_int(self, locs):
+        local_state_vector = tuple([self.loc_to_int[loc] for loc in locs])
+        return vector_to_integer(local_state_vector, [len(self.valid_locations)] * len(local_state_vector), lambda x: x)
 
     @stay_if_hit_obstacle
     def _up(self, state):

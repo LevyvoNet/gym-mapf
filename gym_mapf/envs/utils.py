@@ -1,8 +1,8 @@
 import itertools
 
 from gym_mapf.envs import map_name_to_files
-from gym_mapf.envs.grid import MapfGrid, MultiAgentState, MultiAgentAction, SingleAgentState, SingleAgentAction
-from gym_mapf.envs.mapf_env import MapfEnv
+from gym_mapf.envs.grid import MapfGrid, SingleAgentState, SingleAgentAction
+from gym_mapf.envs.mapf_env import MapfEnv, MultiAgentAction, MultiAgentState
 
 
 def parse_scen_file(scen_file, n_agents):
@@ -85,16 +85,15 @@ def create_sanity_mapf_env(n_rooms,
         agents_starts += new_agents_starts
         agents_goals += new_agents_goals
 
+    grid = MapfGrid(grid_lines)
     start_state = MultiAgentState({
         i: SingleAgentState(agents_starts[i][0], agents_starts[i][1])
         for i in range(n_agents)
-    })
+    }, grid)
     goal_state = MultiAgentState({
         i: SingleAgentState(agents_goals[i][0], agents_goals[i][1])
         for i in range(n_agents)
-    })
-
-    grid = MapfGrid(grid_lines)
+    }, grid)
 
     return MapfEnv(grid,
                    n_agents,
@@ -132,11 +131,11 @@ def create_mapf_env(map_name,
     start_state = MultiAgentState({
         i: SingleAgentState(agents_starts[i][0], agents_starts[i][1])
         for i in range(n_agents)
-    })
+    }, grid)
     goal_state = MultiAgentState({
         i: SingleAgentState(agents_goals[i][0], agents_goals[i][1])
         for i in range(n_agents)
-    })
+    }, grid)
 
     env = MapfEnv(grid,
                   n_agents,
@@ -155,10 +154,10 @@ def get_local_view(env: MapfEnv, agent_indexes: list, **kwargs):
     fail_prob = kwargs.get('fail_prob', env.fail_prob)
 
     start_state = MultiAgentState({agent: SingleAgentState(env.start_state[agent].row, env.start_state[agent].col)
-                                   for agent in agent_indexes})
+                                   for agent in agent_indexes}, env.grid)
 
     goal_state = MultiAgentState({agent: SingleAgentState(env.goal_state[agent].row, env.goal_state[agent].col)
-                                  for agent in agent_indexes})
+                                  for agent in agent_indexes}, env.grid)
 
     return MapfEnv(env.grid,
                    len(agent_indexes),
