@@ -1,0 +1,15 @@
+on: push
+name: gym-mapf test
+jobs:
+  UT:
+    name: unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.6'
+      - run: pip install  gym gym-mapf
+      - run: python setup.py test
+        env:
+          PYTHONPATH: "."
