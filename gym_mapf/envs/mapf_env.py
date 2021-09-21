@@ -2,8 +2,8 @@ from collections import Counter, defaultdict
 from typing import Callable
 import itertools
 import functools
+import enum
 
-import numpy as np
 from colorama import Fore
 from gym import spaces
 import gym
@@ -26,6 +26,11 @@ ACTION_TO_CHAR = {
     LEFT: '<',
     STAY: 'S'
 }
+
+
+class OptimizationCriteria(enum.Enum):
+    SoC = 'SoC'
+    Makespan = 'Makespan'
 
 
 def empty_indices():
@@ -111,15 +116,16 @@ class MapfEnv(gym.Env):
     def __init__(self,
                  grid: MapfGrid,
                  n_agents: int,
-                 start_state: tuple,
-                 goal_state: tuple,
+                 start_locations: tuple,
+                 goal_locations: tuple,
                  fail_prob: float,
                  reward_of_collision: float,
                  reward_of_goal: float,
-                 reward_of_living: float):
+                 reward_of_living: float,
+                 optimization_criteria: OptimizationCriteria):
         # Constants
         self.grid = grid
-        self.agents_starts, self.agents_goals = start_state, goal_state
+        self.agents_starts, self.agents_goals = start_locations, goal_locations
         self.n_agents = n_agents
         self.fail_prob = fail_prob
         self.right_fail = self.fail_prob / 2
@@ -127,6 +133,7 @@ class MapfEnv(gym.Env):
         self.reward_of_clash = reward_of_collision
         self.reward_of_goal = reward_of_goal
         self.reward_of_living = reward_of_living
+        self.optimization_criteria = optimization_criteria
 
         # Random Parameters
         self.np_random, self.seed = np_random(GYM_MAPF_SEED)
@@ -161,9 +168,8 @@ class MapfEnv(gym.Env):
         self.locations_to_state(self.agents_goals)
 
         # State of the env (all of these values shall be reset during the reset method)
-        self.makespan = 0
-        self.soc = 0
         self.lastaction = None  # for rendering
+        self.s = None
 
         # Initialize the match between state numbers and locations on grid
         self.valid_locations = [loc for loc in self.grid if self.grid[loc] is EmptyCell]
@@ -189,15 +195,11 @@ class MapfEnv(gym.Env):
         self.transitions_cache = {}
         self.s_transitions_cache = {}
 
+        # Set the env to its start state
         self.reset()
 
         # This will throw an exception if the goal coordinates are illegal (an obstacle)
         self.locations_to_state(self.agents_goals)
-
-        # State of the env (all of these values shall be reset during the reset method)
-        self.makespan = 0
-        self.soc = 0
-        self.lastaction = None  # for rendering
 
     def single_agent_movements(self, local_state, a):
         ret = self.single_agent_movements_cache.get((local_state, a), None)
@@ -275,7 +277,9 @@ class MapfEnv(gym.Env):
         self.is_terminal_cache[s] = False
         return False
 
-    def calc_transition_reward_from_local_states(self, prev_local_states, action, next_local_states):
+    def calc_transition_reward_from_local_states(self, prev_local_states, action: int, next_local_states):
+        living_reward = self._living_reward(prev_local_states, action)
+
         states_data = defaultdict(empty_indices)
         for i, (prev_state, next_state) in enumerate(zip(prev_local_states, next_local_states)):
             states_data[prev_state]['prev'].append(i)
@@ -283,7 +287,7 @@ class MapfEnv(gym.Env):
 
             if len(states_data[next_state]['next']) > 1:
                 # collision happened
-                return self.reward_of_clash, True
+                return self.reward_of_clash + living_reward, True
 
             if len(states_data[next_state]['next']) > 0 and len(states_data[next_state]['prev']) > 0:
                 # there is an agent in next_state and there was before as well, find out if it the same one
@@ -293,25 +297,18 @@ class MapfEnv(gym.Env):
                     # It is not the same, check out if the new agent switched with the old one
                     if prev_local_states[next_agent] == next_local_states[prev_agent]:
                         # switch between agents is also a clash
-                        return self.reward_of_clash, True
+                        return self.reward_of_clash + living_reward, True
 
         if all([self.loc_to_int[self.agents_goals[i]] == next_local_states[i] for i in range(self.n_agents)]):
             # goal state
-            return self.reward_of_goal, True
+            return self.reward_of_goal + living_reward, True
 
         return self.reward_of_living, False
 
-    def step(self, a):
-        curr_location = self.state_to_locations(self.s)
-        vector_a = integer_action_to_vector(a, self.n_agents)
-        n_agents_stayed_in_goals = len([i for i in range(self.n_agents)
-                                        if curr_location[i] == self.agents_goals[i] and vector_a[i] == STAY])
+    def step(self, a: int):
         state_locations = self.state_to_locations(self.s)
         if self.is_terminal(state_locations):
             return self.s, 0, True, {"prob": 0}
-
-        self.soc += self.n_agents - n_agents_stayed_in_goals
-        self.makespan += 1
 
         single_agent_actions = [ACTIONS_TO_INT[single_agent_action]
                                 for single_agent_action in integer_action_to_vector(a, self.n_agents)]
@@ -333,9 +330,7 @@ class MapfEnv(gym.Env):
         # next_local_states holds a list of the local states of the agents
         next_locations = tuple([self.valid_locations[local_state] for local_state in next_local_states])
         new_state = self.locations_to_state(next_locations)
-        reward, done = self.calc_transition_reward_from_local_states(single_agent_states, None, next_local_states)
-        # Perform the step
-        # new_state, reward, done, info = super().step(a)
+        reward, done = self.calc_transition_reward_from_local_states(single_agent_states, a, next_local_states)
 
         self.s = new_state
         return new_state, reward, done, {"prob": total_prob}
@@ -364,8 +359,6 @@ class MapfEnv(gym.Env):
 
     def reset(self):
         self.lastaction = None
-        self.makespan = 0
-        self.soc = 0
         self.s = self.locations_to_state(self.agents_starts)
         return self.s
 
@@ -454,6 +447,19 @@ class MapfEnv(gym.Env):
         self.locations_to_state_cache[locs] = ret
         return ret
 
+    def predecessors(self, s: int):
+        ret = self.predecessors_cache.get(s, None)
+        if ret is not None:
+            return ret
+
+        ret = set([self.locations_to_state(loc_vec) for loc_vec in
+                   self._multiple_locations_predecessors(self.state_to_locations(s))])
+
+        self.predecessors_cache[s] = ret
+        return ret
+
+    # Private Methods
+
     def _single_location_predecessors(self, loc):
         ret = self._single_location_predecessors_cache.get(loc, None)
         if ret is not None:
@@ -480,16 +486,16 @@ class MapfEnv(gym.Env):
                 for partial_location in self._multiple_locations_predecessors(locs[1:])
                 for first_loc in head]
 
-    def predecessors(self, s: int):
-        ret = self.predecessors_cache.get(s, None)
-        if ret is not None:
-            return ret
+    def _living_reward(self, prev_locations: tuple, a: int):
+        if self.optimization_criteria == OptimizationCriteria.Makespan:
+            return self.reward_of_living
 
-        ret = set([self.locations_to_state(loc_vec) for loc_vec in
-                   self._multiple_locations_predecessors(self.state_to_locations(s))])
+        # SoC - an agent "pays" REWARD_OF_LIVING unless it reached its goal state and stayed there
+        vector_a = integer_action_to_vector(a, self.n_agents)
+        n_agents_stayed_in_goals = len([i for i in range(self.n_agents)
+                                        if prev_locations[i] == self.agents_goals[i] and vector_a[i] == STAY])
 
-        self.predecessors_cache[s] = ret
-        return ret
+        return (self.n_agents - n_agents_stayed_in_goals) * self.reward_of_living
 
     def _get_transitions(self, s, a):
         """Return transitions given a state and an action from that state

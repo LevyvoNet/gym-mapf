@@ -2,7 +2,8 @@ import unittest
 import os.path
 
 from gym_mapf.envs.mapf_env import (MapfEnv,
-                                    vector_action_to_integer)
+                                    vector_action_to_integer,
+                                    OptimizationCriteria)
 from gym_mapf.envs.grid import MapfGrid
 from gym_mapf.envs.utils import parse_map_file, create_mapf_env
 from gym_mapf.envs import *
@@ -11,7 +12,7 @@ from copy import copy
 
 FAIL_PROB = 0.2
 REWARD_OF_CLASH = -1000.0
-REWARD_OF_LIVING = 0.0
+REWARD_OF_LIVING = -1.0
 REWARD_OF_GOAL = 100.0
 
 
@@ -32,7 +33,7 @@ class MapfEnvTest(unittest.TestCase):
         agents_goals = ((0, 2), (5, 7))
 
         env = MapfEnv(grid, 2, agent_starts, agents_goals,
-                      FAIL_PROB, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+                      FAIL_PROB, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING, OptimizationCriteria.Makespan)
 
         first_step_transitions = [(round(prob, 2), next_state, reward, done)
                                   for (prob, next_state, reward, done) in
@@ -57,7 +58,7 @@ class MapfEnvTest(unittest.TestCase):
 
         # [(0,0), (7,7)]
         self.assertEqual(set(second_step_transitions), {
-            (0.64, env.locations_to_state(((0, 2), (5, 7))), REWARD_OF_GOAL, True),  # (RIGHT, UP)
+            (0.64, env.locations_to_state(((0, 2), (5, 7))), REWARD_OF_LIVING + REWARD_OF_GOAL, True),  # (RIGHT, UP)
             (0.08, env.locations_to_state(((1, 1), (5, 7))), REWARD_OF_LIVING, False),  # (DOWN, UP)
             (0.08, env.locations_to_state(((0, 1), (5, 7))), REWARD_OF_LIVING, False),  # (UP, UP)
             (0.08, env.locations_to_state(((0, 2), (6, 7))), REWARD_OF_LIVING, False),  # (RIGHT, RIGHT)
@@ -78,54 +79,13 @@ class MapfEnvTest(unittest.TestCase):
         agents_goals = ((7, 7), (5, 5))
 
         env = MapfEnv(grid, 2, agent_starts, agents_goals,
-                      FAIL_PROB, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+                      FAIL_PROB, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING, OptimizationCriteria.Makespan)
         transitions = [(round(prob, 2), next_state, reward, done)
                        for (prob, next_state, reward, done)
                        in env.P[env.s][vector_action_to_integer((RIGHT, LEFT))]]
 
-        self.assertIn((0.64, env.locations_to_state(((0, 1), (0, 1))), REWARD_OF_CLASH, True),
+        self.assertIn((0.64, env.locations_to_state(((0, 1), (0, 1))), REWARD_OF_LIVING + REWARD_OF_CLASH, True),
                       set(transitions))
-
-    def test_soc_makespan(self):
-        grid = MapfGrid([
-            '....',
-            '....',
-            '....',
-            '....'])
-
-        agent_starts = ((0, 0), (3, 3), (1, 1))
-        agents_goals = ((0, 1), (1, 3), (1, 2))
-
-        determinstic_env = MapfEnv(grid, 3, agent_starts, agents_goals,
-                                   0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
-
-        determinstic_env.step(vector_action_to_integer((RIGHT, UP, RIGHT)))
-        s, r, done, _ = determinstic_env.step(vector_action_to_integer((STAY, UP, STAY)))
-
-        self.assertEqual(s, determinstic_env.locations_to_state(((0, 1), (1, 3), (1, 2))))
-        self.assertEqual(r, REWARD_OF_GOAL)
-        self.assertEqual(determinstic_env.soc, 4)
-        self.assertEqual(determinstic_env.makespan, 2)
-
-    def test_soc_makespan_single_agent(self):
-        grid = MapfGrid([
-            '....',
-            '....',
-            '....',
-            '....',
-            '....'])
-        determinstic_env = MapfEnv(grid, 1, ((0, 0),), ((4, 0),),
-                                   0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
-
-        determinstic_env.step(vector_action_to_integer((DOWN,)))
-        determinstic_env.step(vector_action_to_integer((DOWN,)))
-        determinstic_env.step(vector_action_to_integer((DOWN,)))
-        s, r, done, _ = determinstic_env.step(vector_action_to_integer((DOWN,)))
-
-        self.assertEqual(s, determinstic_env.locations_to_state(((4, 0),)))
-        self.assertEqual(r, REWARD_OF_GOAL)
-        self.assertEqual(determinstic_env.soc, 4)
-        self.assertEqual(determinstic_env.makespan, 4)
 
     def test_copy_mapf_env(self):
         grid = MapfGrid([
@@ -135,35 +95,24 @@ class MapfEnvTest(unittest.TestCase):
             '....',
             '....'])
         env = MapfEnv(grid, 1, ((0, 0),), ((4, 0),),
-                      0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
-
-        self.assertEqual(env.soc, 0)
-        self.assertEqual(env.makespan, 0)
+                      0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING, OptimizationCriteria.Makespan)
 
         env.step(vector_action_to_integer((RIGHT,)))
 
-        self.assertEqual(env.soc, 1)
-        self.assertEqual(env.makespan, 1)
-
         env_copy = copy(env)
         env_copy.step(vector_action_to_integer((RIGHT,)))
-
-        self.assertEqual(env.soc, 1)
-        self.assertEqual(env.makespan, 1)
-        self.assertEqual(env_copy.soc, 2)
-        self.assertEqual(env_copy.makespan, 2)
 
     def test_action_from_terminal_state_has_no_effect(self):
         grid = MapfGrid(['..',
                          '..'])
         env = MapfEnv(grid, 1, ((0, 0),), ((1, 1),),
-                      0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+                      0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING, OptimizationCriteria.Makespan)
 
         state, reward, done, _ = env.step(vector_action_to_integer((RIGHT,)))
-        self.assertEqual(reward, 0)
+        self.assertEqual(reward, REWARD_OF_LIVING)
         self.assertEqual(done, False)
         state, reward, done, _ = env.step(vector_action_to_integer((DOWN,)))
-        self.assertEqual(reward, REWARD_OF_GOAL)
+        self.assertEqual(reward, REWARD_OF_LIVING + REWARD_OF_GOAL)
         self.assertEqual(done, True)
         # now, after the game is finished - do another step and make sure it has not effect.
         state_after_done, reward_after_done, done_after_done, _ = env.step(vector_action_to_integer((UP,)))
@@ -183,13 +132,13 @@ class MapfEnvTest(unittest.TestCase):
         agents_goals = ((0, 1), (0, 0))
 
         determinstic_env = MapfEnv(grid, 2, agents_starts, agents_goals,
-                                   0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+                                   0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING, OptimizationCriteria.Makespan)
 
         s, r, done, _ = determinstic_env.step(vector_action_to_integer((RIGHT, LEFT)))
 
         # Assert the game terminated in a collision
         self.assertEqual(done, True)
-        self.assertEqual(r, REWARD_OF_CLASH)
+        self.assertEqual(r, REWARD_OF_LIVING + REWARD_OF_CLASH)
 
     def test_predecessors(self):
         """Assert the predecessors function works correctly.
@@ -245,7 +194,7 @@ class MapfEnvTest(unittest.TestCase):
         agents_goals = ((0, 0), (2, 3))
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals,
-                      0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+                      0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING, OptimizationCriteria.Makespan)
 
         expected_locations = [
             ((0, 2), (2, 2)),
@@ -279,19 +228,135 @@ class MapfEnvTest(unittest.TestCase):
         grid = MapfGrid(['..',
                          '..'])
         env = MapfEnv(grid, 1, ((0, 0),), ((1, 1),),
-                      0.1, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+                      0.1, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING, OptimizationCriteria.Makespan)
 
         a = vector_action_to_integer((STAY, STAY))
         self.assertEqual(env.P[env.s][a], [(1, env.s, REWARD_OF_LIVING, False)])
 
     def test_single_agent_action_transitions(self):
-        env = create_mapf_env('empty-8-8', 1, 2, 0.2, -1000, -1, -1)
+        env = create_mapf_env('empty-8-8', 1, 2, 0.2, -1000, -1, -1, OptimizationCriteria.Makespan)
 
         local_action = ACTIONS.index('RIGHT')
 
         eq_joint_action = vector_action_to_integer(('STAY', 'RIGHT'))
 
         self.assertEqual(env.P[env.s][eq_joint_action], env.get_single_agent_transitions(env.s, 1, local_action))
+
+    def test_reward_multiagent_soc(self):
+        grid = MapfGrid([
+            '....',
+            '....',
+            '....',
+            '....'])
+
+        start_locations = ((0, 0), (3, 3), (1, 1))
+        goal_locations = ((0, 1), (1, 3), (1, 2))
+
+        determinstic_env = MapfEnv(grid,
+                                   3,
+                                   start_locations,
+                                   goal_locations,
+                                   0,
+                                   REWARD_OF_CLASH,
+                                   REWARD_OF_GOAL,
+                                   REWARD_OF_LIVING,
+                                   OptimizationCriteria.SoC)
+        total_reward = 0
+        right_up_right = vector_action_to_integer((RIGHT, UP, RIGHT))
+        s, r, done, _ = determinstic_env.step(right_up_right)
+        total_reward += r
+        self.assertFalse(done)
+
+        stay_up_stay = vector_action_to_integer((STAY, UP, STAY))
+        s, r, done, _ = determinstic_env.step(stay_up_stay)
+        total_reward += r
+        self.assertEqual(s, determinstic_env.locations_to_state(goal_locations))
+        self.assertTrue(done)
+        self.assertEqual(total_reward, 4 * REWARD_OF_LIVING + REWARD_OF_GOAL)
+
+    def test_reawrd_multiagent_makespan(self):
+        grid = MapfGrid([
+            '....',
+            '....',
+            '....',
+            '....'])
+
+        start_locations = ((0, 0), (3, 3), (1, 1))
+        goal_locations = ((0, 1), (1, 3), (1, 2))
+
+        determinstic_env = MapfEnv(grid, 3, start_locations, goal_locations, 0, REWARD_OF_CLASH, REWARD_OF_GOAL,
+                                   REWARD_OF_LIVING,
+                                   OptimizationCriteria.Makespan)
+
+        total_reward = 0
+        right_up_right = vector_action_to_integer((RIGHT, UP, RIGHT))
+        s, r, done, _ = determinstic_env.step(right_up_right)
+        total_reward += r
+        self.assertFalse(done)
+
+        stay_up_stay = vector_action_to_integer((STAY, UP, STAY))
+        s, r, done, _ = determinstic_env.step(stay_up_stay)
+        total_reward += r
+        self.assertEqual(s, determinstic_env.locations_to_state(goal_locations))
+        self.assertTrue(done)
+        self.assertEqual(total_reward, 2 * REWARD_OF_LIVING + REWARD_OF_GOAL)
+
+    def test_reward_single_agent_soc(self):
+        grid = MapfGrid([
+            '....',
+            '....',
+            '....',
+            '....',
+            '....'])
+
+        start_locations = ((0, 0),)
+        goal_locations = ((4, 0),)
+
+        determinstic_env = MapfEnv(grid, 1, start_locations, goal_locations, 0, REWARD_OF_CLASH, REWARD_OF_GOAL,
+                                   REWARD_OF_LIVING, OptimizationCriteria.SoC)
+        total_reward = 0
+        down_action = vector_action_to_integer((DOWN,))
+        _, r, _, _ = determinstic_env.step(down_action)
+        total_reward += r
+        _, r, _, _ = determinstic_env.step(down_action)
+        total_reward += r
+        _, r, _, _ = determinstic_env.step(down_action)
+        total_reward += r
+        s, r, done, _ = determinstic_env.step(down_action)
+        total_reward += r
+
+        self.assertEqual(s, determinstic_env.locations_to_state(goal_locations))
+        self.assertEqual(r, REWARD_OF_LIVING + REWARD_OF_GOAL)
+        self.assertEqual(total_reward, REWARD_OF_GOAL + 4 * REWARD_OF_LIVING)
+
+    def test_reward_single_agent_makespan(self):
+        grid = MapfGrid([
+            '....',
+            '....',
+            '....',
+            '....',
+            '....'])
+
+        start_locations = ((0, 0),)
+        goal_locations = ((4, 0),)
+
+        determinstic_env = MapfEnv(grid, 1, start_locations, goal_locations, 0, REWARD_OF_CLASH, REWARD_OF_GOAL,
+                                   REWARD_OF_LIVING, OptimizationCriteria.Makespan)
+        total_reward = 0
+        down_action = vector_action_to_integer((DOWN,))
+        _, r, _, _ = determinstic_env.step(down_action)
+        total_reward += r
+        _, r, _, _ = determinstic_env.step(down_action)
+        total_reward += r
+        _, r, _, _ = determinstic_env.step(down_action)
+        total_reward += r
+        s, r, done, _ = determinstic_env.step(down_action)
+        total_reward += r
+
+        self.assertEqual(s, determinstic_env.locations_to_state(goal_locations))
+        self.assertEqual(r, REWARD_OF_LIVING + REWARD_OF_GOAL)
+
+        self.assertEqual(total_reward, REWARD_OF_GOAL + 4 * REWARD_OF_LIVING)
 
 
 if __name__ == '__main__':

@@ -43,7 +43,8 @@ def create_sanity_mapf_env(n_rooms,
                            fail_prob,
                            reward_of_clash,
                            reward_of_goal,
-                           reward_of_living):
+                           reward_of_living,
+                           optimization_criteria):
     single_room = ['.' * room_size] * room_size
     grid_lines = single_room[:]
     n_agents_per_room = int(n_agents / n_rooms)
@@ -93,7 +94,8 @@ def create_sanity_mapf_env(n_rooms,
                    fail_prob,
                    reward_of_clash,
                    reward_of_goal,
-                   reward_of_living)
+                   reward_of_living,
+                   optimization_criteria)
 
 
 def create_mapf_env(map_name,
@@ -102,7 +104,8 @@ def create_mapf_env(map_name,
                     fail_prob,
                     reward_of_clash,
                     reward_of_goal,
-                    reward_of_living):
+                    reward_of_living,
+                    optimization_criteria):
     if map_name.startswith('sanity'):
         [n_rooms, room_size] = [int(n) for n in map_name.split('-')[1:]]
         return create_sanity_mapf_env(n_rooms,
@@ -111,7 +114,8 @@ def create_mapf_env(map_name,
                                       fail_prob,
                                       reward_of_clash,
                                       reward_of_goal,
-                                      reward_of_living)
+                                      reward_of_living,
+                                      optimization_criteria)
 
     map_file, scen_file = map_name_to_files(map_name, scen_id)
     grid = MapfGrid(parse_map_file(map_file))
@@ -125,7 +129,8 @@ def create_mapf_env(map_name,
                   fail_prob,
                   reward_of_clash,
                   reward_of_goal,
-                  reward_of_living)
+                  reward_of_living,
+                  optimization_criteria)
 
     return env
 
@@ -148,7 +153,8 @@ def get_local_view(env: MapfEnv, agent_indexes: list, **kwargs):
                    fail_prob,
                    env.reward_of_clash,
                    env.reward_of_goal,
-                   env.reward_of_living)
+                   env.reward_of_living,
+                   env.optimization_criteria)
 
 
 def mapf_env_load_from_json(json_str: str) -> MapfEnv:
