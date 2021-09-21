@@ -280,24 +280,8 @@ class MapfEnv(gym.Env):
     def calc_transition_reward_from_local_states(self, prev_local_states, action: int, next_local_states):
         living_reward = self._living_reward(prev_local_states, action)
 
-        states_data = defaultdict(empty_indices)
-        for i, (prev_state, next_state) in enumerate(zip(prev_local_states, next_local_states)):
-            states_data[prev_state]['prev'].append(i)
-            states_data[next_state]['next'].append(i)
-
-            if len(states_data[next_state]['next']) > 1:
-                # collision happened
-                return self.reward_of_clash + living_reward, True
-
-            if len(states_data[next_state]['next']) > 0 and len(states_data[next_state]['prev']) > 0:
-                # there is an agent in next_state and there was before as well, find out if it the same one
-                next_agent = states_data[next_state]['next'][0]
-                prev_agent = states_data[next_state]['prev'][0]
-                if next_agent != prev_agent:
-                    # It is not the same, check out if the new agent switched with the old one
-                    if prev_local_states[next_agent] == next_local_states[prev_agent]:
-                        # switch between agents is also a clash
-                        return self.reward_of_clash + living_reward, True
+        if self._is_collision_transition_from_local_states(prev_local_states, next_local_states):
+            return self.reward_of_clash + living_reward, True
 
         if all([self.loc_to_int[self.agents_goals[i]] == next_local_states[i] for i in range(self.n_agents)]):
             # goal state
@@ -457,6 +441,40 @@ class MapfEnv(gym.Env):
 
         self.predecessors_cache[s] = ret
         return ret
+
+    def _is_collision_transition_from_local_states(self, prev_local_states, next_local_states):
+        states_data = defaultdict(empty_indices)
+        for i, (prev_state, next_state) in enumerate(zip(prev_local_states, next_local_states)):
+            states_data[prev_state]['prev'].append(i)
+            states_data[next_state]['next'].append(i)
+
+            if len(states_data[next_state]['next']) > 1:
+                # collision happened
+                return True
+
+            if len(states_data[next_state]['next']) > 0 and len(states_data[next_state]['prev']) > 0:
+                # there is an agent in next_state and there was before as well, find out if it the same one
+                next_agent = states_data[next_state]['next'][0]
+                prev_agent = states_data[next_state]['prev'][0]
+                if next_agent != prev_agent:
+                    # It is not the same, check out if the new agent switched with the old one
+                    if prev_local_states[next_agent] == next_local_states[prev_agent]:
+                        # switch between agents is also a clash
+                        return True
+
+        return False
+
+    @functools.lru_cache(maxsize=None)
+    def is_collision_transition(self, s: int, next_state: int):
+        prev_locations = self.state_to_locations(s)
+        prev_local_states = [self.loc_to_int[single_agent_loc]
+                             for single_agent_loc in prev_locations]
+
+        next_locations = self.state_to_locations(next_state)
+        next_local_states = [self.loc_to_int[single_agent_loc]
+                             for single_agent_loc in next_locations]
+
+        return self._is_collision_transition_from_local_states(prev_local_states, next_local_states)
 
     # Private Methods
 
