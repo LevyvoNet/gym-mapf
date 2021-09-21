@@ -515,6 +515,8 @@ class MapfEnv(gym.Env):
 
         return (self.n_agents - n_agents_stayed_in_goals) * self.reward_of_living
 
+    # TODO: consider return as part of the transition whether there has been a collision or not for efficiency. At the
+    #   current the solver calls is_collision_transition which opens up the locations for each transition
     def _get_transitions(self, s, a):
         """Return transitions given a state and an action from that state
 
