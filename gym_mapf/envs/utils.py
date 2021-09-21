@@ -40,8 +40,7 @@ def parse_map_file(map_file):
 def create_sanity_mapf_env(n_rooms,
                            room_size,
                            n_agents,
-                           right_fail,
-                           left_fail,
+                           fail_prob,
                            reward_of_clash,
                            reward_of_goal,
                            reward_of_living):
@@ -91,22 +90,25 @@ def create_sanity_mapf_env(n_rooms,
                    n_agents,
                    agents_starts,
                    agents_goals,
-                   right_fail,
-                   left_fail,
+                   fail_prob,
                    reward_of_clash,
                    reward_of_goal,
                    reward_of_living)
 
 
-def create_mapf_env(map_name, scen_id, n_agents, right_fail, left_fail, reward_of_clash, reward_of_goal,
+def create_mapf_env(map_name,
+                    scen_id,
+                    n_agents,
+                    fail_prob,
+                    reward_of_clash,
+                    reward_of_goal,
                     reward_of_living):
     if map_name.startswith('sanity'):
         [n_rooms, room_size] = [int(n) for n in map_name.split('-')[1:]]
         return create_sanity_mapf_env(n_rooms,
                                       room_size,
                                       n_agents,
-                                      right_fail,
-                                      left_fail,
+                                      fail_prob,
                                       reward_of_clash,
                                       reward_of_goal,
                                       reward_of_living)
@@ -116,15 +118,20 @@ def create_mapf_env(map_name, scen_id, n_agents, right_fail, left_fail, reward_o
     agents_starts, agents_goals = parse_scen_file(scen_file, n_agents)
     n_agents = len(agents_goals)
 
-    env = MapfEnv(grid, n_agents, agents_starts, agents_goals,
-                  right_fail, left_fail, reward_of_clash, reward_of_goal, reward_of_living)
+    env = MapfEnv(grid,
+                  n_agents,
+                  agents_starts,
+                  agents_goals,
+                  fail_prob,
+                  reward_of_clash,
+                  reward_of_goal,
+                  reward_of_living)
 
     return env
 
 
 def get_local_view(env: MapfEnv, agent_indexes: list, **kwargs):
-    right_fail = kwargs.get('right_fail', env.right_fail)
-    left_fail = kwargs.get('left_fail', env.left_fail)
+    fail_prob = kwargs.get('fail_prob', env.fail_prob)
 
     vector_local_agents_starts = tuple(itertools.compress(env.agents_starts,
                                                           [1 if x in agent_indexes else 0
@@ -134,8 +141,14 @@ def get_local_view(env: MapfEnv, agent_indexes: list, **kwargs):
                                                          [1 if x in agent_indexes else 0
                                                           for x in range(env.n_agents)]))
 
-    return MapfEnv(env.grid, len(agent_indexes), vector_local_agents_starts, vector_local_agents_goals,
-                   right_fail, left_fail, env.reward_of_clash, env.reward_of_goal, env.reward_of_living)
+    return MapfEnv(env.grid,
+                   len(agent_indexes),
+                   vector_local_agents_starts,
+                   vector_local_agents_goals,
+                   fail_prob,
+                   env.reward_of_clash,
+                   env.reward_of_goal,
+                   env.reward_of_living)
 
 
 def mapf_env_load_from_json(json_str: str) -> MapfEnv:

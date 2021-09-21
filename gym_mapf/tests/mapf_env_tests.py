@@ -9,8 +9,7 @@ from gym_mapf.envs import *
 from gym_mapf.tests import MAPS_DIR
 from copy import copy
 
-RIGHT_FAIL = 0.1
-LEFT_FAIL = 0.1
+FAIL_PROB = 0.2
 REWARD_OF_CLASH = -1000.0
 REWARD_OF_LIVING = 0.0
 REWARD_OF_GOAL = 100.0
@@ -33,7 +32,7 @@ class MapfEnvTest(unittest.TestCase):
         agents_goals = ((0, 2), (5, 7))
 
         env = MapfEnv(grid, 2, agent_starts, agents_goals,
-                      RIGHT_FAIL, LEFT_FAIL, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+                      FAIL_PROB, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
 
         first_step_transitions = [(round(prob, 2), next_state, reward, done)
                                   for (prob, next_state, reward, done) in
@@ -79,7 +78,7 @@ class MapfEnvTest(unittest.TestCase):
         agents_goals = ((7, 7), (5, 5))
 
         env = MapfEnv(grid, 2, agent_starts, agents_goals,
-                      RIGHT_FAIL, LEFT_FAIL, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+                      FAIL_PROB, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
         transitions = [(round(prob, 2), next_state, reward, done)
                        for (prob, next_state, reward, done)
                        in env.P[env.s][vector_action_to_integer((RIGHT, LEFT))]]
@@ -98,7 +97,7 @@ class MapfEnvTest(unittest.TestCase):
         agents_goals = ((0, 1), (1, 3), (1, 2))
 
         determinstic_env = MapfEnv(grid, 3, agent_starts, agents_goals,
-                                   0.0, 0.0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+                                   0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
 
         determinstic_env.step(vector_action_to_integer((RIGHT, UP, RIGHT)))
         s, r, done, _ = determinstic_env.step(vector_action_to_integer((STAY, UP, STAY)))
@@ -116,7 +115,7 @@ class MapfEnvTest(unittest.TestCase):
             '....',
             '....'])
         determinstic_env = MapfEnv(grid, 1, ((0, 0),), ((4, 0),),
-                                   0.0, 0.0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+                                   0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
 
         determinstic_env.step(vector_action_to_integer((DOWN,)))
         determinstic_env.step(vector_action_to_integer((DOWN,)))
@@ -136,7 +135,7 @@ class MapfEnvTest(unittest.TestCase):
             '....',
             '....'])
         env = MapfEnv(grid, 1, ((0, 0),), ((4, 0),),
-                      0.0, 0.0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+                      0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
 
         self.assertEqual(env.soc, 0)
         self.assertEqual(env.makespan, 0)
@@ -158,7 +157,7 @@ class MapfEnvTest(unittest.TestCase):
         grid = MapfGrid(['..',
                          '..'])
         env = MapfEnv(grid, 1, ((0, 0),), ((1, 1),),
-                      0.0, 0.0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+                      0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
 
         state, reward, done, _ = env.step(vector_action_to_integer((RIGHT,)))
         self.assertEqual(reward, 0)
@@ -184,7 +183,7 @@ class MapfEnvTest(unittest.TestCase):
         agents_goals = ((0, 1), (0, 0))
 
         determinstic_env = MapfEnv(grid, 2, agents_starts, agents_goals,
-                                   0.0, 0.0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+                                   0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
 
         s, r, done, _ = determinstic_env.step(vector_action_to_integer((RIGHT, LEFT)))
 
@@ -246,7 +245,7 @@ class MapfEnvTest(unittest.TestCase):
         agents_goals = ((0, 0), (2, 3))
 
         env = MapfEnv(grid, 2, agents_starts, agents_goals,
-                      0.0, 0.0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+                      0, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
 
         expected_locations = [
             ((0, 2), (2, 2)),
@@ -280,13 +279,13 @@ class MapfEnvTest(unittest.TestCase):
         grid = MapfGrid(['..',
                          '..'])
         env = MapfEnv(grid, 1, ((0, 0),), ((1, 1),),
-                      0.05, 0.05, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
+                      0.1, REWARD_OF_CLASH, REWARD_OF_GOAL, REWARD_OF_LIVING)
 
         a = vector_action_to_integer((STAY, STAY))
         self.assertEqual(env.P[env.s][a], [(1, env.s, REWARD_OF_LIVING, False)])
 
     def test_single_agent_action_transitions(self):
-        env = create_mapf_env('empty-8-8', 1, 2, 0.1, 0.1, -1000, -1, -1)
+        env = create_mapf_env('empty-8-8', 1, 2, 0.2, -1000, -1, -1)
 
         local_action = ACTIONS.index('RIGHT')
 

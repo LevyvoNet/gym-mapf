@@ -6,8 +6,11 @@ import functools
 import numpy as np
 from colorama import Fore
 from gym import spaces
-from gym.envs.toy_text.discrete import DiscreteEnv, categorical_sample
+import gym
+from gym.envs.toy_text.discrete import categorical_sample
+from gym.utils.seeding import np_random
 
+from gym_mapf.envs.grid import MapfGrid
 from gym_mapf.envs import *
 from gym_mapf.envs.grid import EmptyCell, ObstacleCell
 
@@ -29,9 +32,7 @@ def empty_indices():
     return {'prev': [], 'next': []}
 
 
-np_random = np.random.RandomState()
-
-np_random.seed(0)
+GYM_MAPF_SEED = 42
 
 
 def stay_if_hit_obstacle(exec_func):
@@ -106,19 +107,29 @@ def function_to_get_item_of_object(func):
     return ret_type()
 
 
-class MapfEnv(DiscreteEnv):
-    # TODO: return to call super c'tor
-    def __init__(self, grid, n_agents, agents_starts, agents_goals,
-                 right_fail, left_fail, reward_of_clash, reward_of_goal, reward_of_living):
-
+class MapfEnv(gym.Env):
+    def __init__(self,
+                 grid: MapfGrid,
+                 n_agents: int,
+                 start_state: tuple,
+                 goal_state: tuple,
+                 fail_prob: float,
+                 reward_of_collision: float,
+                 reward_of_goal: float,
+                 reward_of_living: float):
+        # Constants
         self.grid = grid
-        self.agents_starts, self.agents_goals = agents_starts, agents_goals
+        self.agents_starts, self.agents_goals = start_state, goal_state
         self.n_agents = n_agents
-        self.right_fail = right_fail
-        self.left_fail = left_fail
-        self.reward_of_clash = reward_of_clash
+        self.fail_prob = fail_prob
+        self.right_fail = self.fail_prob / 2
+        self.left_fail = self.fail_prob / 2
+        self.reward_of_clash = reward_of_collision
         self.reward_of_goal = reward_of_goal
         self.reward_of_living = reward_of_living
+
+        # Random Parameters
+        self.np_random, self.seed = np_random(GYM_MAPF_SEED)
 
         # Initialize the match between state numbers and locations on grid
         self.valid_locations = [loc for loc in self.grid if self.grid[loc] is EmptyCell]
@@ -144,7 +155,6 @@ class MapfEnv(DiscreteEnv):
         self.transitions_cache = {}
         self.s_transitions_cache = {}
 
-        self.seed()
         self.reset()
 
         # This will throw an exception if the goal coordinates are illegal (an obstacle)
@@ -154,14 +164,6 @@ class MapfEnv(DiscreteEnv):
         self.makespan = 0
         self.soc = 0
         self.lastaction = None  # for rendering
-        self.grid = grid
-        self.agents_starts, self.agents_goals = agents_starts, agents_goals
-        self.n_agents = n_agents
-        self.right_fail = right_fail
-        self.left_fail = left_fail
-        self.reward_of_clash = reward_of_clash
-        self.reward_of_goal = reward_of_goal
-        self.reward_of_living = reward_of_living
 
         # Initialize the match between state numbers and locations on grid
         self.valid_locations = [loc for loc in self.grid if self.grid[loc] is EmptyCell]
@@ -187,7 +189,6 @@ class MapfEnv(DiscreteEnv):
         self.transitions_cache = {}
         self.s_transitions_cache = {}
 
-        self.seed()
         self.reset()
 
         # This will throw an exception if the goal coordinates are illegal (an obstacle)
