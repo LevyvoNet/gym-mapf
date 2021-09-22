@@ -281,13 +281,13 @@ class MapfEnv(gym.Env):
         living_reward = self._living_reward(prev_local_states, action)
 
         if self._is_collision_transition_from_local_states(prev_local_states, next_local_states):
-            return self.reward_of_clash + living_reward, True
+            return self.reward_of_clash + living_reward, True, True
 
         if all([self.loc_to_int[self.agents_goals[i]] == next_local_states[i] for i in range(self.n_agents)]):
             # goal state
-            return self.reward_of_goal + living_reward, True
+            return self.reward_of_goal + living_reward, True, False
 
-        return self.reward_of_living, False
+        return self.reward_of_living, False, False
 
     def step(self, a: int):
         state_locations = self.state_to_locations(self.s)
@@ -314,32 +314,32 @@ class MapfEnv(gym.Env):
         # next_local_states holds a list of the local states of the agents
         next_locations = tuple([self.valid_locations[local_state] for local_state in next_local_states])
         new_state = self.locations_to_state(next_locations)
-        reward, done = self.calc_transition_reward_from_local_states(single_agent_states, a, next_local_states)
+        reward, done, collision = self.calc_transition_reward_from_local_states(single_agent_states, a, next_local_states)
 
         self.s = new_state
-        return new_state, reward, done, {"prob": total_prob}
+        return new_state, reward, done, {"prob": total_prob, "collision": collision}
 
-    def get_single_agent_transitions(self, joint_state, agent_idx, a):
-        agents_locations = self.state_to_locations(joint_state)
-        local_states = [self.loc_to_int[loc] for loc in agents_locations]
-        transitions = []
-        for (_, next_state, prob) in self.single_agent_movements(local_states[agent_idx], a):
-            next_location = self.valid_locations[next_state]
-            next_agents_locations = agents_locations[:agent_idx] + (next_location,) + agents_locations[agent_idx + 1:]
-            next_joint_state = self.locations_to_state(next_agents_locations)
-            reward, done = self.calc_transition_reward_from_local_states(
-                local_states,
-                None,
-                local_states[:agent_idx] + [next_state] + local_states[agent_idx + 1:])
-            transitions.append((prob, next_joint_state, reward, done))
-
-        return transitions
-
-    def step_single_agent(self, agent_idx, a):
-        transitions = self.get_single_agent_transitions(self.s, agent_idx, a)
-        i = categorical_sample([t[0] for t in transitions], self.np_random)
-        p, new_state, r, d = transitions[i]
-        return new_state, r, d, {"prob": p}
+    # def get_single_agent_transitions(self, joint_state, agent_idx, a):
+    #     agents_locations = self.state_to_locations(joint_state)
+    #     local_states = [self.loc_to_int[loc] for loc in agents_locations]
+    #     transitions = []
+    #     for (_, next_state, prob) in self.single_agent_movements(local_states[agent_idx], a):
+    #         next_location = self.valid_locations[next_state]
+    #         next_agents_locations = agents_locations[:agent_idx] + (next_location,) + agents_locations[agent_idx + 1:]
+    #         next_joint_state = self.locations_to_state(next_agents_locations)
+    #         reward, done, collision = self.calc_transition_reward_from_local_states(
+    #             local_states,
+    #             None,
+    #             local_states[:agent_idx] + [next_state] + local_states[agent_idx + 1:])
+    #         transitions.append(((prob, collision), next_joint_state, reward, done))
+    #
+    #     return transitions
+    #
+    # def step_single_agent(self, agent_idx, a):
+    #     transitions = self.get_single_agent_transitions(self.s, agent_idx, a)
+    #     i = categorical_sample([t[0] for t in transitions], self.np_random)
+    #     p, new_state, r, d = transitions[i]
+    #     return new_state, r, d, {"prob": p}
 
     def reset(self):
         self.lastaction = None
@@ -464,18 +464,6 @@ class MapfEnv(gym.Env):
 
         return False
 
-    @functools.lru_cache(maxsize=None)
-    def is_collision_transition(self, s: int, next_state: int):
-        prev_locations = self.state_to_locations(s)
-        prev_local_states = [self.loc_to_int[single_agent_loc]
-                             for single_agent_loc in prev_locations]
-
-        next_locations = self.state_to_locations(next_state)
-        next_local_states = [self.loc_to_int[single_agent_loc]
-                             for single_agent_loc in next_locations]
-
-        return self._is_collision_transition_from_local_states(prev_local_states, next_local_states)
-
     # Private Methods
 
     def _single_location_predecessors(self, loc):
@@ -520,7 +508,7 @@ class MapfEnv(gym.Env):
     def _get_transitions(self, s, a):
         """Return transitions given a state and an action from that state
 
-        The transitions are in form of (prob, new_state, reward, done)
+        The transitions are in form of ((p, collision)), new_state, reward, done)
         """
         s_a_cache = self.transitions_cache.get(s, None)
         if s_a_cache is not None:
@@ -530,7 +518,7 @@ class MapfEnv(gym.Env):
 
         state_locations = self.state_to_locations(s)
         if self.is_terminal(state_locations):
-            return [(1.0, s, 0, True)]
+            return [((1.0, False), s, 0, True)]
 
         single_agent_actions = [ACTIONS_TO_INT[single_agent_action]
                                 for single_agent_action in integer_action_to_vector(a, self.n_agents)]
@@ -548,10 +536,10 @@ class MapfEnv(gym.Env):
 
             multiagent_next_state = self.locations_to_state(multiagent_next_locations)
 
-            reward, done = self.calc_transition_reward_from_local_states([x[0] for x in comb], a,
-                                                                         [x[1] for x in comb])
+            reward, done, collision = self.calc_transition_reward_from_local_states([x[0] for x in comb], a,
+                                                                                    [x[1] for x in comb])
 
-            transitions.append((prob, multiagent_next_state, reward, done))
+            transitions.append(((prob, collision), multiagent_next_state, reward, done))
 
         if s_a_cache is None:
             self.transitions_cache[s] = {}
