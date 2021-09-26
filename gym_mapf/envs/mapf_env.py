@@ -287,7 +287,7 @@ class MapfEnv(gym.Env):
             # goal state
             return self.reward_of_goal + living_reward, True, False
 
-        return self.reward_of_living, False, False
+        return living_reward, False, False
 
     def step(self, a: int):
         state_locations = self.state_to_locations(self.s)
@@ -314,7 +314,8 @@ class MapfEnv(gym.Env):
         # next_local_states holds a list of the local states of the agents
         next_locations = tuple([self.valid_locations[local_state] for local_state in next_local_states])
         new_state = self.locations_to_state(next_locations)
-        reward, done, collision = self.calc_transition_reward_from_local_states(single_agent_states, a, next_local_states)
+        reward, done, collision = self.calc_transition_reward_from_local_states(single_agent_states, a,
+                                                                                next_local_states)
 
         self.s = new_state
         return new_state, reward, done, {"prob": total_prob, "collision": collision}
@@ -492,14 +493,15 @@ class MapfEnv(gym.Env):
                 for partial_location in self._multiple_locations_predecessors(locs[1:])
                 for first_loc in head]
 
-    def _living_reward(self, prev_locations: tuple, a: int):
+    def _living_reward(self, prev_local_states: list, a: int):
         if self.optimization_criteria == OptimizationCriteria.Makespan:
             return self.reward_of_living
 
         # SoC - an agent "pays" REWARD_OF_LIVING unless it reached its goal state and stayed there
         vector_a = integer_action_to_vector(a, self.n_agents)
         n_agents_stayed_in_goals = len([i for i in range(self.n_agents)
-                                        if prev_locations[i] == self.agents_goals[i] and vector_a[i] == STAY])
+                                        if prev_local_states[i] == self.loc_to_int[self.agents_goals[i]]
+                                        and vector_a[i] == STAY])
 
         return (self.n_agents - n_agents_stayed_in_goals) * self.reward_of_living
 

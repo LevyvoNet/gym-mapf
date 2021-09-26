@@ -12,7 +12,7 @@ from copy import copy
 
 FAIL_PROB = 0.2
 REWARD_OF_CLASH = -1000.0
-REWARD_OF_LIVING = -1.0
+REWARD_OF_LIVING = -1
 REWARD_OF_GOAL = 100.0
 
 
@@ -263,9 +263,11 @@ class MapfEnvTest(unittest.TestCase):
                                    REWARD_OF_GOAL,
                                    REWARD_OF_LIVING,
                                    OptimizationCriteria.SoC)
+
         total_reward = 0
         right_up_right = vector_action_to_integer((RIGHT, UP, RIGHT))
         s, r, done, _ = determinstic_env.step(right_up_right)
+        self.assertEqual(r, -3)
         total_reward += r
         self.assertFalse(done)
 
@@ -275,6 +277,30 @@ class MapfEnvTest(unittest.TestCase):
         self.assertEqual(s, determinstic_env.locations_to_state(goal_locations))
         self.assertTrue(done)
         self.assertEqual(total_reward, 4 * REWARD_OF_LIVING + REWARD_OF_GOAL)
+
+    def test_reward_multiagent_soc_stay_actions(self):
+        grid = MapfGrid([
+            '....',
+            '....',
+            '....',
+            '....'])
+
+        start_locations = ((0, 0), (3, 3), (1, 1))
+        goal_locations = ((0, 1), (1, 3), (1, 2))
+
+        determinstic_env = MapfEnv(grid,
+                                   3,
+                                   start_locations,
+                                   goal_locations,
+                                   0,
+                                   REWARD_OF_CLASH,
+                                   REWARD_OF_GOAL,
+                                   REWARD_OF_LIVING,
+                                   OptimizationCriteria.SoC)
+
+        right_stay_stay = vector_action_to_integer((RIGHT, STAY, STAY))
+        s, r, done, _ = determinstic_env.step(right_stay_stay)
+        self.assertEqual(r, -3)
 
     def test_reawrd_multiagent_makespan(self):
         grid = MapfGrid([
