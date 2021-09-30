@@ -152,16 +152,6 @@ class MapfEnv(gym.Env):
         self.action_space = spaces.Discrete(self.nA)
         self.observation_space = spaces.Discrete(self.nS)
 
-        self.state_to_locations_cache = {}
-        self.locations_to_state_cache = {}
-        self.predecessors_cache = {}
-        self._single_location_predecessors_cache = {}
-        self.get_possible_actions_cache = {}
-        self.single_agent_movements_cache = {}
-        self.is_terminal_cache = {}
-        self.transitions_cache = {}
-        self.s_transitions_cache = {}
-
         self.reset()
 
         # This will throw an exception if the goal coordinates are illegal (an obstacle)
@@ -169,43 +159,9 @@ class MapfEnv(gym.Env):
 
         # State of the env (all of these values shall be reset during the reset method)
         self.lastaction = None  # for rendering
-        self.s = None
 
-        # Initialize the match between state numbers and locations on grid
-        self.valid_locations = [loc for loc in self.grid if self.grid[loc] is EmptyCell]
-        self.loc_to_int = {loc: i for i, loc in enumerate(self.valid_locations)}
-
-        self.nS = len(self.valid_locations) ** self.n_agents  # each agent may be in each of the cells.
-        self.nA = len(ACTIONS) ** self.n_agents
-
-        # This is an object which its __get_item__ expects s and returns an object which expects a
-        self.P = function_to_get_item_of_object(self._partial_get_transitions)
-        # self.P = StateGetter(self)
-
-        self.action_space = spaces.Discrete(self.nA)
-        self.observation_space = spaces.Discrete(self.nS)
-
-        self.state_to_locations_cache = {}
-        self.locations_to_state_cache = {}
-        self.predecessors_cache = {}
-        self._single_location_predecessors_cache = {}
-        self.get_possible_actions_cache = {}
-        self.single_agent_movements_cache = {}
-        self.is_terminal_cache = {}
-        self.transitions_cache = {}
-        self.s_transitions_cache = {}
-
-        # Set the env to its start state
-        self.reset()
-
-        # This will throw an exception if the goal coordinates are illegal (an obstacle)
-        self.locations_to_state(self.agents_goals)
-
+    @functools.lru_cache(maxsize=None)
     def single_agent_movements(self, local_state, a):
-        ret = self.single_agent_movements_cache.get((local_state, a), None)
-        if ret is not None:
-            return ret
-
         location = self.valid_locations[local_state]
         right_a, left_a = POSSIBILITIES[ACTIONS[a]]
         noised_actions_and_probability = [
@@ -225,14 +181,10 @@ class MapfEnv(gym.Env):
                 movements.append((local_state, next_state, prob))
                 movements_next_state.append(next_state)
 
-        self.single_agent_movements_cache[(local_state, a)] = movements
         return movements
 
+    @functools.lru_cache(maxsize=None)
     def get_possible_actions(self, a):
-        ret = self.get_possible_actions_cache.get(a, None)
-        if ret is not None:
-            return ret
-
         if len(a) == 1:
             right, left = POSSIBILITIES[a[0]]
             return [
@@ -253,17 +205,12 @@ class MapfEnv(gym.Env):
                 # The first action remained the same
             ]
 
-        self.get_possible_actions_cache[a] = res
         return res
 
+    @functools.lru_cache(maxsize=None)
     def is_terminal(self, s):
-        ret = self.is_terminal_cache.get(s, None)
-        if ret is not None:
-            return ret
-
         loc_count = Counter(s)
         if len([x for x in loc_count.values() if x > 1]) != 0:  # clash between two agents.
-            self.is_terminal_cache[s] = True
             return True
 
         goals = [loc == self.agents_goals[i]
@@ -271,10 +218,8 @@ class MapfEnv(gym.Env):
         all_in_goal = all(goals)
 
         if all_in_goal:
-            self.is_terminal_cache[s] = True
             return True
 
-        self.is_terminal_cache[s] = False
         return False
 
     def calc_transition_reward_from_local_states(self, prev_local_states, action: int, next_local_states):
@@ -296,19 +241,19 @@ class MapfEnv(gym.Env):
 
         single_agent_actions = [ACTIONS_TO_INT[single_agent_action]
                                 for single_agent_action in integer_action_to_vector(a, self.n_agents)]
-        single_agent_states = [self.loc_to_int[single_agent_loc]
-                               for single_agent_loc in state_locations]
+        single_agent_states = tuple([self.loc_to_int[single_agent_loc]
+                                     for single_agent_loc in state_locations])
         single_agent_movements = [self.single_agent_movements(single_agent_states[i], single_agent_actions[i])
                                   for i in range(self.n_agents)]
 
-        next_local_states = []
+        next_local_states = ()
         total_prob = 1
         # single_agent_movements is a list of [[(s1,s'1,p), (s1,s''1,p),...], [(s2,s'2,p), (s2,s''2,p),...]], ...]
         # We want to first choose the transition for agent1, then for agent2, etc.
         for agent_movements in single_agent_movements:
             probs = [t[2] for t in agent_movements]
             chosen_movement_idx = categorical_sample(probs, self.np_random)
-            next_local_states.append(agent_movements[chosen_movement_idx][1])
+            next_local_states = next_local_states + ((agent_movements[chosen_movement_idx][1]),)
             total_prob *= agent_movements[chosen_movement_idx][2]
 
         # next_local_states holds a list of the local states of the agents
@@ -410,68 +355,64 @@ class MapfEnv(gym.Env):
 
         print('')
 
+    @functools.lru_cache(maxsize=None)
     def state_to_locations(self, state):
-        if state in self.state_to_locations_cache:
-            return self.state_to_locations_cache[state]
-
         ret = integer_to_vector(state, [len(self.valid_locations)] * self.n_agents, self.n_agents,
                                 lambda x: self.valid_locations[x])
-        self.state_to_locations_cache[state] = ret
         return ret
 
+    @functools.lru_cache(maxsize=None)
     def locations_to_state(self, locs):
-        if locs in self.locations_to_state_cache:
-            return self.locations_to_state_cache[locs]
-
         if self.n_agents != len(locs):
-            raise AssertionError(
-                f'{locs} locations number is different than the number of agents {self.n_agents}')
+            raise AssertionError(f'{locs} locations number is different than the number of agents {self.n_agents}')
 
         local_state_vector = tuple([self.loc_to_int[loc] for loc in locs])
         ret = vector_to_integer(local_state_vector, [len(self.valid_locations)] * len(local_state_vector), lambda x: x)
-        self.locations_to_state_cache[locs] = ret
         return ret
 
+    @functools.lru_cache(maxsize=None)
     def predecessors(self, s: int):
-        ret = self.predecessors_cache.get(s, None)
-        if ret is not None:
-            return ret
+        return set([self.locations_to_state(loc_vec) for loc_vec in
+                    self._multiple_locations_predecessors(self.state_to_locations(s))])
 
-        ret = set([self.locations_to_state(loc_vec) for loc_vec in
-                   self._multiple_locations_predecessors(self.state_to_locations(s))])
-
-        self.predecessors_cache[s] = ret
-        return ret
-
+    @functools.lru_cache(maxsize=None)
     def _is_collision_transition_from_local_states(self, prev_local_states, next_local_states):
-        states_data = defaultdict(empty_indices)
-        for i, (prev_state, next_state) in enumerate(zip(prev_local_states, next_local_states)):
-            states_data[prev_state]['prev'].append(i)
-            states_data[next_state]['next'].append(i)
+        for a1,a2 in itertools.combinations(range(self.n_agents), r=2):
+            if a1 != a2:
+                if all([prev_local_states[a1] == next_local_states[a2],
+                        prev_local_states[a2] == next_local_states[a1]]):
+                    return True
 
-            if len(states_data[next_state]['next']) > 1:
-                # collision happened
-                return True
-
-            if len(states_data[next_state]['next']) > 0 and len(states_data[next_state]['prev']) > 0:
-                # there is an agent in next_state and there was before as well, find out if it the same one
-                next_agent = states_data[next_state]['next'][0]
-                prev_agent = states_data[next_state]['prev'][0]
-                if next_agent != prev_agent:
-                    # It is not the same, check out if the new agent switched with the old one
-                    if prev_local_states[next_agent] == next_local_states[prev_agent]:
-                        # switch between agents is also a clash
-                        return True
+                if next_local_states[a1] == next_local_states[a2]:
+                    return True
 
         return False
 
+        # states_data = defaultdict(empty_indices)
+        # for i, (prev_state, next_state) in enumerate(zip(prev_local_states, next_local_states)):
+        #     states_data[prev_state]['prev'].append(i)
+        #     states_data[next_state]['next'].append(i)
+        #
+        #     if len(states_data[next_state]['next']) > 1:
+        #         # collision happened
+        #         return True
+        #
+        #     if len(states_data[next_state]['next']) > 0 and len(states_data[next_state]['prev']) > 0:
+        #         # there is an agent in next_state and there was before as well, find out if it the same one
+        #         next_agent = states_data[next_state]['next'][0]
+        #         prev_agent = states_data[next_state]['prev'][0]
+        #         if next_agent != prev_agent:
+        #             # It is not the same, check out if the new agent switched with the old one
+        #             if prev_local_states[next_agent] == next_local_states[prev_agent]:
+        #                 # switch between agents is also a clash
+        #                 return True
+        #
+        # return False
+
     # Private Methods
 
+    @functools.lru_cache(maxsize=None)
     def _single_location_predecessors(self, loc):
-        ret = self._single_location_predecessors_cache.get(loc, None)
-        if ret is not None:
-            return ret
-
         by_up = execute_action(self.grid, loc, (DOWN,))
         by_down = execute_action(self.grid, loc, (UP,))
         by_right = execute_action(self.grid, loc, (LEFT,))
@@ -481,7 +422,6 @@ class MapfEnv(gym.Env):
         ret = [loc for loc in [by_up, by_down, by_right, by_left, by_stay]
                if self.grid[loc[0]] is EmptyCell]
 
-        self._single_location_predecessors_cache[loc] = ret
         return ret
 
     def _multiple_locations_predecessors(self, locs):
@@ -505,19 +445,12 @@ class MapfEnv(gym.Env):
 
         return (self.n_agents - n_agents_stayed_in_goals) * self.reward_of_living
 
-    # TODO: consider return as part of the transition whether there has been a collision or not for efficiency. At the
-    #   current the solver calls is_collision_transition which opens up the locations for each transition
+    @functools.lru_cache(maxsize=None)
     def _get_transitions(self, s, a):
         """Return transitions given a state and an action from that state
 
         The transitions are in form of ((p, collision)), new_state, reward, done)
         """
-        s_a_cache = self.transitions_cache.get(s, None)
-        if s_a_cache is not None:
-            ret = s_a_cache.get(a, None)
-            if ret is not None:
-                return ret
-
         state_locations = self.state_to_locations(s)
         if self.is_terminal(state_locations):
             return [((1.0, False), s, 0, True)]
@@ -538,22 +471,13 @@ class MapfEnv(gym.Env):
 
             multiagent_next_state = self.locations_to_state(multiagent_next_locations)
 
-            reward, done, collision = self.calc_transition_reward_from_local_states([x[0] for x in comb], a,
-                                                                                    [x[1] for x in comb])
+            reward, done, collision = self.calc_transition_reward_from_local_states(tuple([x[0] for x in comb]), a,
+                                                                                    tuple([x[1] for x in comb]))
 
             transitions.append(((prob, collision), multiagent_next_state, reward, done))
 
-        if s_a_cache is None:
-            self.transitions_cache[s] = {}
-        self.transitions_cache[s][a] = transitions
-
         return transitions
 
+    @functools.lru_cache(maxsize=None)
     def _partial_get_transitions(self, s):
-        ret = self.s_transitions_cache.get(s, None)
-        if ret is not None:
-            return ret
-
-        ret = function_to_get_item_of_object(functools.partial(self._get_transitions, s))
-        self.s_transitions_cache[s] = ret
-        return ret
+        return function_to_get_item_of_object(functools.partial(self._get_transitions, s))
