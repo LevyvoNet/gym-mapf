@@ -66,7 +66,7 @@ def create_sanity_mapf_env(n_rooms,
 
     for i in range(n_rooms):
         # Set the new start and goal locations according to current offset
-        map_file, scen_file = map_name_to_files(f'empty-{room_size}-{room_size}', (i + 1) % 26)
+        map_file, scen_file = map_name_to_files(f'empty-{room_size}-{room_size}', i% 25 +1)
         if i != n_rooms - 1:
             orig_agents_starts, orig_agents_goals = parse_scen_file(scen_file, n_agents_per_room)
         else:
