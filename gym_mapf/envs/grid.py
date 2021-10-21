@@ -21,6 +21,9 @@ class MapfGrid:
             new_line = [CHAR_TO_CELL[char] for char in line]
             self._map.append(new_line)
 
+        self.max_row = len(self._map) - 1
+        self.max_col = len(self._map[0]) - 1
+
     def __getitem__(self, *args):
         if type(args[0]) == int:
             return self._map[args[0]]
